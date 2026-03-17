@@ -136,7 +136,6 @@ export default function CreatePage() {
   const confirmChar = () => {
   if (pendingChar) {
     if (editingChar) {
-      // Update existing character
       setChars(prev => prev.map(c => c.id === editingChar.id ? pendingChar : c));
       setEditingChar(null);
     } else {
