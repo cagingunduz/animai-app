@@ -204,9 +204,15 @@ export default function CreatePage() {
                     </div>
                   ) : (
                     <div>
-                      <div className="aspect-[16/9] bg-[#161616] rounded-[10px] border border-[rgba(255,255,255,0.08)] flex items-center justify-center mb-5">
-                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
-                      </div>
+                      <div className="aspect-[16/9] bg-[#161616] rounded-[10px] border border-[rgba(255,255,255,0.08)] overflow-hidden mb-5">
+  {pendingChar?.imageUrl ? (
+    <img src={pendingChar.imageUrl} alt="Generated character" className="w-full h-full object-cover" />
+  ) : (
+    <div className="w-full h-full flex items-center justify-center">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
+    </div>
+  )}
+</div>
                       <div className="flex gap-3">
                         <button onClick={() => { setGenDone(false); setPendingChar(null); }} className="flex-1 py-2.5 border border-[rgba(255,255,255,0.12)] rounded-lg text-[13px] text-[rgba(255,255,255,0.6)] hover:text-white hover:border-[rgba(255,255,255,0.2)] transition-all">← Edit</button>
                         <button onClick={confirmChar} className="flex-1 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-all">Use this character →</button>
