@@ -62,6 +62,7 @@ export default function CreatePage() {
   // Gen state
   const [genLoading, setGenLoading] = useState(false);
   const [genDone, setGenDone] = useState(false);
+  const [editingChar, setEditingChar] = useState<CharDef | null>(null);
   const [pendingChar, setPendingChar] = useState<CharDef | null>(null);
   const [finalLoading, setFinalLoading] = useState(false);
 
@@ -133,10 +134,17 @@ export default function CreatePage() {
   };
 
   const confirmChar = () => {
-    if (pendingChar) setChars(prev => [...prev, pendingChar]);
-    setPendingChar(null); setGenDone(false); resetForm();
-  };
-
+  if (pendingChar) {
+    if (editingChar) {
+      // Update existing character
+      setChars(prev => prev.map(c => c.id === editingChar.id ? pendingChar : c));
+      setEditingChar(null);
+    } else {
+      setChars(prev => [...prev, pendingChar]);
+    }
+  }
+  setPendingChar(null); setGenDone(false); resetForm();
+};
   const addScene = () => {
     setScenes(prev => [...prev, { id: uid(), description: '', aspectRatio: '16:9', characters: chars.map(c => ({ characterId: c.id, role: 'speaking' as const, dialogue: '' })) }]);
   };
@@ -376,7 +384,7 @@ export default function CreatePage() {
                 <div className="text-[10px] text-[rgba(255,255,255,0.35)] uppercase tracking-wider mb-2.5">Characters ({chars.length})</div>
                 <div className="flex gap-2.5 overflow-x-auto pb-1">
                   {chars.map(c => (
-                    <div key={c.id} className="w-[100px] flex-shrink-0 border border-[rgba(255,255,255,0.1)] rounded-[10px] overflow-hidden hover:border-[rgba(255,255,255,0.18)] transition-all bg-[#0f0f0f]">
+                    <button key={c.id} onClick={() => { setEditingChar(c); setGenDone(true); setPendingChar(c); }} className="w-[100px] flex-shrink-0 border border-[rgba(255,255,255,0.1)] rounded-[10px] overflow-hidden hover:border-[rgba(255,255,255,0.18)] transition-all bg-[#0f0f0f] text-left">
                       <div className="h-[68px] bg-[#131313] flex items-center justify-center overflow-hidden">
   {c.imageUrl ? (
     <img src={c.imageUrl} alt={c.name} className="w-full h-full object-cover object-top" />
