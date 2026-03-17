@@ -204,7 +204,7 @@ export default function CreatePage() {
                     </div>
                   ) : (
                     <div>
-                      <div className="aspect-[16/9] bg-[#161616] rounded-[10px] border border-[rgba(255,255,255,0.08)] overflow-hidden mb-5">
+                      <div className="aspect-[3/4] bg-[#161616] rounded-[10px] border border-[rgba(255,255,255,0.08)] overflow-hidden mb-5">
   {pendingChar?.imageUrl ? (
     <img src={pendingChar.imageUrl} alt="Generated character" className="w-full h-full object-cover" />
   ) : (
