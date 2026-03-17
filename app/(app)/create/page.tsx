@@ -196,7 +196,7 @@ export default function CreatePage() {
             {/* Gen modal */}
             {(genLoading || genDone) && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-                <div className="w-full max-w-[400px] bg-[#0f0f0f] border border-[rgba(255,255,255,0.1)] rounded-xl p-6 mx-4">
+                <div className="w-full max-w-[520px] bg-[#0f0f0f] border border-[rgba(255,255,255,0.1)] rounded-xl p-6 mx-4">
                   {genLoading ? (
                     <div className="flex flex-col items-center py-8">
                       <div className="w-10 h-10 rounded-full border-2 border-[rgba(255,255,255,0.08)] border-t-white animate-spin mb-4" />
