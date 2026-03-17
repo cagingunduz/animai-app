@@ -8,10 +8,8 @@ import { type Resolution, RESOLUTION_CREDITS } from '@/lib/types';
 type AnimStyle = 'western-cartoon' | 'anime' | 'pixar' | 'comic' | 'chibi' | 'retro' | 'custom';
 type AspectRatio = '16:9' | '9:16' | '1:1';
 
-// Voice type matching actual API shape: voice_id, name, preview_url, labels {}
 interface VoiceLabels { gender?: string; accent?: string; age?: string; use_case?: string; descriptive?: string; }
 interface Voice { voice_id: string; name: string; preview_url: string; labels: VoiceLabels; }
-
 interface CharDef { id: string; name: string; prompt: string; style: AnimStyle; voiceId?: string; voiceName?: string; imageUrl?: string; }
 interface SceneCharRef { characterId: string; role: 'speaking' | 'silent'; dialogue: string; }
 interface SceneDef { id: string; description: string; aspectRatio: AspectRatio; characters: SceneCharRef[]; }
@@ -21,10 +19,8 @@ const STYLES: { value: AnimStyle; label: string }[] = [
   { value: 'comic', label: 'Comic' }, { value: 'chibi', label: 'Chibi' }, { value: 'retro', label: 'Retro' }, { value: 'custom', label: 'Custom' },
 ];
 
-// Avatar colors — deterministic by index, no two adjacent same
 const AVATAR_COLORS = ['#4a90d9','#e8607a','#50b87a','#c084fc','#f59e0b','#6ee7b7','#38bdf8','#fb7185','#a78bfa','#fbbf24','#ef4444','#22d3ee'];
 
-// Filter options — each is a toggle, multiple can be active
 const FILTER_OPTIONS = [
   { key: 'male', label: 'Male', match: (v: Voice) => v.labels.gender?.toLowerCase() === 'male' },
   { key: 'female', label: 'Female', match: (v: Voice) => v.labels.gender?.toLowerCase() === 'female' },
@@ -45,31 +41,26 @@ export default function CreatePage() {
   const [res, setRes] = useState<Resolution>('720p');
   const [lip, setLip] = useState(false);
 
-  // Step 1 form
   const [prompt, setPrompt] = useState('');
   const [style, setStyle] = useState<AnimStyle>('anime');
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [selVoice, setSelVoice] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Voices
   const [voices, setVoices] = useState<Voice[]>([]);
   const [vSearch, setVSearch] = useState('');
   const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
   const [playingId, setPlayingId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Gen state
   const [genLoading, setGenLoading] = useState(false);
   const [genDone, setGenDone] = useState(false);
   const [editingChar, setEditingChar] = useState<CharDef | null>(null);
   const [pendingChar, setPendingChar] = useState<CharDef | null>(null);
   const [finalLoading, setFinalLoading] = useState(false);
 
-  // Fetch voices
   useEffect(() => { fetch('/api/voices').then(r => r.json()).then(setVoices).catch(() => {}); }, []);
 
-  // ─── FIX 2: Multi-toggle filter logic ───
   const toggleFilter = useCallback((key: string) => {
     setActiveFilters(prev => {
       const next = new Set(prev);
@@ -78,13 +69,10 @@ export default function CreatePage() {
     });
   }, []);
 
-  // ─── FIX 2: Filtering with search + multi-filter ───
   const filteredV = useMemo(() => {
     return voices.filter(v => {
-      // Search by name
       const search = vSearch.trim().toLowerCase();
       if (search && !v.name.toLowerCase().includes(search)) return false;
-      // Apply active filters (OR logic within same category group, AND across)
       if (activeFilters.size === 0) return true;
       for (const key of activeFilters) {
         const opt = FILTER_OPTIONS.find(f => f.key === key);
@@ -94,15 +82,12 @@ export default function CreatePage() {
     });
   }, [voices, vSearch, activeFilters]);
 
-  // ─── FIX 4: Audio preview with single HTMLAudioElement ───
   const handlePlayVoice = useCallback((voiceId: string, previewUrl: string) => {
-    // Same voice → toggle pause
     if (playingId === voiceId) {
       audioRef.current?.pause();
       setPlayingId(null);
       return;
     }
-    // Different voice → stop current, play new
     if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
     if (!previewUrl) { setPlayingId(null); return; }
     const audio = new Audio(previewUrl);
@@ -113,7 +98,6 @@ export default function CreatePage() {
     setPlayingId(voiceId);
   }, [playingId]);
 
-  // Cleanup audio on unmount
   useEffect(() => { return () => { audioRef.current?.pause(); }; }, []);
 
   const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (f) setPhotoUrl(URL.createObjectURL(f)); };
@@ -127,23 +111,33 @@ export default function CreatePage() {
       const r = await fetch('/api/generate-character', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ description: prompt, style, photo_url: photoUrl }) });
       const d = await r.json();
       const voice = voices.find(v => v.voice_id === selVoice);
-      setPendingChar({ id: d.character_id || uid(), name: `Character ${chars.length + 1}`, prompt, style, voiceId: selVoice || undefined, voiceName: voice?.name, imageUrl: d.character_image_url });
+      setPendingChar({ id: editingChar?.id || d.character_id || uid(), name: editingChar?.name || `Character ${chars.length + 1}`, prompt, style, voiceId: selVoice || undefined, voiceName: voice?.name, imageUrl: d.character_image_url });
       setGenDone(true);
     } catch {}
     setGenLoading(false);
   };
 
   const confirmChar = () => {
-  if (pendingChar) {
-    if (editingChar) {
-      setChars(prev => prev.map(c => c.id === editingChar.id ? pendingChar : c));
-      setEditingChar(null);
-    } else {
-      setChars(prev => [...prev, pendingChar]);
+    if (pendingChar) {
+      if (editingChar) {
+        setChars(prev => prev.map(c => c.id === editingChar.id ? { ...pendingChar, id: editingChar.id } : c));
+        setEditingChar(null);
+      } else {
+        setChars(prev => [...prev, pendingChar]);
+      }
     }
-  }
-  setPendingChar(null); setGenDone(false); resetForm();
-};
+    setPendingChar(null); setGenDone(false); resetForm();
+  };
+
+  const openEditChar = (c: CharDef) => {
+    setEditingChar(c);
+    setPrompt(c.prompt);
+    setStyle(c.style);
+    setSelVoice(c.voiceId || null);
+    setPendingChar(c);
+    setGenDone(true);
+  };
+
   const addScene = () => {
     setScenes(prev => [...prev, { id: uid(), description: '', aspectRatio: '16:9', characters: chars.map(c => ({ characterId: c.id, role: 'speaking' as const, dialogue: '' })) }]);
   };
@@ -176,7 +170,7 @@ export default function CreatePage() {
 
   return (
     <div className="flex flex-col h-screen bg-black">
-      {/* ═══ ROADMAP ═══ */}
+      {/* ROADMAP */}
       <div className="flex-shrink-0 border-b border-[rgba(255,255,255,0.1)] sticky top-0 z-30 bg-black">
         <div className="max-w-[560px] mx-auto px-6 py-4 flex items-center">
           {steps.map((s, i) => (
@@ -193,17 +187,16 @@ export default function CreatePage() {
         </div>
       </div>
 
-      {/* ═══ CONTENT ═══ */}
       <div className="flex-1 overflow-hidden flex flex-col">
 
-        {/* ═══ STEP 1 ═══ */}
+        {/* STEP 1 */}
         {step === 1 && (
           <div className="flex flex-col flex-1 min-h-0 animate-[fadeIn_0.3s_ease]">
 
             {/* Gen modal */}
             {(genLoading || genDone) && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-                <div className="w-full max-w-[520px] bg-[#0f0f0f] border border-[rgba(255,255,255,0.1)] rounded-xl p-6 mx-4">
+                <div className="w-full max-w-[400px] bg-[#0f0f0f] border border-[rgba(255,255,255,0.1)] rounded-xl p-6 mx-4">
                   {genLoading ? (
                     <div className="flex flex-col items-center py-8">
                       <div className="w-10 h-10 rounded-full border-2 border-[rgba(255,255,255,0.08)] border-t-white animate-spin mb-4" />
@@ -212,16 +205,16 @@ export default function CreatePage() {
                   ) : (
                     <div>
                       <div className="aspect-[3/4] bg-[#161616] rounded-[10px] border border-[rgba(255,255,255,0.08)] overflow-hidden mb-5">
-  {pendingChar?.imageUrl ? (
-    <img src={pendingChar.imageUrl} alt="Generated character" className="w-full h-full object-cover" />
-  ) : (
-    <div className="w-full h-full flex items-center justify-center">
-      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
-    </div>
-  )}
-</div>
+                        {pendingChar?.imageUrl ? (
+                          <img src={pendingChar.imageUrl} alt="Generated character" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
+                          </div>
+                        )}
+                      </div>
                       <div className="flex gap-3">
-                        <button onClick={() => { setGenDone(false); setPendingChar(null); }} className="flex-1 py-2.5 border border-[rgba(255,255,255,0.12)] rounded-lg text-[13px] text-[rgba(255,255,255,0.6)] hover:text-white hover:border-[rgba(255,255,255,0.2)] transition-all">← Edit</button>
+                        <button onClick={() => { setGenDone(false); setPendingChar(null); setEditingChar(null); }} className="flex-1 py-2.5 border border-[rgba(255,255,255,0.12)] rounded-lg text-[13px] text-[rgba(255,255,255,0.6)] hover:text-white hover:border-[rgba(255,255,255,0.2)] transition-all">← Edit</button>
                         <button onClick={confirmChar} className="flex-1 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-all">Use this character →</button>
                       </div>
                     </div>
@@ -230,17 +223,14 @@ export default function CreatePage() {
               </div>
             )}
 
-            {/* ─── Two panels (flex-1 fills space, overflow hidden) ─── */}
             <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
-
-              {/* LEFT — Prompt */}
+              {/* LEFT */}
               <div className="md:w-1/2 p-5 md:p-7 flex flex-col gap-4 overflow-y-auto">
                 <h2 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px]">Describe your character</h2>
                 <textarea value={prompt} onChange={e => setPrompt(e.target.value)}
                   className="min-h-[160px] w-full bg-[#111] border border-[rgba(255,255,255,0.1)] rounded-xl p-4 text-[15px] text-white placeholder:text-[rgba(255,255,255,0.22)] outline-none resize-none focus:border-[rgba(255,255,255,0.18)] transition-colors leading-relaxed"
                   placeholder="A confident 60-year-old male politician in a navy suit. Strong voice, authoritative presence..." />
 
-                {/* Photo */}
                 <div>
                   <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
                   {photoUrl ? (
@@ -257,7 +247,6 @@ export default function CreatePage() {
                   )}
                 </div>
 
-                {/* Style */}
                 <div>
                   <div className="text-[10px] text-[rgba(255,255,255,0.35)] uppercase tracking-wider mb-2">Animation Style</div>
                   <div className="flex flex-wrap gap-1.5">
@@ -271,48 +260,32 @@ export default function CreatePage() {
                 </div>
               </div>
 
-              {/* RIGHT — Voice (FIX 1: fixed height, scrollable) */}
+              {/* RIGHT */}
               <div className="md:w-1/2 border-t md:border-t-0 md:border-l border-[rgba(255,255,255,0.1)] flex flex-col min-h-0 overflow-hidden">
                 <div className="p-5 md:p-7 pb-3 flex flex-col gap-3 flex-shrink-0">
                   <h2 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px]">Select a voice</h2>
-
-                  {/* Search */}
                   <div className="relative">
                     <svg className="absolute left-3 top-1/2 -translate-y-1/2" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-                    <input
-                      type="text"
-                      value={vSearch}
-                      onChange={e => setVSearch(e.target.value)}
+                    <input type="text" value={vSearch} onChange={e => setVSearch(e.target.value)}
                       className="w-full pl-9 pr-3 py-2 bg-[#111] border border-[rgba(255,255,255,0.1)] rounded-lg text-[13px] text-white placeholder:text-[rgba(255,255,255,0.25)] outline-none focus:border-[rgba(255,255,255,0.18)] transition-colors"
-                      placeholder="Search by name..."
-                    />
+                      placeholder="Search by name..." />
                   </div>
-
-                  {/* FIX 2: Multi-toggle filter pills */}
                   <div className="flex gap-1.5 flex-wrap">
                     {FILTER_OPTIONS.map(f => {
                       const isActive = activeFilters.has(f.key);
                       return (
                         <button key={f.key} onClick={() => toggleFilter(f.key)}
-                          className={`px-2.5 py-1 rounded-full text-[10px] border transition-all ${
-                            isActive
-                              ? 'bg-white text-black border-white font-medium'
-                              : 'border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.35)] hover:border-[rgba(255,255,255,0.18)] hover:text-[rgba(255,255,255,0.55)]'
-                          }`}>
+                          className={`px-2.5 py-1 rounded-full text-[10px] border transition-all ${isActive ? 'bg-white text-black border-white font-medium' : 'border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.35)] hover:border-[rgba(255,255,255,0.18)] hover:text-[rgba(255,255,255,0.55)]'}`}>
                           {f.label}
                         </button>
                       );
                     })}
                     {activeFilters.size > 0 && (
-                      <button onClick={() => setActiveFilters(new Set())}
-                        className="px-2 py-1 text-[10px] text-[rgba(255,255,255,0.3)] hover:text-[rgba(255,255,255,0.6)] transition-colors">
-                        Clear
-                      </button>
+                      <button onClick={() => setActiveFilters(new Set())} className="px-2 py-1 text-[10px] text-[rgba(255,255,255,0.3)] hover:text-[rgba(255,255,255,0.6)] transition-colors">Clear</button>
                     )}
                   </div>
                 </div>
 
-                {/* FIX 1: Voice list — flex-1 + overflow-y-auto fills remaining space */}
                 <div className="flex-1 overflow-y-auto px-2 md:px-3 py-1 min-h-0">
                   {voices.length === 0 ? (
                     <div className="flex items-center justify-center py-12">
@@ -321,50 +294,24 @@ export default function CreatePage() {
                   ) : filteredV.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-12">
                       <p className="text-[13px] text-[rgba(255,255,255,0.3)]">No voices match your filters.</p>
-                      <button onClick={() => { setVSearch(''); setActiveFilters(new Set()); }}
-                        className="text-[12px] text-[rgba(255,255,255,0.45)] hover:text-white mt-2 transition-colors">Clear all filters</button>
+                      <button onClick={() => { setVSearch(''); setActiveFilters(new Set()); }} className="text-[12px] text-[rgba(255,255,255,0.45)] hover:text-white mt-2 transition-colors">Clear all filters</button>
                     </div>
                   ) : (
                     filteredV.map((v, idx) => {
-                      // FIX 3: Deterministic avatar color by index
                       const color = AVATAR_COLORS[idx % AVATAR_COLORS.length];
                       const initial = v.name.charAt(0).toUpperCase();
                       const isPlaying = playingId === v.voice_id;
                       const isSelected = selVoice === v.voice_id;
-
                       return (
                         <button key={v.voice_id} onClick={() => setSelVoice(v.voice_id === selVoice ? null : v.voice_id)}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all ${
-                            isSelected
-                              ? 'bg-[rgba(255,255,255,0.06)] border-l-2 border-l-white'
-                              : 'hover:bg-[rgba(255,255,255,0.04)] border-l-2 border-l-transparent'
-                          }`}>
-
-                          {/* FIX 3: Colored avatar circle with initial */}
-                          <div
-                            className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-[13px] font-semibold text-white"
-                            style={{ backgroundColor: color }}
-                          >
-                            {initial}
-                          </div>
-
-                          {/* Info */}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all ${isSelected ? 'bg-[rgba(255,255,255,0.06)] border-l-2 border-l-white' : 'hover:bg-[rgba(255,255,255,0.04)] border-l-2 border-l-transparent'}`}>
+                          <div className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-[13px] font-semibold text-white" style={{ backgroundColor: color }}>{initial}</div>
                           <div className="flex-1 min-w-0">
                             <div className="text-[13px] font-medium text-[rgba(255,255,255,0.9)]">{v.name}</div>
-                            <div className="text-[11px] text-[rgba(255,255,255,0.35)] truncate">
-                              {[v.labels.gender, v.labels.accent, v.labels.age, v.labels.descriptive].filter(Boolean).join(' · ')}
-                            </div>
+                            <div className="text-[11px] text-[rgba(255,255,255,0.35)] truncate">{[v.labels.gender, v.labels.accent, v.labels.age, v.labels.descriptive].filter(Boolean).join(' · ')}</div>
                           </div>
-
-                          {/* FIX 4: Play button with real audio */}
-                          <button
-                            onClick={e => { e.stopPropagation(); handlePlayVoice(v.voice_id, v.preview_url); }}
-                            className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
-                              isPlaying
-                                ? 'bg-white text-black'
-                                : 'border border-[rgba(255,255,255,0.15)] text-[rgba(255,255,255,0.35)] hover:text-white hover:border-[rgba(255,255,255,0.25)]'
-                            }`}
-                          >
+                          <button onClick={e => { e.stopPropagation(); handlePlayVoice(v.voice_id, v.preview_url); }}
+                            className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${isPlaying ? 'bg-white text-black' : 'border border-[rgba(255,255,255,0.15)] text-[rgba(255,255,255,0.35)] hover:text-white hover:border-[rgba(255,255,255,0.25)]'}`}>
                             {isPlaying
                               ? <svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor"><rect x="1" y="1" width="3" height="8" rx=".5"/><rect x="6" y="1" width="3" height="8" rx=".5"/></svg>
                               : <svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor"><polygon points="3,0 10,5 3,10"/></svg>}
@@ -383,16 +330,16 @@ export default function CreatePage() {
                 <div className="text-[10px] text-[rgba(255,255,255,0.35)] uppercase tracking-wider mb-2.5">Characters ({chars.length})</div>
                 <div className="flex gap-2.5 overflow-x-auto pb-1">
                   {chars.map(c => (
-                    <button key={c.id} onClick={() => { setEditingChar(c); setGenDone(true); setPendingChar(c); }} className="w-[100px] flex-shrink-0 border border-[rgba(255,255,255,0.1)] rounded-[10px] overflow-hidden hover:border-[rgba(255,255,255,0.18)] transition-all bg-[#0f0f0f] text-left">
+                    <button key={c.id} onClick={() => openEditChar(c)} className="w-[100px] flex-shrink-0 border border-[rgba(255,255,255,0.1)] rounded-[10px] overflow-hidden hover:border-[rgba(255,255,255,0.25)] transition-all bg-[#0f0f0f] text-left">
                       <div className="h-[68px] bg-[#131313] flex items-center justify-center overflow-hidden">
-  {c.imageUrl ? (
-    <img src={c.imageUrl} alt={c.name} className="w-full h-full object-cover object-top" />
-  ) : (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1.5"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
-  )}
-</div>
+                        {c.imageUrl ? (
+                          <img src={c.imageUrl} alt={c.name} className="w-full h-full object-cover object-top" />
+                        ) : (
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1.5"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
+                        )}
+                      </div>
                       <div className="px-2 py-1.5 text-[10px] text-center text-[rgba(255,255,255,0.5)] truncate">{c.name}</div>
-                    </div>
+                    </button>
                   ))}
                   <button onClick={resetForm} className="w-[100px] h-[96px] flex-shrink-0 border border-dashed border-[rgba(255,255,255,0.1)] rounded-[10px] flex items-center justify-center hover:border-[rgba(255,255,255,0.18)] transition-all">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="1.5"><path d="M12 5v14M5 12h14"/></svg>
@@ -420,7 +367,7 @@ export default function CreatePage() {
           </div>
         )}
 
-        {/* ═══ STEP 2 ═══ */}
+        {/* STEP 2 */}
         {step === 2 && (
           <div className="flex-1 overflow-y-auto">
             <div className="max-w-[800px] mx-auto px-5 md:px-7 py-7 animate-[fadeIn_0.3s_ease]">
@@ -434,7 +381,6 @@ export default function CreatePage() {
                   <textarea value={sc.description} onChange={e => upScene(sc.id, { description: e.target.value })}
                     className="w-full min-h-[180px] bg-[#111] border border-[rgba(255,255,255,0.1)] rounded-xl p-4 text-[14px] text-white placeholder:text-[rgba(255,255,255,0.22)] outline-none resize-none focus:border-[rgba(255,255,255,0.15)] leading-relaxed mb-4"
                     placeholder="A press conference room. The politician stands up, slams his fist on the table and shouts: 'This ends today!'" />
-
                   <div className="flex gap-5 mb-4">
                     <div>
                       <div className="text-[10px] text-[rgba(255,255,255,0.35)] uppercase tracking-wider mb-2">Aspect Ratio</div>
@@ -446,7 +392,6 @@ export default function CreatePage() {
                       </div>
                     </div>
                   </div>
-
                   <div className="text-[10px] text-[rgba(255,255,255,0.35)] uppercase tracking-wider mb-2">Characters</div>
                   <div className="flex flex-col gap-2.5">
                     {sc.characters.map(scr => {
@@ -455,8 +400,8 @@ export default function CreatePage() {
                       return (
                         <div key={scr.characterId} className="border border-[rgba(255,255,255,0.07)] rounded-lg p-3 bg-[rgba(255,255,255,0.01)]">
                           <div className="flex items-center gap-3">
-                            <div className="w-7 h-7 rounded-md bg-[#151515] flex items-center justify-center flex-shrink-0">
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
+                            <div className="w-7 h-7 rounded-md bg-[#151515] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                              {ch.imageUrl ? <img src={ch.imageUrl} alt={ch.name} className="w-full h-full object-cover object-top" /> : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>}
                             </div>
                             <span className="text-[12px] font-medium flex-1">{ch.name}</span>
                             <div className="flex border border-[rgba(255,255,255,0.08)] rounded-md overflow-hidden">
@@ -478,7 +423,6 @@ export default function CreatePage() {
                   {idx < scenes.length - 1 && <div className="border-b border-[rgba(255,255,255,0.05)] mt-6" />}
                 </div>
               ))}
-
               <div className="flex items-center justify-between mt-4 pt-4 border-t border-[rgba(255,255,255,0.06)]">
                 <button onClick={addScene} className="text-[11px] px-3 py-1.5 border border-[rgba(255,255,255,0.1)] rounded-lg text-[rgba(255,255,255,0.45)] hover:text-white hover:border-[rgba(255,255,255,0.18)] transition-all">+ Add Scene</button>
                 <button onClick={() => setStep(3)} disabled={scenes.every(s => !s.description.trim())}
@@ -488,12 +432,11 @@ export default function CreatePage() {
           </div>
         )}
 
-        {/* ═══ STEP 3 ═══ */}
+        {/* STEP 3 */}
         {step === 3 && (
           <div className="flex-1 overflow-y-auto">
             <div className="max-w-[800px] mx-auto px-5 md:px-7 py-7 animate-[fadeIn_0.3s_ease]">
               <h2 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px] mb-5">Review your scenes</h2>
-
               <div className="flex flex-col gap-2.5 mb-8">
                 {scenes.map((sc, idx) => (
                   <div key={sc.id} draggable onDragStart={() => { dragI.current = idx; }} onDragEnter={() => { dragO.current = idx; }} onDragEnd={onDragEnd} onDragOver={e => e.preventDefault()}
@@ -507,8 +450,6 @@ export default function CreatePage() {
                   </div>
                 ))}
               </div>
-
-              {/* Settings */}
               <div className="border border-[rgba(255,255,255,0.08)] rounded-xl p-5 bg-[#0f0f0f] mb-6">
                 <h3 className="text-[11px] font-medium text-[rgba(255,255,255,0.45)] uppercase tracking-[1.5px] mb-4">Settings</h3>
                 <div className="flex flex-col md:flex-row gap-6 md:gap-10">
@@ -535,7 +476,6 @@ export default function CreatePage() {
                   </div>
                 </div>
               </div>
-
               <div className="flex justify-end">
                 <button onClick={handleFinal} disabled={finalLoading}
                   className="px-6 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-30 transition-all flex items-center gap-2">
