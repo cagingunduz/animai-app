@@ -123,7 +123,7 @@ export default function CreatePage() {
     if (!prompt.trim()) return;
     setGenLoading(true);
     try {
-      const r = await fetch('/api/generate-character', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, style }) });
+      const r = await fetch('/api/generate-character', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ description: prompt, style, photo_url: photoUrl }) });
       const d = await r.json();
       const voice = voices.find(v => v.voice_id === selVoice);
       setPendingChar({ id: d.character_id || uid(), name: `Character ${chars.length + 1}`, prompt, style, voiceId: selVoice || undefined, voiceName: voice?.name, imageUrl: d.character_image_url });
