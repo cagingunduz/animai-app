@@ -158,11 +158,58 @@ export default function CreatePage() {
 
   const handleFinal = async () => {
     setFinalLoading(true);
-    const sb = createClient();
-    const { data: { user } } = await sb.auth.getUser();
-    if (!user) return;
-    const { data } = await sb.from('animations').insert({ user_id: user.id, title: scenes[0]?.description?.slice(0, 50) || 'Untitled', status: 'processing', scenes_count: scenes.length, resolution: res, lipsync: lip }).select('id').single();
-    if (data) router.push(`/status/${data.id}`);
+    try {
+      const sb = createClient();
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) return;
+
+      // Build Railway payload
+      const payload = {
+        characters: chars.map(c => ({
+          id: c.id,
+          description: c.prompt,
+          style: c.style,
+          photo_url: null
+        })),
+        scenes: scenes.map(sc => ({
+          scene_text: sc.description,
+          aspect_ratio: sc.aspectRatio,
+          characters: sc.characters.map(scr => ({
+            character_id: scr.characterId,
+            role: scr.role,
+            dialogue: scr.dialogue || null,
+            voice_id: chars.find(c => c.id === scr.characterId)?.voiceId || null,
+            framing: 'full_body'
+          }))
+        })),
+        resolution: res,
+        lipsync: lip
+      };
+
+      // Send to Railway via Next.js API route
+      const genRes = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const genData = await genRes.json();
+      const jobId = genData.job_id;
+
+      // Save to Supabase
+      const { data } = await sb.from('animations').insert({
+        user_id: user.id,
+        job_id: jobId,
+        title: scenes[0]?.description?.slice(0, 50) || 'Untitled',
+        status: 'processing',
+        scenes_count: scenes.length,
+        resolution: res,
+        lipsync: lip
+      }).select('id').single();
+
+      if (data) router.push(`/status/${jobId}`);
+    } catch (e) {
+      console.error(e);
+    }
     setFinalLoading(false);
   };
 
