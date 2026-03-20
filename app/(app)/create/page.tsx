@@ -203,7 +203,7 @@ export default function CreatePage() {
         status: 'processing',
         scenes_count: scenes.length,
         resolution: res,
-        lipsync: lip
+        lipsync: false
       }).select('id').single();
 
       if (data) router.push(`/status/${jobId}`);
