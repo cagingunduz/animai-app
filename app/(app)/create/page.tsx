@@ -183,7 +183,7 @@ export default function CreatePage() {
           }))
         })),
         resolution: res,
-        lipsync: lip
+        lipsync: false
       };
 
       // Send to Railway via Next.js API route
