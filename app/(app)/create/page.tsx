@@ -1,19 +1,29 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { type Resolution, RESOLUTION_CREDITS } from '@/lib/types';
 
+// ─── Types ───
 type AnimStyle = 'western-cartoon' | 'anime' | 'pixar' | 'comic' | 'chibi' | 'retro' | 'custom';
 type AspectRatio = '16:9' | '9:16' | '1:1';
 
 interface VoiceLabels { gender?: string; accent?: string; age?: string; use_case?: string; descriptive?: string; }
 interface Voice { voice_id: string; name: string; preview_url: string; labels: VoiceLabels; }
-interface CharDef { id: string; name: string; prompt: string; style: AnimStyle; voiceId?: string; voiceName?: string; imageUrl?: string; }
-interface SceneCharRef { characterId: string; role: 'speaking' | 'silent'; dialogue: string; }
-interface SceneDef { id: string; description: string; aspectRatio: AspectRatio; characters: SceneCharRef[]; }
 
+interface CharDef { id: string; name: string; prompt: string; style: AnimStyle; voiceId?: string; voiceName?: string; imageUrl?: string; }
+
+interface SceneCharRef { characterId: string; role: 'speaking' | 'silent'; dialogue: string; }
+
+interface SceneDef {
+  id: string; description: string; aspectRatio: AspectRatio; characters: SceneCharRef[];
+  // Generation state per scene
+  generating: boolean; approved: boolean; imageUrl: string | null; error: string | null;
+}
+
+type SceneRenderStatus = { scene_number: number; status: 'queued' | 'processing' | 'completed' | 'failed'; current_step?: string; video_url?: string; };
+
+// ─── Constants ───
 const STYLES: { value: AnimStyle; label: string }[] = [
   { value: 'western-cartoon', label: 'Western Cartoon' }, { value: 'anime', label: 'Anime' }, { value: 'pixar', label: 'Pixar' },
   { value: 'comic', label: 'Comic' }, { value: 'chibi', label: 'Chibi' }, { value: 'retro', label: 'Retro' }, { value: 'custom', label: 'Custom' },
@@ -33,73 +43,71 @@ const FILTER_OPTIONS = [
 let _u = 0;
 function uid() { return `u${++_u}-${Date.now()}`; }
 
+// ═══════════════════════════════════════════
+// MAIN PAGE
+// ═══════════════════════════════════════════
 export default function CreatePage() {
-  const router = useRouter();
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [chars, setChars] = useState<CharDef[]>([]);
   const [scenes, setScenes] = useState<SceneDef[]>([]);
   const [res, setRes] = useState<Resolution>('720p');
-  const [lip, setLip] = useState(false);
 
+  // Step 1 form
   const [prompt, setPrompt] = useState('');
   const [style, setStyle] = useState<AnimStyle>('anime');
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [selVoice, setSelVoice] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Voices
   const [voices, setVoices] = useState<Voice[]>([]);
   const [vSearch, setVSearch] = useState('');
   const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
   const [playingId, setPlayingId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Step 1 gen state
   const [genLoading, setGenLoading] = useState(false);
   const [genDone, setGenDone] = useState(false);
-  const [editingChar, setEditingChar] = useState<CharDef | null>(null);
   const [pendingChar, setPendingChar] = useState<CharDef | null>(null);
-  const [finalLoading, setFinalLoading] = useState(false);
 
+  // Step 4 — inline generation
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [genProgress, setGenProgress] = useState(0);
+  const [genMessage, setGenMessage] = useState('');
+  const [genStatus, setGenStatus] = useState<'idle' | 'processing' | 'completed' | 'failed'>('idle');
+  const [genScenes, setGenScenes] = useState<SceneRenderStatus[]>([]);
+  const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null);
+
+  // Fetch voices
   useEffect(() => { fetch('/api/voices').then(r => r.json()).then(setVoices).catch(() => {}); }, []);
 
+  // ─── Voice filtering ───
   const toggleFilter = useCallback((key: string) => {
-    setActiveFilters(prev => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key); else next.add(key);
-      return next;
-    });
+    setActiveFilters(prev => { const n = new Set(prev); if (n.has(key)) n.delete(key); else n.add(key); return n; });
   }, []);
 
-  const filteredV = useMemo(() => {
-    return voices.filter(v => {
-      const search = vSearch.trim().toLowerCase();
-      if (search && !v.name.toLowerCase().includes(search)) return false;
-      if (activeFilters.size === 0) return true;
-      for (const key of activeFilters) {
-        const opt = FILTER_OPTIONS.find(f => f.key === key);
-        if (opt && !opt.match(v)) return false;
-      }
-      return true;
-    });
-  }, [voices, vSearch, activeFilters]);
+  const filteredV = useMemo(() => voices.filter(v => {
+    const s = vSearch.trim().toLowerCase();
+    if (s && !v.name.toLowerCase().includes(s)) return false;
+    if (activeFilters.size === 0) return true;
+    for (const key of activeFilters) { const opt = FILTER_OPTIONS.find(f => f.key === key); if (opt && !opt.match(v)) return false; }
+    return true;
+  }), [voices, vSearch, activeFilters]);
 
+  // ─── Voice audio ───
   const handlePlayVoice = useCallback((voiceId: string, previewUrl: string) => {
-    if (playingId === voiceId) {
-      audioRef.current?.pause();
-      setPlayingId(null);
-      return;
-    }
+    if (playingId === voiceId) { audioRef.current?.pause(); setPlayingId(null); return; }
     if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
     if (!previewUrl) { setPlayingId(null); return; }
-    const audio = new Audio(previewUrl);
-    audioRef.current = audio;
-    audio.onended = () => setPlayingId(null);
-    audio.onerror = () => setPlayingId(null);
-    audio.play().catch(() => setPlayingId(null));
-    setPlayingId(voiceId);
+    const a = new Audio(previewUrl); audioRef.current = a;
+    a.onended = () => setPlayingId(null); a.onerror = () => setPlayingId(null);
+    a.play().catch(() => setPlayingId(null)); setPlayingId(voiceId);
   }, [playingId]);
 
   useEffect(() => { return () => { audioRef.current?.pause(); }; }, []);
 
+  // ─── Step 1 helpers ───
   const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (f) setPhotoUrl(URL.createObjectURL(f)); };
   const clearPhoto = () => { setPhotoUrl(null); if (fileRef.current) fileRef.current.value = ''; };
   const resetForm = () => { setPrompt(''); setStyle('anime'); setSelVoice(null); clearPhoto(); };
@@ -108,46 +116,56 @@ export default function CreatePage() {
     if (!prompt.trim()) return;
     setGenLoading(true);
     try {
-      const r = await fetch('/api/generate-character', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ description: prompt, style, photo_url: photoUrl }) });
+      const r = await fetch('/api/generate-character', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, style }) });
       const d = await r.json();
       const voice = voices.find(v => v.voice_id === selVoice);
-      setPendingChar({ id: editingChar?.id || d.character_id || uid(), name: editingChar?.name || `Character ${chars.length + 1}`, prompt, style, voiceId: selVoice || undefined, voiceName: voice?.name, imageUrl: d.character_image_url });
+      setPendingChar({ id: d.character_id || uid(), name: `Character ${chars.length + 1}`, prompt, style, voiceId: selVoice || undefined, voiceName: voice?.name, imageUrl: d.character_image_url });
       setGenDone(true);
     } catch {}
     setGenLoading(false);
   };
 
-  const confirmChar = () => {
-    if (pendingChar) {
-      if (editingChar) {
-        setChars(prev => prev.map(c => c.id === editingChar.id ? { ...pendingChar, id: editingChar.id } : c));
-        setEditingChar(null);
-      } else {
-        setChars(prev => [...prev, pendingChar]);
-      }
-    }
-    setPendingChar(null); setGenDone(false); resetForm();
-  };
+  const confirmChar = () => { if (pendingChar) setChars(prev => [...prev, pendingChar]); setPendingChar(null); setGenDone(false); resetForm(); };
 
-  const openEditChar = (c: CharDef) => {
-    setEditingChar(c);
-    setPrompt(c.prompt);
-    setStyle(c.style);
-    setSelVoice(c.voiceId || null);
-    setPendingChar(c);
-    setGenDone(true);
-  };
-
+  // ─── Step 2 helpers ───
   const addScene = () => {
-    setScenes(prev => [...prev, { id: uid(), description: '', aspectRatio: '16:9', characters: chars.map(c => ({ characterId: c.id, role: 'speaking' as const, dialogue: '' })) }]);
+    setScenes(prev => [...prev, {
+      id: uid(), description: '', aspectRatio: '16:9',
+      characters: chars.map(c => ({ characterId: c.id, role: 'speaking' as const, dialogue: '' })),
+      generating: false, approved: false, imageUrl: null, error: null,
+    }]);
   };
 
   const upScene = (id: string, u: Partial<SceneDef>) => setScenes(p => p.map(s => s.id === id ? { ...s, ...u } : s));
   const upSC = (sid: string, cid: string, u: Partial<SceneCharRef>) => setScenes(p => p.map(s => s.id !== sid ? s : { ...s, characters: s.characters.map(c => c.characterId === cid ? { ...c, ...u } : c) }));
 
-  const speakCount = scenes.reduce((a, s) => a + s.characters.filter(c => c.role === 'speaking').length, 0);
-  const totalCr = scenes.length * RESOLUTION_CREDITS[res] + (lip ? speakCount * 25 : 0);
+  const generateScenePreview = async (sceneId: string) => {
+    const scene = scenes.find(s => s.id === sceneId);
+    if (!scene) return;
+    upScene(sceneId, { generating: true, error: null, approved: false, imageUrl: null });
+    try {
+      const payload = {
+        scene_text: scene.description,
+        aspect_ratio: scene.aspectRatio,
+        characters: scene.characters.map(sc => {
+          const ch = chars.find(c => c.id === sc.characterId);
+          return { id: sc.characterId, description: ch?.prompt || '', style: ch?.style || 'anime', char_url: ch?.imageUrl || null, role: sc.role, framing: 'full-body' };
+        }),
+      };
+      const r = await fetch('/api/generate-scene-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const d = await r.json();
+      upScene(sceneId, { generating: false, imageUrl: d.scene_image_url || null });
+    } catch {
+      upScene(sceneId, { generating: false, error: 'Generation failed. Try again.' });
+    }
+  };
 
+  const approveScene = (id: string) => upScene(id, { approved: true });
+  const editScene = (id: string) => upScene(id, { approved: false, imageUrl: null });
+
+  const approvedCount = scenes.filter(s => s.approved).length;
+
+  // ─── Step 3 drag reorder ───
   const dragI = useRef<number | null>(null);
   const dragO = useRef<number | null>(null);
   const onDragEnd = () => {
@@ -156,91 +174,131 @@ export default function CreatePage() {
     setScenes(c); dragI.current = null; dragO.current = null;
   };
 
-  const handleFinal = async () => {
-    setFinalLoading(true);
+  // ─── Credits ───
+  const totalCr = scenes.filter(s => s.approved).length * RESOLUTION_CREDITS[res];
+
+  // ─── Step 4: Generate animation + poll ───
+  const pollRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleFinalGenerate = async () => {
+    setStep(4);
+    setGenStatus('processing');
+    setGenProgress(0);
+    setGenMessage('Starting generation...');
+
+    // Build scenes for final generation
+    const approvedScenes = scenes.filter(s => s.approved);
+    setGenScenes(approvedScenes.map((_, i) => ({ scene_number: i + 1, status: 'queued' })));
+
+    // Insert animation record
+    const sb = createClient();
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) return;
+
+    const { data: animData } = await sb.from('animations').insert({
+      user_id: user.id, title: approvedScenes[0]?.description?.slice(0, 50) || 'Untitled',
+      status: 'processing', scenes_count: approvedScenes.length, resolution: res, lipsync: false,
+    }).select('id').single();
+
+    // Call generate API
     try {
-      const sb = createClient();
-      const { data: { user } } = await sb.auth.getUser();
-      if (!user) return;
-
-      // Build Railway payload
-      const payload = {
-        characters: chars.map(c => ({
-          id: c.id,
-          description: c.prompt,
-          style: c.style,
-          photo_url: null
-        })),
-        scenes: scenes.map(sc => ({
-          scene_text: sc.description,
-          aspect_ratio: sc.aspectRatio,
-          characters: sc.characters.map(scr => ({
-            character_id: scr.characterId,
-            role: scr.role,
-            dialogue: scr.dialogue || null,
-            voice_id: chars.find(c => c.id === scr.characterId)?.voiceId || null,
-            framing: 'full_body'
-          }))
-        })),
-        resolution: res,
-        lipsync: false
-      };
-
-      // Send to Railway via Next.js API route
-      const genRes = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+      const r = await fetch('/api/generate', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ animation_id: animData?.id, scenes: approvedScenes, resolution: res, characters: chars }),
       });
-      const genData = await genRes.json();
-      const jobId = genData.job_id;
+      const d = await r.json();
+      const jid = d.job_id || animData?.id;
+      setJobId(jid);
 
-      // Save to Supabase
-      const { data } = await sb.from('animations').insert({
-        user_id: user.id,
-        job_id: jobId,
-        title: scenes[0]?.description?.slice(0, 50) || 'Untitled',
-        status: 'processing',
-        scenes_count: scenes.length,
-        resolution: res,
-        lipsync: false
-      }).select('id').single();
-
-      if (data) router.push(`/status/${jobId}`);
-    } catch (e) {
-      console.error(e);
+      // Start polling (simulated for dev — in production poll /api/status/[job_id])
+      startPolling(jid, approvedScenes.length);
+    } catch {
+      setGenStatus('failed'); setGenMessage('Failed to start generation.');
     }
-    setFinalLoading(false);
   };
 
-  const steps = [{ n: 1, l: 'Characters' }, { n: 2, l: 'Scene' }, { n: 3, l: 'Review' }] as const;
+  const startPolling = (jid: string, sceneCount: number) => {
+    let progress = 0;
+    let currentScene = 0;
+
+    pollRef.current = setInterval(async () => {
+      // In production: fetch(`/api/status/${jid}`).then(...)
+      // Simulated progressive rendering:
+      progress += 5 + Math.random() * 8;
+      if (progress > 100) progress = 100;
+
+      currentScene = Math.min(Math.floor((progress / 100) * sceneCount), sceneCount);
+      setGenProgress(Math.round(progress));
+
+      setGenScenes(prev => prev.map((s, i) => {
+        if (i < currentScene) return { ...s, status: 'completed', video_url: '#', current_step: 'Done' };
+        if (i === currentScene && progress < 100) return { ...s, status: 'processing', current_step: `Rendering frames...` };
+        return s;
+      }));
+
+      if (progress < 50) setGenMessage(`Scene ${currentScene + 1}: Generating animation...`);
+      else if (progress < 90) setGenMessage(`Scene ${currentScene + 1}: Rendering frames...`);
+      else setGenMessage('Compositing final video...');
+
+      if (progress >= 100) {
+        clearInterval(pollRef.current!);
+        pollRef.current = null;
+        setGenStatus('completed');
+        setGenMessage('All scenes complete');
+        setFinalVideoUrl('#');
+        setGenScenes(prev => prev.map(s => ({ ...s, status: 'completed', video_url: '#' })));
+      }
+    }, 3000);
+  };
+
+  useEffect(() => { return () => { if (pollRef.current) clearInterval(pollRef.current); }; }, []);
+
+  const resetAll = () => {
+    setStep(1); setChars([]); setScenes([]); setRes('720p');
+    resetForm(); setJobId(null); setGenProgress(0); setGenStatus('idle');
+    setGenScenes([]); setFinalVideoUrl(null);
+  };
+
+  // ─── Roadmap ───
+  const roadmap = [{ n: 1, l: 'Characters' }, { n: 2, l: 'Scenes' }, { n: 3, l: 'Review' }, { n: 4, l: 'Generate' }] as const;
 
   return (
     <div className="flex flex-col h-screen bg-black">
-      {/* ROADMAP */}
+      {/* ═══ ROADMAP BAR ═══ */}
       <div className="flex-shrink-0 border-b border-[rgba(255,255,255,0.1)] sticky top-0 z-30 bg-black">
-        <div className="max-w-[560px] mx-auto px-6 py-4 flex items-center">
-          {steps.map((s, i) => (
+        <div className="max-w-[680px] mx-auto px-6 py-4 flex items-center">
+          {roadmap.map((s, i) => (
             <div key={s.n} className="flex items-center flex-1 last:flex-initial">
-              <button onClick={() => { if (s.n === 1) setStep(1); if (s.n === 2 && chars.length > 0) setStep(2); if (s.n === 3 && scenes.length > 0) setStep(3); }} className="flex items-center gap-2">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-medium border transition-all ${step === s.n ? 'bg-white text-black border-white' : step > s.n ? 'border-[rgba(255,255,255,0.25)] text-[rgba(255,255,255,0.5)]' : 'border-[rgba(255,255,255,0.12)] text-[rgba(255,255,255,0.3)]'}`}>
-                  {step > s.n ? <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3,8 6.5,11.5 13,5"/></svg> : s.n}
+              <button
+                disabled={s.n === 4}
+                onClick={() => {
+                  if (s.n === 1) setStep(1);
+                  if (s.n === 2 && chars.length > 0) setStep(2);
+                  if (s.n === 3 && approvedCount > 0) setStep(3);
+                }}
+                className="flex items-center gap-2 disabled:cursor-default"
+              >
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-medium border transition-all ${
+                  step === s.n ? 'bg-white text-black border-white'
+                  : step > s.n ? 'border-[rgba(255,255,255,0.25)] text-[rgba(255,255,255,0.5)]'
+                  : 'border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.25)]'
+                }`}>
+                  {step > s.n ? <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3,8 6.5,11.5 13,5"/></svg> : s.n}
                 </div>
-                <span className={`text-[13px] ${step === s.n ? 'text-white font-medium' : 'text-[rgba(255,255,255,0.3)]'}`}>{s.l}</span>
+                <span className={`text-[12px] hidden sm:inline ${step === s.n ? 'text-white font-medium' : 'text-[rgba(255,255,255,0.25)]'}`}>{s.l}</span>
               </button>
-              {i < 2 && <div className={`flex-1 h-px mx-4 ${step > s.n ? 'bg-[rgba(255,255,255,0.2)]' : 'bg-[rgba(255,255,255,0.07)]'}`} />}
+              {i < 3 && <div className={`flex-1 h-px mx-3 ${step > s.n ? 'bg-[rgba(255,255,255,0.2)]' : 'bg-[rgba(255,255,255,0.06)]'}`} />}
             </div>
           ))}
         </div>
       </div>
 
+      {/* ═══ CONTENT ═══ */}
       <div className="flex-1 overflow-hidden flex flex-col">
 
-        {/* STEP 1 */}
+        {/* ═══════ STEP 1 — CHARACTERS ═══════ */}
         {step === 1 && (
           <div className="flex flex-col flex-1 min-h-0 animate-[fadeIn_0.3s_ease]">
-
-            {/* Gen modal */}
             {(genLoading || genDone) && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
                 <div className="w-full max-w-[400px] bg-[#0f0f0f] border border-[rgba(255,255,255,0.1)] rounded-xl p-6 mx-4">
@@ -251,17 +309,11 @@ export default function CreatePage() {
                     </div>
                   ) : (
                     <div>
-                      <div className="aspect-[3/4] bg-[#161616] rounded-[10px] border border-[rgba(255,255,255,0.08)] overflow-hidden mb-5">
-                        {pendingChar?.imageUrl ? (
-                          <img src={pendingChar.imageUrl} alt="Generated character" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
-                          </div>
-                        )}
+                      <div className="aspect-[16/9] bg-[#161616] rounded-[10px] border border-[rgba(255,255,255,0.08)] flex items-center justify-center mb-5">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
                       </div>
                       <div className="flex gap-3">
-                        <button onClick={() => { setGenDone(false); setPendingChar(null); setEditingChar(null); }} className="flex-1 py-2.5 border border-[rgba(255,255,255,0.12)] rounded-lg text-[13px] text-[rgba(255,255,255,0.6)] hover:text-white hover:border-[rgba(255,255,255,0.2)] transition-all">← Edit</button>
+                        <button onClick={() => { setGenDone(false); setPendingChar(null); }} className="flex-1 py-2.5 border border-[rgba(255,255,255,0.12)] rounded-lg text-[13px] text-[rgba(255,255,255,0.6)] hover:text-white hover:border-[rgba(255,255,255,0.2)] transition-all">← Edit</button>
                         <button onClick={confirmChar} className="flex-1 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-all">Use this character →</button>
                       </div>
                     </div>
@@ -271,13 +323,12 @@ export default function CreatePage() {
             )}
 
             <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
-              {/* LEFT */}
+              {/* LEFT — Prompt */}
               <div className="md:w-1/2 p-5 md:p-7 flex flex-col gap-4 overflow-y-auto">
                 <h2 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px]">Describe your character</h2>
                 <textarea value={prompt} onChange={e => setPrompt(e.target.value)}
                   className="min-h-[160px] w-full bg-[#111] border border-[rgba(255,255,255,0.1)] rounded-xl p-4 text-[15px] text-white placeholder:text-[rgba(255,255,255,0.22)] outline-none resize-none focus:border-[rgba(255,255,255,0.18)] transition-colors leading-relaxed"
                   placeholder="A confident 60-year-old male politician in a navy suit. Strong voice, authoritative presence..." />
-
                 <div>
                   <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
                   {photoUrl ? (
@@ -293,7 +344,6 @@ export default function CreatePage() {
                     </button>
                   )}
                 </div>
-
                 <div>
                   <div className="text-[10px] text-[rgba(255,255,255,0.35)] uppercase tracking-wider mb-2">Animation Style</div>
                   <div className="flex flex-wrap gap-1.5">
@@ -307,7 +357,7 @@ export default function CreatePage() {
                 </div>
               </div>
 
-              {/* RIGHT */}
+              {/* RIGHT — Voice */}
               <div className="md:w-1/2 border-t md:border-t-0 md:border-l border-[rgba(255,255,255,0.1)] flex flex-col min-h-0 overflow-hidden">
                 <div className="p-5 md:p-7 pb-3 flex flex-col gap-3 flex-shrink-0">
                   <h2 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px]">Select a voice</h2>
@@ -318,55 +368,39 @@ export default function CreatePage() {
                       placeholder="Search by name..." />
                   </div>
                   <div className="flex gap-1.5 flex-wrap">
-                    {FILTER_OPTIONS.map(f => {
-                      const isActive = activeFilters.has(f.key);
-                      return (
-                        <button key={f.key} onClick={() => toggleFilter(f.key)}
-                          className={`px-2.5 py-1 rounded-full text-[10px] border transition-all ${isActive ? 'bg-white text-black border-white font-medium' : 'border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.35)] hover:border-[rgba(255,255,255,0.18)] hover:text-[rgba(255,255,255,0.55)]'}`}>
-                          {f.label}
-                        </button>
-                      );
-                    })}
-                    {activeFilters.size > 0 && (
-                      <button onClick={() => setActiveFilters(new Set())} className="px-2 py-1 text-[10px] text-[rgba(255,255,255,0.3)] hover:text-[rgba(255,255,255,0.6)] transition-colors">Clear</button>
-                    )}
+                    {FILTER_OPTIONS.map(f => (
+                      <button key={f.key} onClick={() => toggleFilter(f.key)}
+                        className={`px-2.5 py-1 rounded-full text-[10px] border transition-all ${activeFilters.has(f.key) ? 'bg-white text-black border-white font-medium' : 'border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.35)] hover:border-[rgba(255,255,255,0.18)]'}`}>
+                        {f.label}
+                      </button>
+                    ))}
+                    {activeFilters.size > 0 && <button onClick={() => setActiveFilters(new Set())} className="px-2 py-1 text-[10px] text-[rgba(255,255,255,0.3)] hover:text-white">Clear</button>}
                   </div>
                 </div>
-
                 <div className="flex-1 overflow-y-auto px-2 md:px-3 py-1 min-h-0">
                   {voices.length === 0 ? (
-                    <div className="flex items-center justify-center py-12">
-                      <div className="w-5 h-5 rounded-full border-2 border-[rgba(255,255,255,0.08)] border-t-[rgba(255,255,255,0.35)] animate-spin" />
-                    </div>
+                    <div className="flex items-center justify-center py-12"><div className="w-5 h-5 rounded-full border-2 border-[rgba(255,255,255,0.08)] border-t-[rgba(255,255,255,0.35)] animate-spin" /></div>
                   ) : filteredV.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12">
-                      <p className="text-[13px] text-[rgba(255,255,255,0.3)]">No voices match your filters.</p>
-                      <button onClick={() => { setVSearch(''); setActiveFilters(new Set()); }} className="text-[12px] text-[rgba(255,255,255,0.45)] hover:text-white mt-2 transition-colors">Clear all filters</button>
+                    <div className="flex flex-col items-center py-12">
+                      <p className="text-[13px] text-[rgba(255,255,255,0.3)]">No voices match.</p>
+                      <button onClick={() => { setVSearch(''); setActiveFilters(new Set()); }} className="text-[12px] text-[rgba(255,255,255,0.45)] hover:text-white mt-2">Clear filters</button>
                     </div>
-                  ) : (
-                    filteredV.map((v, idx) => {
-                      const color = AVATAR_COLORS[idx % AVATAR_COLORS.length];
-                      const initial = v.name.charAt(0).toUpperCase();
-                      const isPlaying = playingId === v.voice_id;
-                      const isSelected = selVoice === v.voice_id;
-                      return (
-                        <button key={v.voice_id} onClick={() => setSelVoice(v.voice_id === selVoice ? null : v.voice_id)}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all ${isSelected ? 'bg-[rgba(255,255,255,0.06)] border-l-2 border-l-white' : 'hover:bg-[rgba(255,255,255,0.04)] border-l-2 border-l-transparent'}`}>
-                          <div className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-[13px] font-semibold text-white" style={{ backgroundColor: color }}>{initial}</div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-[13px] font-medium text-[rgba(255,255,255,0.9)]">{v.name}</div>
-                            <div className="text-[11px] text-[rgba(255,255,255,0.35)] truncate">{[v.labels.gender, v.labels.accent, v.labels.age, v.labels.descriptive].filter(Boolean).join(' · ')}</div>
-                          </div>
-                          <button onClick={e => { e.stopPropagation(); handlePlayVoice(v.voice_id, v.preview_url); }}
-                            className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${isPlaying ? 'bg-white text-black' : 'border border-[rgba(255,255,255,0.15)] text-[rgba(255,255,255,0.35)] hover:text-white hover:border-[rgba(255,255,255,0.25)]'}`}>
-                            {isPlaying
-                              ? <svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor"><rect x="1" y="1" width="3" height="8" rx=".5"/><rect x="6" y="1" width="3" height="8" rx=".5"/></svg>
-                              : <svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor"><polygon points="3,0 10,5 3,10"/></svg>}
-                          </button>
-                        </button>
-                      );
-                    })
-                  )}
+                  ) : filteredV.map((v, idx) => (
+                    <button key={v.voice_id} onClick={() => setSelVoice(v.voice_id === selVoice ? null : v.voice_id)}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all ${selVoice === v.voice_id ? 'bg-[rgba(255,255,255,0.06)] border-l-2 border-l-white' : 'hover:bg-[rgba(255,255,255,0.04)] border-l-2 border-l-transparent'}`}>
+                      <div className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-[13px] font-semibold text-white" style={{ backgroundColor: AVATAR_COLORS[idx % AVATAR_COLORS.length] }}>{v.name.charAt(0)}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-medium text-[rgba(255,255,255,0.9)]">{v.name}</div>
+                        <div className="text-[11px] text-[rgba(255,255,255,0.35)] truncate">{[v.labels.gender, v.labels.accent, v.labels.age, v.labels.descriptive].filter(Boolean).join(' · ')}</div>
+                      </div>
+                      <button onClick={e => { e.stopPropagation(); handlePlayVoice(v.voice_id, v.preview_url); }}
+                        className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${playingId === v.voice_id ? 'bg-white text-black' : 'border border-[rgba(255,255,255,0.15)] text-[rgba(255,255,255,0.35)] hover:text-white'}`}>
+                        {playingId === v.voice_id
+                          ? <svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor"><rect x="1" y="1" width="3" height="8" rx=".5"/><rect x="6" y="1" width="3" height="8" rx=".5"/></svg>
+                          : <svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor"><polygon points="3,0 10,5 3,10"/></svg>}
+                      </button>
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -377,16 +411,12 @@ export default function CreatePage() {
                 <div className="text-[10px] text-[rgba(255,255,255,0.35)] uppercase tracking-wider mb-2.5">Characters ({chars.length})</div>
                 <div className="flex gap-2.5 overflow-x-auto pb-1">
                   {chars.map(c => (
-                    <button key={c.id} onClick={() => openEditChar(c)} className="w-[100px] flex-shrink-0 border border-[rgba(255,255,255,0.1)] rounded-[10px] overflow-hidden hover:border-[rgba(255,255,255,0.25)] transition-all bg-[#0f0f0f] text-left">
-                      <div className="h-[68px] bg-[#131313] flex items-center justify-center overflow-hidden">
-                        {c.imageUrl ? (
-                          <img src={c.imageUrl} alt={c.name} className="w-full h-full object-cover object-top" />
-                        ) : (
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1.5"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
-                        )}
+                    <div key={c.id} className="w-[100px] flex-shrink-0 border border-[rgba(255,255,255,0.1)] rounded-[10px] overflow-hidden hover:border-[rgba(255,255,255,0.18)] transition-all bg-[#0f0f0f]">
+                      <div className="h-[68px] bg-[#131313] flex items-center justify-center">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1.5"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
                       </div>
                       <div className="px-2 py-1.5 text-[10px] text-center text-[rgba(255,255,255,0.5)] truncate">{c.name}</div>
-                    </button>
+                    </div>
                   ))}
                   <button onClick={resetForm} className="w-[100px] h-[96px] flex-shrink-0 border border-dashed border-[rgba(255,255,255,0.1)] rounded-[10px] flex items-center justify-center hover:border-[rgba(255,255,255,0.18)] transition-all">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="1.5"><path d="M12 5v14M5 12h14"/></svg>
@@ -395,108 +425,178 @@ export default function CreatePage() {
               </div>
             )}
 
-            {/* Bottom bar */}
+            {/* Bottom */}
             <div className="flex-shrink-0 border-t border-[rgba(255,255,255,0.1)] px-5 md:px-7 py-3 flex items-center justify-between bg-[#0f0f0f]">
               <span className="text-[11px] text-[rgba(255,255,255,0.35)]">Character {chars.length + 1}</span>
               <div className="flex gap-2.5">
                 <button onClick={handleGenChar} disabled={!prompt.trim() || genLoading}
-                  className="px-4 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-15 disabled:cursor-not-allowed transition-all">
-                  Generate Character →
-                </button>
+                  className="px-4 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-15 disabled:cursor-not-allowed transition-all">Generate Character →</button>
                 {chars.length > 0 && (
                   <button onClick={() => { if (scenes.length === 0) addScene(); setStep(2); }}
-                    className="px-4 py-2 border border-[rgba(255,255,255,0.12)] text-[12px] text-[rgba(255,255,255,0.6)] rounded-lg hover:text-white hover:border-[rgba(255,255,255,0.2)] transition-all">
-                    Next: Scene →
-                  </button>
+                    className="px-4 py-2 border border-[rgba(255,255,255,0.12)] text-[12px] text-[rgba(255,255,255,0.6)] rounded-lg hover:text-white hover:border-[rgba(255,255,255,0.2)] transition-all">Next: Scenes →</button>
                 )}
               </div>
             </div>
           </div>
         )}
 
-        {/* STEP 2 */}
+        {/* ═══════ STEP 2 — SCENES ═══════ */}
         {step === 2 && (
           <div className="flex-1 overflow-y-auto">
-            <div className="max-w-[800px] mx-auto px-5 md:px-7 py-7 animate-[fadeIn_0.3s_ease]">
+            <div className="max-w-[820px] mx-auto px-5 md:px-7 py-7 animate-[fadeIn_0.3s_ease]">
               {scenes.map((sc, idx) => (
-                <div key={sc.id} className="mb-6">
-                  <div className="flex items-center gap-2 mb-3">
+                <div key={sc.id} className={`mb-6 border rounded-xl p-5 transition-all ${sc.approved ? 'border-[rgba(74,222,128,0.2)] bg-[rgba(74,222,128,0.02)]' : 'border-[rgba(255,255,255,0.08)] bg-[#0f0f0f]'}`}>
+                  {/* Header */}
+                  <div className="flex items-center gap-2.5 mb-4">
                     <span className="text-[10px] font-medium text-[rgba(255,255,255,0.35)] bg-[rgba(255,255,255,0.04)] px-2 py-0.5 rounded uppercase tracking-wider">Scene {idx + 1}</span>
-                    {scenes.length > 1 && <button onClick={() => setScenes(p => p.filter(s => s.id !== sc.id))} className="text-[10px] text-[rgba(248,113,113,0.4)] hover:text-[rgba(248,113,113,0.7)] ml-auto">Remove</button>}
+                    {sc.approved && (
+                      <span className="flex items-center gap-1 text-[10px] text-[rgba(74,222,128,0.7)] font-medium">
+                        <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3,8 6.5,11.5 13,5"/></svg>
+                        Approved
+                      </span>
+                    )}
+                    {scenes.length > 1 && !sc.approved && (
+                      <button onClick={() => setScenes(p => p.filter(s => s.id !== sc.id))} className="text-[10px] text-[rgba(248,113,113,0.4)] hover:text-[rgba(248,113,113,0.7)] ml-auto">Remove</button>
+                    )}
+                    {sc.approved && (
+                      <button onClick={() => editScene(sc.id)} className="text-[10px] text-[rgba(255,255,255,0.35)] hover:text-white ml-auto">Edit</button>
+                    )}
                   </div>
-                  <h2 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px] mb-3">Describe your scene</h2>
-                  <textarea value={sc.description} onChange={e => upScene(sc.id, { description: e.target.value })}
-                    className="w-full min-h-[180px] bg-[#111] border border-[rgba(255,255,255,0.1)] rounded-xl p-4 text-[14px] text-white placeholder:text-[rgba(255,255,255,0.22)] outline-none resize-none focus:border-[rgba(255,255,255,0.15)] leading-relaxed mb-4"
-                    placeholder="A press conference room. The politician stands up, slams his fist on the table and shouts: 'This ends today!'" />
-                  <div className="flex gap-5 mb-4">
-                    <div>
-                      <div className="text-[10px] text-[rgba(255,255,255,0.35)] uppercase tracking-wider mb-2">Aspect Ratio</div>
-                      <div className="flex border border-[rgba(255,255,255,0.08)] rounded-lg overflow-hidden">
-                        {(['16:9', '9:16', '1:1'] as AspectRatio[]).map(r => (
-                          <button key={r} onClick={() => upScene(sc.id, { aspectRatio: r })}
-                            className={`px-3.5 py-1.5 text-[11px] transition-all ${sc.aspectRatio === r ? 'bg-[rgba(255,255,255,0.1)] text-white' : 'text-[rgba(255,255,255,0.35)]'}`}>{r}</button>
-                        ))}
-                      </div>
+
+                  {/* Approved: show thumbnail */}
+                  {sc.approved ? (
+                    <div className="aspect-video bg-[#131313] rounded-lg border border-[rgba(255,255,255,0.06)] flex items-center justify-center">
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1"><rect x="2" y="3" width="20" height="14" rx="2"/><polygon points="10,7 16,10 10,13" fill="rgba(255,255,255,0.06)" stroke="none"/></svg>
                     </div>
-                  </div>
-                  <div className="text-[10px] text-[rgba(255,255,255,0.35)] uppercase tracking-wider mb-2">Characters</div>
-                  <div className="flex flex-col gap-2.5">
-                    {sc.characters.map(scr => {
-                      const ch = chars.find(c => c.id === scr.characterId);
-                      if (!ch) return null;
-                      return (
-                        <div key={scr.characterId} className="border border-[rgba(255,255,255,0.07)] rounded-lg p-3 bg-[rgba(255,255,255,0.01)]">
-                          <div className="flex items-center gap-3">
-                            <div className="w-7 h-7 rounded-md bg-[#151515] flex items-center justify-center flex-shrink-0 overflow-hidden">
-                              {ch.imageUrl ? <img src={ch.imageUrl} alt={ch.name} className="w-full h-full object-cover object-top" /> : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>}
-                            </div>
-                            <span className="text-[12px] font-medium flex-1">{ch.name}</span>
-                            <div className="flex border border-[rgba(255,255,255,0.08)] rounded-md overflow-hidden">
-                              {(['speaking', 'silent'] as const).map(role => (
-                                <button key={role} onClick={() => upSC(sc.id, scr.characterId, { role })}
-                                  className={`px-2.5 py-1 text-[10px] capitalize ${scr.role === role ? 'bg-[rgba(255,255,255,0.08)] text-white' : 'text-[rgba(255,255,255,0.3)]'}`}>{role}</button>
-                              ))}
-                            </div>
+                  ) : (
+                    <>
+                      {/* Description */}
+                      <textarea value={sc.description} onChange={e => upScene(sc.id, { description: e.target.value })}
+                        className="w-full min-h-[140px] bg-[#111] border border-[rgba(255,255,255,0.08)] rounded-lg p-4 text-[14px] text-white placeholder:text-[rgba(255,255,255,0.2)] outline-none resize-none focus:border-[rgba(255,255,255,0.15)] leading-relaxed mb-4"
+                        placeholder="Describe what happens in this scene..." />
+
+                      {/* Aspect ratio */}
+                      <div className="flex gap-5 mb-4">
+                        <div>
+                          <div className="text-[10px] text-[rgba(255,255,255,0.35)] uppercase tracking-wider mb-2">Aspect Ratio</div>
+                          <div className="flex border border-[rgba(255,255,255,0.08)] rounded-lg overflow-hidden">
+                            {(['16:9', '9:16', '1:1'] as AspectRatio[]).map(r => (
+                              <button key={r} onClick={() => upScene(sc.id, { aspectRatio: r })}
+                                className={`px-3.5 py-1.5 text-[11px] transition-all ${sc.aspectRatio === r ? 'bg-[rgba(255,255,255,0.1)] text-white' : 'text-[rgba(255,255,255,0.3)]'}`}>{r}</button>
+                            ))}
                           </div>
-                          {scr.role === 'speaking' && (
-                            <textarea value={scr.dialogue} onChange={e => upSC(sc.id, scr.characterId, { dialogue: e.target.value })}
-                              className="w-full mt-2 bg-[#131313] border border-[rgba(255,255,255,0.06)] rounded-lg p-2.5 text-[11px] outline-none resize-none h-14 placeholder:text-[rgba(255,255,255,0.18)] focus:border-[rgba(255,255,255,0.12)]"
-                              placeholder={`${ch.name}'s dialogue...`} />
-                          )}
                         </div>
-                      );
-                    })}
-                  </div>
-                  {idx < scenes.length - 1 && <div className="border-b border-[rgba(255,255,255,0.05)] mt-6" />}
+                      </div>
+
+                      {/* Characters */}
+                      <div className="text-[10px] text-[rgba(255,255,255,0.35)] uppercase tracking-wider mb-2">Characters</div>
+                      <div className="flex flex-col gap-2.5 mb-4">
+                        {sc.characters.map(scr => {
+                          const ch = chars.find(c => c.id === scr.characterId);
+                          if (!ch) return null;
+                          return (
+                            <div key={scr.characterId} className="border border-[rgba(255,255,255,0.06)] rounded-lg p-3 bg-[rgba(255,255,255,0.01)]">
+                              <div className="flex items-center gap-3">
+                                <div className="w-7 h-7 rounded-md bg-[#151515] flex items-center justify-center flex-shrink-0">
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
+                                </div>
+                                <span className="text-[12px] font-medium flex-1">{ch.name}</span>
+                                <div className="flex border border-[rgba(255,255,255,0.07)] rounded-md overflow-hidden">
+                                  {(['speaking', 'silent'] as const).map(role => (
+                                    <button key={role} onClick={() => upSC(sc.id, scr.characterId, { role })}
+                                      className={`px-2.5 py-1 text-[10px] capitalize ${scr.role === role ? 'bg-[rgba(255,255,255,0.08)] text-white' : 'text-[rgba(255,255,255,0.3)]'}`}>{role}</button>
+                                  ))}
+                                </div>
+                              </div>
+                              {scr.role === 'speaking' && (
+                                <textarea value={scr.dialogue} onChange={e => upSC(sc.id, scr.characterId, { dialogue: e.target.value })}
+                                  className="w-full mt-2 bg-[#131313] border border-[rgba(255,255,255,0.06)] rounded-lg p-2.5 text-[11px] outline-none resize-none h-14 placeholder:text-[rgba(255,255,255,0.18)] focus:border-[rgba(255,255,255,0.12)]"
+                                  placeholder={`${ch.name}'s dialogue...`} />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Preview image / generation */}
+                      {sc.imageUrl !== null && !sc.generating && (
+                        <div className="mb-4">
+                          <div className="aspect-video bg-[#131313] rounded-lg border border-[rgba(255,255,255,0.06)] flex items-center justify-center mb-3">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1"><rect x="2" y="3" width="20" height="14" rx="2"/><polygon points="10,7 16,10 10,13" fill="rgba(255,255,255,0.06)" stroke="none"/></svg>
+                          </div>
+                          <div className="flex gap-2.5">
+                            <button onClick={() => generateScenePreview(sc.id)}
+                              className="px-3.5 py-2 border border-[rgba(255,255,255,0.1)] rounded-lg text-[12px] text-[rgba(255,255,255,0.55)] hover:text-white hover:border-[rgba(255,255,255,0.18)] transition-all">Regenerate</button>
+                            <button onClick={() => approveScene(sc.id)}
+                              className="px-3.5 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 transition-all">Looks good ✓</button>
+                          </div>
+                        </div>
+                      )}
+
+                      {sc.generating && (
+                        <div className="flex items-center gap-3 py-4">
+                          <div className="w-5 h-5 rounded-full border-2 border-[rgba(255,255,255,0.06)] border-t-white animate-spin" />
+                          <span className="text-[13px] text-[rgba(255,255,255,0.45)]">Generating scene preview...</span>
+                        </div>
+                      )}
+
+                      {sc.error && (
+                        <div className="flex items-center gap-2 py-2">
+                          <span className="text-[12px] text-[rgba(248,113,113,0.7)]">{sc.error}</span>
+                          <button onClick={() => generateScenePreview(sc.id)} className="text-[12px] text-[rgba(255,255,255,0.5)] hover:text-white underline">Retry</button>
+                        </div>
+                      )}
+
+                      {/* Generate button (when no preview yet) */}
+                      {sc.imageUrl === null && !sc.generating && !sc.error && (
+                        <button onClick={() => generateScenePreview(sc.id)} disabled={!sc.description.trim()}
+                          className="px-4 py-2 bg-[#0f0f0f] border border-[rgba(255,255,255,0.12)] text-[12px] text-[rgba(255,255,255,0.6)] rounded-lg hover:text-white hover:border-[rgba(255,255,255,0.2)] disabled:opacity-20 disabled:cursor-not-allowed transition-all">
+                          Generate Scene Preview
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
               ))}
-              <div className="flex items-center justify-between mt-4 pt-4 border-t border-[rgba(255,255,255,0.06)]">
+
+              <div className="flex items-center justify-between mt-2">
                 <button onClick={addScene} className="text-[11px] px-3 py-1.5 border border-[rgba(255,255,255,0.1)] rounded-lg text-[rgba(255,255,255,0.45)] hover:text-white hover:border-[rgba(255,255,255,0.18)] transition-all">+ Add Scene</button>
-                <button onClick={() => setStep(3)} disabled={scenes.every(s => !s.description.trim())}
-                  className="px-5 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-15 disabled:cursor-not-allowed transition-all">Next: Review →</button>
+                <button onClick={() => setStep(3)} disabled={approvedCount === 0}
+                  className="px-5 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-15 disabled:cursor-not-allowed transition-all">
+                  Next: Review →
+                </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* STEP 3 */}
+        {/* ═══════ STEP 3 — REVIEW ═══════ */}
         {step === 3 && (
           <div className="flex-1 overflow-y-auto">
-            <div className="max-w-[800px] mx-auto px-5 md:px-7 py-7 animate-[fadeIn_0.3s_ease]">
+            <div className="max-w-[820px] mx-auto px-5 md:px-7 py-7 animate-[fadeIn_0.3s_ease]">
               <h2 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px] mb-5">Review your scenes</h2>
+
               <div className="flex flex-col gap-2.5 mb-8">
-                {scenes.map((sc, idx) => (
+                {scenes.filter(s => s.approved).map((sc, idx) => (
                   <div key={sc.id} draggable onDragStart={() => { dragI.current = idx; }} onDragEnter={() => { dragO.current = idx; }} onDragEnd={onDragEnd} onDragOver={e => e.preventDefault()}
-                    className="border border-[rgba(255,255,255,0.08)] rounded-xl p-4 bg-[#0f0f0f] flex items-start gap-3.5 cursor-grab active:cursor-grabbing hover:border-[rgba(255,255,255,0.13)] transition-all group">
-                    <span className="text-[10px] font-medium text-[rgba(255,255,255,0.35)] bg-[rgba(255,255,255,0.04)] px-2 py-0.5 rounded flex-shrink-0 mt-0.5">Scene {idx + 1}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] text-[rgba(255,255,255,0.6)] line-clamp-2 leading-relaxed">{sc.description || 'No description'}</p>
-                      <div className="flex gap-1.5 mt-1.5">{sc.characters.filter(c => c.role === 'speaking').map(c => { const ch = chars.find(x => x.id === c.characterId); return ch ? <span key={c.characterId} className="text-[9px] text-[rgba(255,255,255,0.3)] border border-[rgba(255,255,255,0.06)] rounded px-1.5 py-0.5">{ch.name}</span> : null; })}</div>
+                    className="border border-[rgba(255,255,255,0.08)] rounded-xl p-4 bg-[#0f0f0f] flex items-center gap-4 cursor-grab active:cursor-grabbing hover:border-[rgba(255,255,255,0.13)] transition-all group">
+                    {/* Scene thumbnail */}
+                    <div className="w-20 h-[45px] rounded-md bg-[#131313] border border-[rgba(255,255,255,0.06)] flex items-center justify-center flex-shrink-0">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1"><rect x="2" y="3" width="20" height="14" rx="2"/><polygon points="10,7 16,10 10,13" fill="rgba(255,255,255,0.05)" stroke="none"/></svg>
                     </div>
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="rgba(255,255,255,0.12)" className="flex-shrink-0 mt-1 opacity-40 group-hover:opacity-100 transition-opacity"><circle cx="5" cy="3" r="1.5"/><circle cx="11" cy="3" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="13" r="1.5"/><circle cx="11" cy="13" r="1.5"/></svg>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] font-medium text-[rgba(255,255,255,0.3)] bg-[rgba(255,255,255,0.04)] px-1.5 py-0.5 rounded">Scene {idx + 1}</span>
+                        <span className="text-[10px] text-[rgba(255,255,255,0.2)]">{sc.aspectRatio}</span>
+                      </div>
+                      <p className="text-[12px] text-[rgba(255,255,255,0.55)] truncate">{sc.description}</p>
+                    </div>
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="rgba(255,255,255,0.1)" className="flex-shrink-0 opacity-40 group-hover:opacity-100 transition-opacity"><circle cx="5" cy="3" r="1.5"/><circle cx="11" cy="3" r="1.5"/><circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/><circle cx="5" cy="13" r="1.5"/><circle cx="11" cy="13" r="1.5"/></svg>
                   </div>
                 ))}
               </div>
+
+              {/* Settings */}
               <div className="border border-[rgba(255,255,255,0.08)] rounded-xl p-5 bg-[#0f0f0f] mb-6">
                 <h3 className="text-[11px] font-medium text-[rgba(255,255,255,0.45)] uppercase tracking-[1.5px] mb-4">Settings</h3>
                 <div className="flex flex-col md:flex-row gap-6 md:gap-10">
@@ -510,25 +610,124 @@ export default function CreatePage() {
                       ))}
                     </div>
                   </div>
-                  <div>
-                    <div className="text-[10px] text-[rgba(255,255,255,0.35)] uppercase tracking-wider mb-2">Lip Sync</div>
-                    <button onClick={() => setLip(!lip)} className={`relative w-10 h-5 rounded-full transition-all ${lip ? 'bg-white' : 'bg-[rgba(255,255,255,0.1)]'}`}>
-                      <div className={`absolute top-0.5 w-4 h-4 rounded-full transition-all ${lip ? 'left-[22px] bg-black' : 'left-0.5 bg-[rgba(255,255,255,0.3)]'}`} />
-                    </button>
-                    {lip && <div className="text-[9px] text-[rgba(255,255,255,0.3)] mt-1.5">+25 cr/role</div>}
-                  </div>
                   <div className="md:ml-auto">
-                    <div className="text-[10px] text-[rgba(255,255,255,0.35)] uppercase tracking-wider mb-2">Total</div>
+                    <div className="text-[10px] text-[rgba(255,255,255,0.35)] uppercase tracking-wider mb-2">Estimated Total</div>
                     <div className="text-[24px] font-semibold tracking-[-1px]">{totalCr} <span className="text-[12px] font-normal text-[rgba(255,255,255,0.3)]">credits</span></div>
                   </div>
                 </div>
               </div>
+
               <div className="flex justify-end">
-                <button onClick={handleFinal} disabled={finalLoading}
-                  className="px-6 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-30 transition-all flex items-center gap-2">
-                  {finalLoading ? <><div className="w-3.5 h-3.5 rounded-full border-2 border-black/20 border-t-black animate-spin" /> Generating...</> : 'Generate Animation →'}
-                </button>
+                <button onClick={handleFinalGenerate}
+                  className="px-6 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-all">Generate Animation →</button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════ STEP 4 — GENERATE (inline status) ═══════ */}
+        {step === 4 && (
+          <div className="flex-1 overflow-y-auto">
+            <div className="max-w-[860px] mx-auto px-5 md:px-7 py-7 animate-[fadeIn_0.3s_ease]">
+              {/* Header */}
+              <div className="flex items-center gap-3.5 mb-7">
+                {genStatus === 'completed' ? (
+                  <div className="w-10 h-10 rounded-full bg-[rgba(74,222,128,0.08)] flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(74,222,128,0.7)" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                ) : genStatus === 'failed' ? (
+                  <div className="w-10 h-10 rounded-full bg-[rgba(248,113,113,0.08)] flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(248,113,113,0.7)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+                  </div>
+                ) : (
+                  <div className="w-10 h-10 rounded-full border-2 border-[rgba(255,255,255,0.08)] border-t-white animate-spin" />
+                )}
+                <div>
+                  <h1 className="text-[18px] font-semibold tracking-[-0.4px]">
+                    {genStatus === 'completed' ? 'Animation Complete' : genStatus === 'failed' ? 'Generation Failed' : 'Generating...'}
+                  </h1>
+                  <p className="text-[13px] text-[rgba(255,255,255,0.4)] mt-0.5">{genMessage}</p>
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              {genStatus === 'processing' && (
+                <div className="mb-8">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] text-[rgba(255,255,255,0.3)]">Progress</span>
+                    <span className="text-[11px] text-[rgba(255,255,255,0.5)] tabular-nums">{genProgress}%</span>
+                  </div>
+                  <div className="h-1.5 bg-[rgba(255,255,255,0.04)] rounded-full overflow-hidden">
+                    <div className="h-full bg-white rounded-full transition-all duration-1000" style={{ width: `${genProgress}%` }} />
+                  </div>
+                </div>
+              )}
+
+              {/* Scene render cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
+                {genScenes.map((s) => (
+                  <div key={s.scene_number} className="border border-[rgba(255,255,255,0.06)] rounded-lg overflow-hidden bg-[#0f0f0f]">
+                    <div className="aspect-video bg-[#0e0e0e] flex items-center justify-center relative">
+                      {s.status === 'queued' && <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>}
+                      {s.status === 'processing' && (
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="w-7 h-7 rounded-full border-2 border-[rgba(255,255,255,0.06)] border-t-[rgba(255,255,255,0.4)] animate-spin" />
+                          <span className="text-[11px] text-[rgba(255,255,255,0.3)]">{s.current_step}</span>
+                        </div>
+                      )}
+                      {s.status === 'completed' && (
+                        <div className="w-10 h-10 rounded-full bg-[rgba(255,255,255,0.05)] flex items-center justify-center cursor-pointer hover:bg-[rgba(255,255,255,0.08)] transition-colors">
+                          <svg width="14" height="14" viewBox="0 0 16 16" fill="white"><polygon points="5,2 14,8 5,14"/></svg>
+                        </div>
+                      )}
+                    </div>
+                    <div className="px-3 py-2.5 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-medium text-[rgba(255,255,255,0.3)] bg-[rgba(255,255,255,0.03)] px-1.5 py-0.5 rounded">Scene {s.scene_number}</span>
+                        <span className={`text-[10px] capitalize ${s.status === 'completed' ? 'text-[rgba(74,222,128,0.6)]' : s.status === 'processing' ? 'text-[rgba(250,204,21,0.6)]' : 'text-[rgba(255,255,255,0.2)]'}`}>{s.status}</span>
+                      </div>
+                      {s.status === 'completed' && <button className="text-[11px] text-[rgba(255,255,255,0.4)] hover:text-white transition-colors">Download</button>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Final video */}
+              {genStatus === 'completed' && (
+                <div className="border border-[rgba(255,255,255,0.06)] rounded-xl overflow-hidden bg-[#0f0f0f] mb-6">
+                  <div className="aspect-video bg-[#0e0e0e] flex items-center justify-center">
+                    <div className="w-14 h-14 rounded-full bg-[rgba(255,255,255,0.06)] flex items-center justify-center cursor-pointer hover:bg-[rgba(255,255,255,0.1)] transition-colors">
+                      <svg width="20" height="20" viewBox="0 0 16 16" fill="white"><polygon points="5,2 14,8 5,14"/></svg>
+                    </div>
+                  </div>
+                  <div className="p-4 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-[15px] font-medium">Final Video Ready</h3>
+                      <p className="text-[12px] text-[rgba(255,255,255,0.35)] mt-0.5">{genScenes.length} scenes · {res}</p>
+                    </div>
+                    <button className="px-4 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 transition-colors">Download MP4</button>
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              {genStatus === 'completed' && (
+                <div className="flex justify-center">
+                  <button onClick={resetAll}
+                    className="px-5 py-2.5 border border-[rgba(255,255,255,0.1)] text-[13px] text-[rgba(255,255,255,0.55)] rounded-lg hover:text-white hover:border-[rgba(255,255,255,0.2)] transition-all">
+                    Create Another
+                  </button>
+                </div>
+              )}
+
+              {genStatus === 'failed' && (
+                <div className="flex justify-center gap-3">
+                  <button onClick={() => { setStep(3); setGenStatus('idle'); }}
+                    className="px-5 py-2.5 border border-[rgba(255,255,255,0.1)] text-[13px] text-[rgba(255,255,255,0.55)] rounded-lg hover:text-white hover:border-[rgba(255,255,255,0.2)] transition-all">← Back to Review</button>
+                  <button onClick={handleFinalGenerate}
+                    className="px-5 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-all">Retry</button>
+                </div>
+              )}
             </div>
           </div>
         )}
