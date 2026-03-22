@@ -120,17 +120,16 @@ export default function CreatePage() {
     setGenLoading(false);
   };
 
-  const confirmChar = () => {
+ const confirmChar = () => {
     if (pendingChar) {
       if (editingChar) {
-        setChars(prev => prev.map(c => c.id === editingChar.id ? { ...pendingChar, id: editingChar.id } : c));
+        setChars(prev => prev.map(c => c.id === editingChar.id ? { ...pendingChar, id: editingChar.id, name: editingChar.name } : c));
       } else {
         setChars(prev => [...prev, pendingChar]);
       }
     }
     setPendingChar(null); setGenDone(false); setEditingChar(null); resetForm();
   };
-
   const openEditChar = (c: CharDef) => {
     setEditingChar(c);
     setPrompt(c.prompt);
