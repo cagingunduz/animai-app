@@ -108,8 +108,8 @@ export default function CreatePage() {
       const d = await r.json();
       const voice = voices.find(v => v.voice_id === selVoice);
       setPendingChar({
-        id: editingChar?.id || d.character_id || uid(),
-        name: editingChar?.name || `Character ${chars.length + 1}`,
+        id: editingChar ? editingChar.id : d.character_id || uid(),
+        name: editingChar ? editingChar.name : `Character ${chars.length + 1}`,
         prompt, style,
         voiceId: selVoice || undefined,
         voiceName: voice?.name,
