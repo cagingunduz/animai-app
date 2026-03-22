@@ -130,7 +130,7 @@ export default function CreatePage() {
     try {
       const r = await fetch('/api/generate-character', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: prompt, style, photo_url: photoUrl })
+        body: JSON.stringify({ description: prompt, style, photo_url: editingChar?.imageUrl || photoUrl })
       });
       const d = await r.json();
       const voice = voices.find(v => v.voice_id === selVoice);
