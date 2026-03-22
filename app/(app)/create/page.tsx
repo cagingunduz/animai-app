@@ -409,7 +409,11 @@ export default function CreatePage() {
                         )}
                       </div>
                       <div className="flex gap-3">
-                        <button onClick={() => { setGenDone(false); setPendingChar(null); }} className="flex-1 py-2.5 border border-[rgba(255,255,255,0.12)] rounded-lg text-[13px] text-[rgba(255,255,255,0.6)] hover:text-white hover:border-[rgba(255,255,255,0.2)] transition-all">← Edit</button>
+                        <button onClick={() => {
+                          if (!editingChar && pendingChar) setEditingChar(pendingChar);
+                          setGenDone(false);
+                          setPendingChar(null);
+                        }} className="flex-1 py-2.5 border border-[rgba(255,255,255,0.12)] rounded-lg text-[13px] text-[rgba(255,255,255,0.6)] hover:text-white hover:border-[rgba(255,255,255,0.2)] transition-all">← Edit</button>
                         <button onClick={confirmChar} className="flex-1 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-all">Use this character →</button>
                       </div>
                     </div>
