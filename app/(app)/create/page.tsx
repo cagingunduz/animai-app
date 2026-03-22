@@ -11,9 +11,16 @@ interface VoiceLabels { gender?: string; accent?: string; age?: string; use_case
 interface Voice { voice_id: string; name: string; preview_url: string; labels: VoiceLabels; }
 interface CharDef { id: string; name: string; prompt: string; style: AnimStyle; voiceId?: string; voiceName?: string; imageUrl?: string; }
 interface SceneCharRef { characterId: string; role: 'speaking' | 'silent'; dialogue: string; }
+
+interface CharPlacement {
+  characterId: string; inScene: boolean; position: string;
+  role: 'speaking' | 'silent'; dialogue: string;
+}
+
 interface SceneDef {
   id: string; description: string; aspectRatio: AspectRatio; characters: SceneCharRef[];
   generating: boolean; approved: boolean; imageUrl: string | null; error: string | null;
+  background: string; customBg: string; characterPlacements: CharPlacement[];
 }
 type SceneRenderStatus = { scene_number: number; status: 'queued' | 'processing' | 'completed' | 'failed'; current_step?: string; video_url?: string; };
 
@@ -31,6 +38,33 @@ const FILTER_OPTIONS = [
   { key: 'british', label: 'British', match: (v: Voice) => v.labels.accent?.toLowerCase().includes('british') },
   { key: 'young', label: 'Young', match: (v: Voice) => v.labels.age?.toLowerCase().includes('young') },
   { key: 'narrator', label: 'Narrator', match: (v: Voice) => v.labels.use_case?.toLowerCase().includes('narrat') },
+];
+
+const BACKGROUNDS = [
+  { id: 'living-room', label: 'Living Room', emoji: '🛋️' },
+  { id: 'garden', label: 'Garden', emoji: '🌿' },
+  { id: 'city-street', label: 'City Street', emoji: '🏙️' },
+  { id: 'office', label: 'Office', emoji: '🏢' },
+  { id: 'restaurant', label: 'Restaurant', emoji: '🍽️' },
+  { id: 'beach', label: 'Beach', emoji: '🏖️' },
+  { id: 'forest', label: 'Forest', emoji: '🌲' },
+  { id: 'press-room', label: 'Press Room', emoji: '🎤' },
+  { id: 'stadium', label: 'Stadium', emoji: '🏟️' },
+  { id: 'bedroom', label: 'Bedroom', emoji: '🛏️' },
+  { id: 'kitchen', label: 'Kitchen', emoji: '🍳' },
+  { id: 'custom', label: 'Custom', emoji: '✏️' },
+];
+
+const POSITIONS = [
+  { label: 'Left · Back', short: 'left-back' },
+  { label: 'Center · Back', short: 'center-back' },
+  { label: 'Right · Back', short: 'right-back' },
+  { label: 'Left · Middle', short: 'left-middle' },
+  { label: 'Center · Middle', short: 'center-middle' },
+  { label: 'Right · Middle', short: 'right-middle' },
+  { label: 'Left · Front', short: 'left-front' },
+  { label: 'Center · Front', short: 'center-front' },
+  { label: 'Right · Front', short: 'right-front' },
 ];
 
 let _u = 0;
@@ -144,23 +178,47 @@ export default function CreatePage() {
       id: uid(), description: '', aspectRatio: '16:9',
       characters: chars.map(c => ({ characterId: c.id, role: 'speaking' as const, dialogue: '' })),
       generating: false, approved: false, imageUrl: null, error: null,
+      background: '', customBg: '',
+      characterPlacements: chars.map(c => ({ characterId: c.id, inScene: true, position: 'center-front', role: 'speaking' as const, dialogue: '' })),
     }]);
   };
 
   const upScene = (id: string, u: Partial<SceneDef>) => setScenes(p => p.map(s => s.id === id ? { ...s, ...u } : s));
   const upSC = (sid: string, cid: string, u: Partial<SceneCharRef>) => setScenes(p => p.map(s => s.id !== sid ? s : { ...s, characters: s.characters.map(c => c.characterId === cid ? { ...c, ...u } : c) }));
 
+  const upPlacement = (sid: string, cid: string, u: Partial<CharPlacement>) => {
+    setScenes(p => p.map(s => s.id !== sid ? s : {
+      ...s,
+      characterPlacements: s.characterPlacements.map(cp => cp.characterId === cid ? { ...cp, ...u } : cp),
+      // Also sync the old characters array for backward compat
+      characters: s.characters.map(c => c.characterId === cid ? { ...c, ...(u.role ? { role: u.role } : {}), ...(u.dialogue !== undefined ? { dialogue: u.dialogue } : {}) } : c),
+    }));
+  };
+
+  const buildSceneText = (scene: SceneDef) => {
+    const bgLabel = scene.background === 'custom' ? scene.customBg : BACKGROUNDS.find(b => b.id === scene.background)?.label || '';
+    const inSceneChars = scene.characterPlacements.filter(cp => cp.inScene);
+    const charDescs = inSceneChars.map(cp => {
+      const ch = chars.find(c => c.id === cp.characterId);
+      const posLabel = POSITIONS.find(p => p.short === cp.position)?.label || cp.position;
+      return `${ch?.name || 'Character'} at ${posLabel}, ${cp.role}`;
+    }).join('. ');
+    return `${bgLabel} background. ${charDescs}.`.trim();
+  };
+
   const generateScenePreview = async (sceneId: string) => {
     const scene = scenes.find(s => s.id === sceneId);
     if (!scene) return;
-    upScene(sceneId, { generating: true, error: null, approved: false, imageUrl: null });
+    const sceneText = buildSceneText(scene);
+    upScene(sceneId, { generating: true, error: null, approved: false, imageUrl: null, description: sceneText });
     try {
+      const inSceneChars = scene.characterPlacements.filter(cp => cp.inScene);
       const payload = {
-        scene_text: scene.description,
+        scene_text: sceneText,
         aspect_ratio: scene.aspectRatio,
-        characters: scene.characters.map(sc => {
-          const ch = chars.find(c => c.id === sc.characterId);
-          return { id: sc.characterId, description: ch?.prompt || '', style: ch?.style || 'anime', char_url: ch?.imageUrl || null, role: sc.role, framing: 'full_body' };
+        characters: inSceneChars.map(cp => {
+          const ch = chars.find(c => c.id === cp.characterId);
+          return { id: cp.characterId, description: ch?.prompt || '', style: ch?.style || 'anime', char_url: ch?.imageUrl || null, role: cp.role, framing: 'full_body' };
         }),
       };
       const r = await fetch('/api/generate-scene-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -460,9 +518,16 @@ export default function CreatePage() {
         {step === 2 && (
           <div className="flex-1 overflow-y-auto">
             <div className="max-w-[820px] mx-auto px-5 md:px-7 py-7 animate-[fadeIn_0.3s_ease]">
-              {scenes.map((sc, idx) => (
-                <div key={sc.id} className={`mb-6 border rounded-xl p-5 transition-all ${sc.approved ? 'border-[rgba(74,222,128,0.2)] bg-[rgba(74,222,128,0.02)]' : 'border-[rgba(255,255,255,0.08)] bg-[#0f0f0f]'}`}>
-                  <div className="flex items-center gap-2.5 mb-4">
+              {scenes.map((sc, idx) => {
+                const bgObj = BACKGROUNDS.find(b => b.id === sc.background);
+                const hasBackground = !!sc.background;
+                const inScenePlacements = sc.characterPlacements.filter(cp => cp.inScene);
+                const canGenerate = hasBackground && inScenePlacements.length > 0;
+
+                return (
+                <div key={sc.id} className={`mb-6 border rounded-xl transition-all ${sc.approved ? 'border-[rgba(74,222,128,0.2)] bg-[rgba(74,222,128,0.02)]' : 'border-[rgba(255,255,255,0.08)] bg-[#0f0f0f]'}`}>
+                  {/* Header */}
+                  <div className="flex items-center gap-2.5 p-5 pb-0">
                     <span className="text-[10px] font-medium text-[rgba(255,255,255,0.35)] bg-[rgba(255,255,255,0.04)] px-2 py-0.5 rounded uppercase tracking-wider">Scene {idx + 1}</span>
                     {sc.approved && (
                       <span className="flex items-center gap-1 text-[10px] text-[rgba(74,222,128,0.7)] font-medium">
@@ -477,99 +542,192 @@ export default function CreatePage() {
                     ) : null}
                   </div>
 
+                  {/* Approved: show thumbnail only */}
                   {sc.approved ? (
-                    <div className="aspect-video bg-[#131313] rounded-lg border border-[rgba(255,255,255,0.06)] overflow-hidden flex items-center justify-center">
-                      {sc.imageUrl ? (
-                        <img src={sc.imageUrl} alt={`Scene ${idx+1}`} className="w-full h-full object-cover" />
-                      ) : (
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1"><rect x="2" y="3" width="20" height="14" rx="2"/></svg>
-                      )}
+                    <div className="p-5 pt-4">
+                      <div className="aspect-video bg-[#131313] rounded-lg border border-[rgba(255,255,255,0.06)] overflow-hidden flex items-center justify-center">
+                        {sc.imageUrl ? (
+                          <img src={sc.imageUrl} alt={`Scene ${idx+1}`} className="w-full h-full object-cover" />
+                        ) : (
+                          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1"><rect x="2" y="3" width="20" height="14" rx="2"/></svg>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-[rgba(255,255,255,0.3)] mt-3 leading-relaxed">{sc.description}</p>
                     </div>
                   ) : (
-                    <>
-                      <textarea value={sc.description} onChange={e => upScene(sc.id, { description: e.target.value })}
-                        className="w-full min-h-[140px] bg-[#111] border border-[rgba(255,255,255,0.08)] rounded-lg p-4 text-[14px] text-white placeholder:text-[rgba(255,255,255,0.2)] outline-none resize-none focus:border-[rgba(255,255,255,0.15)] leading-relaxed mb-4"
-                        placeholder="Describe what happens in this scene..." />
+                    <div className="p-5 pt-4 flex flex-col gap-5">
 
-                      <div className="flex gap-5 mb-4">
-                        <div>
-                          <div className="text-[10px] text-[rgba(255,255,255,0.35)] uppercase tracking-wider mb-2">Aspect Ratio</div>
-                          <div className="flex border border-[rgba(255,255,255,0.08)] rounded-lg overflow-hidden">
-                            {(['16:9', '9:16', '1:1'] as AspectRatio[]).map(r => (
-                              <button key={r} onClick={() => upScene(sc.id, { aspectRatio: r })}
-                                className={`px-3.5 py-1.5 text-[11px] transition-all ${sc.aspectRatio === r ? 'bg-[rgba(255,255,255,0.1)] text-white' : 'text-[rgba(255,255,255,0.3)]'}`}>{r}</button>
-                            ))}
-                          </div>
+                      {/* ─── SUB-STEP A: Background ─── */}
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <h3 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px]">Background</h3>
+                          {sc.background && sc.background !== 'custom' && (
+                            <span className="text-[10px] text-[rgba(255,255,255,0.35)] bg-[rgba(255,255,255,0.04)] px-2 py-0.5 rounded-full">{bgObj?.emoji} {bgObj?.label}</span>
+                          )}
+                          {sc.background === 'custom' && sc.customBg && (
+                            <span className="text-[10px] text-[rgba(255,255,255,0.35)] bg-[rgba(255,255,255,0.04)] px-2 py-0.5 rounded-full">✏️ Custom</span>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                          {BACKGROUNDS.map(bg => (
+                            <button key={bg.id} onClick={() => upScene(sc.id, { background: bg.id })}
+                              className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-lg border transition-all ${
+                                sc.background === bg.id
+                                  ? 'border-white bg-[rgba(255,255,255,0.05)] text-white'
+                                  : 'border-[rgba(255,255,255,0.07)] bg-[#111] text-[rgba(255,255,255,0.4)] hover:border-[rgba(255,255,255,0.15)] hover:text-[rgba(255,255,255,0.6)]'
+                              }`}>
+                              <span className="text-[16px]">{bg.emoji}</span>
+                              <span className="text-[10px] leading-tight">{bg.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                        {sc.background === 'custom' && (
+                          <textarea
+                            value={sc.customBg}
+                            onChange={e => upScene(sc.id, { customBg: e.target.value })}
+                            className="w-full mt-3 bg-[#111] border border-[rgba(255,255,255,0.08)] rounded-lg p-3 text-[13px] text-white placeholder:text-[rgba(255,255,255,0.18)] outline-none resize-none h-16 focus:border-[rgba(255,255,255,0.15)] transition-colors"
+                            placeholder="Describe your custom background..."
+                          />
+                        )}
+                      </div>
+
+                      {/* ─── Aspect Ratio ─── */}
+                      <div>
+                        <div className="text-[10px] text-[rgba(255,255,255,0.35)] uppercase tracking-wider mb-2">Aspect Ratio</div>
+                        <div className="flex border border-[rgba(255,255,255,0.08)] rounded-lg overflow-hidden w-fit">
+                          {(['16:9', '9:16', '1:1'] as AspectRatio[]).map(r => (
+                            <button key={r} onClick={() => upScene(sc.id, { aspectRatio: r })}
+                              className={`px-3.5 py-1.5 text-[11px] transition-all ${sc.aspectRatio === r ? 'bg-[rgba(255,255,255,0.1)] text-white' : 'text-[rgba(255,255,255,0.3)]'}`}>{r}</button>
+                          ))}
                         </div>
                       </div>
 
-                      <div className="text-[10px] text-[rgba(255,255,255,0.35)] uppercase tracking-wider mb-2">Characters</div>
-                      <div className="flex flex-col gap-2.5 mb-4">
-                        {sc.characters.map(scr => {
-                          const ch = chars.find(c => c.id === scr.characterId);
-                          if (!ch) return null;
-                          return (
-                            <div key={scr.characterId} className="border border-[rgba(255,255,255,0.06)] rounded-lg p-3 bg-[rgba(255,255,255,0.01)]">
-                              <div className="flex items-center gap-3">
-                                <div className="w-7 h-7 rounded-md bg-[#151515] flex items-center justify-center flex-shrink-0 overflow-hidden">
-                                  {ch.imageUrl ? <img src={ch.imageUrl} alt={ch.name} className="w-full h-full object-cover object-top" /> : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>}
+                      {/* ─── SUB-STEP B: Character Placement ─── */}
+                      <div>
+                        <h3 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px] mb-3">Place your characters</h3>
+                        <div className="flex flex-col gap-3">
+                          {sc.characterPlacements.map(cp => {
+                            const ch = chars.find(c => c.id === cp.characterId);
+                            if (!ch) return null;
+                            const posObj = POSITIONS.find(p => p.short === cp.position);
+                            return (
+                              <div key={cp.characterId} className={`border rounded-lg p-3.5 transition-all ${cp.inScene ? 'border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.015)]' : 'border-[rgba(255,255,255,0.05)] bg-transparent'}`}>
+                                {/* Top row: thumbnail + name + in-scene toggle */}
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-lg bg-[#151515] border border-[rgba(255,255,255,0.06)] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                    {ch.imageUrl ? (
+                                      <img src={ch.imageUrl} alt={ch.name} className="w-full h-full object-cover object-top" />
+                                    ) : (
+                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1.5"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
+                                    )}
+                                  </div>
+                                  <span className={`text-[12px] font-medium flex-1 ${cp.inScene ? 'text-white' : 'text-[rgba(255,255,255,0.35)]'}`}>{ch.name}</span>
+                                  <button onClick={() => upPlacement(sc.id, cp.characterId, { inScene: !cp.inScene })}
+                                    className={`px-3 py-1 rounded-full text-[10px] font-medium transition-all ${
+                                      cp.inScene
+                                        ? 'bg-white text-black'
+                                        : 'border border-[rgba(255,255,255,0.12)] text-[rgba(255,255,255,0.4)] hover:border-[rgba(255,255,255,0.2)] hover:text-[rgba(255,255,255,0.7)]'
+                                    }`}>
+                                    {cp.inScene ? 'In Scene' : 'Add'}
+                                  </button>
                                 </div>
-                                <span className="text-[12px] font-medium flex-1">{ch.name}</span>
-                                <div className="flex border border-[rgba(255,255,255,0.07)] rounded-md overflow-hidden">
-                                  {(['speaking', 'silent'] as const).map(role => (
-                                    <button key={role} onClick={() => upSC(sc.id, scr.characterId, { role })}
-                                      className={`px-2.5 py-1 text-[10px] capitalize ${scr.role === role ? 'bg-[rgba(255,255,255,0.08)] text-white' : 'text-[rgba(255,255,255,0.3)]'}`}>{role}</button>
-                                  ))}
-                                </div>
+
+                                {/* Expanded controls when in scene */}
+                                {cp.inScene && (
+                                  <div className="mt-3 pt-3 border-t border-[rgba(255,255,255,0.05)] flex flex-col gap-3">
+                                    {/* Position grid + role */}
+                                    <div className="flex items-start gap-5 flex-wrap">
+                                      {/* 3×3 position grid */}
+                                      <div>
+                                        <div className="text-[9px] text-[rgba(255,255,255,0.25)] uppercase tracking-wider mb-1.5">Position</div>
+                                        <div className="grid grid-cols-3 gap-1.5 w-fit">
+                                          {POSITIONS.map(pos => (
+                                            <button key={pos.short} onClick={() => upPlacement(sc.id, cp.characterId, { position: pos.short })}
+                                              className={`w-6 h-6 rounded-md flex items-center justify-center transition-all ${
+                                                cp.position === pos.short
+                                                  ? 'bg-white'
+                                                  : 'bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.18)]'
+                                              }`}>
+                                              <div className={`w-1.5 h-1.5 rounded-full ${cp.position === pos.short ? 'bg-black' : 'bg-[rgba(255,255,255,0.2)]'}`} />
+                                            </button>
+                                          ))}
+                                        </div>
+                                        <div className="text-[9px] text-[rgba(255,255,255,0.25)] mt-1.5">{posObj?.label || ''}</div>
+                                      </div>
+
+                                      {/* Role toggle */}
+                                      <div>
+                                        <div className="text-[9px] text-[rgba(255,255,255,0.25)] uppercase tracking-wider mb-1.5">Role</div>
+                                        <div className="flex border border-[rgba(255,255,255,0.07)] rounded-md overflow-hidden">
+                                          {(['speaking', 'silent'] as const).map(role => (
+                                            <button key={role} onClick={() => upPlacement(sc.id, cp.characterId, { role })}
+                                              className={`px-3 py-1.5 text-[10px] capitalize transition-all ${cp.role === role ? 'bg-[rgba(255,255,255,0.08)] text-white' : 'text-[rgba(255,255,255,0.3)]'}`}>
+                                              {role}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Dialogue textarea for speaking */}
+                                    {cp.role === 'speaking' && (
+                                      <textarea
+                                        value={cp.dialogue}
+                                        onChange={e => upPlacement(sc.id, cp.characterId, { dialogue: e.target.value })}
+                                        className="w-full bg-[#131313] border border-[rgba(255,255,255,0.06)] rounded-lg p-2.5 text-[11px] outline-none resize-none h-14 placeholder:text-[rgba(255,255,255,0.18)] focus:border-[rgba(255,255,255,0.12)] transition-colors"
+                                        placeholder={`${ch.name}'s dialogue...`}
+                                      />
+                                    )}
+                                  </div>
+                                )}
                               </div>
-                              {scr.role === 'speaking' && (
-                                <textarea value={scr.dialogue} onChange={e => upSC(sc.id, scr.characterId, { dialogue: e.target.value })}
-                                  className="w-full mt-2 bg-[#131313] border border-[rgba(255,255,255,0.06)] rounded-lg p-2.5 text-[11px] outline-none resize-none h-14 placeholder:text-[rgba(255,255,255,0.18)] focus:border-[rgba(255,255,255,0.12)]"
-                                  placeholder={`${ch.name}'s dialogue...`} />
-                              )}
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
 
-                      {sc.generating && (
-                        <div className="flex items-center gap-3 py-4">
-                          <div className="w-5 h-5 rounded-full border-2 border-[rgba(255,255,255,0.06)] border-t-white animate-spin" />
-                          <span className="text-[13px] text-[rgba(255,255,255,0.45)]">Generating scene preview...</span>
-                        </div>
-                      )}
-
-                      {sc.error && !sc.generating && (
-                        <div className="flex items-center gap-2 py-2 mb-3">
-                          <span className="text-[12px] text-[rgba(248,113,113,0.7)]">{sc.error}</span>
-                          <button onClick={() => generateScenePreview(sc.id)} className="text-[12px] text-[rgba(255,255,255,0.5)] hover:text-white underline">Retry</button>
-                        </div>
-                      )}
-
-                      {sc.imageUrl !== null && !sc.generating && (
-                        <div className="mb-4">
-                          <div className="aspect-video bg-[#131313] rounded-lg border border-[rgba(255,255,255,0.06)] overflow-hidden mb-3">
-                            <img src={sc.imageUrl} alt={`Scene ${idx+1} preview`} className="w-full h-full object-cover" />
+                      {/* ─── SUB-STEP C: Preview & Approve ─── */}
+                      <div>
+                        {sc.generating && (
+                          <div className="flex items-center gap-3 py-4">
+                            <div className="w-5 h-5 rounded-full border-2 border-[rgba(255,255,255,0.06)] border-t-white animate-spin" />
+                            <span className="text-[13px] text-[rgba(255,255,255,0.45)]">Generating scene preview...</span>
                           </div>
-                          <div className="flex gap-2.5">
-                            <button onClick={() => generateScenePreview(sc.id)}
-                              className="px-3.5 py-2 border border-[rgba(255,255,255,0.1)] rounded-lg text-[12px] text-[rgba(255,255,255,0.55)] hover:text-white hover:border-[rgba(255,255,255,0.18)] transition-all">Regenerate</button>
-                            <button onClick={() => approveScene(sc.id)}
-                              className="px-3.5 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 transition-all">Looks good ✓</button>
-                          </div>
-                        </div>
-                      )}
+                        )}
 
-                      {sc.imageUrl === null && !sc.generating && !sc.error && (
-                        <button onClick={() => generateScenePreview(sc.id)} disabled={!sc.description.trim()}
-                          className="px-4 py-2 bg-[#0f0f0f] border border-[rgba(255,255,255,0.12)] text-[12px] text-[rgba(255,255,255,0.6)] rounded-lg hover:text-white hover:border-[rgba(255,255,255,0.2)] disabled:opacity-20 disabled:cursor-not-allowed transition-all">
-                          Generate Scene Preview
-                        </button>
-                      )}
-                    </>
+                        {sc.error && !sc.generating && (
+                          <div className="flex items-center gap-2 py-2 mb-3">
+                            <span className="text-[12px] text-[rgba(248,113,113,0.7)]">{sc.error}</span>
+                            <button onClick={() => generateScenePreview(sc.id)} className="text-[12px] text-[rgba(255,255,255,0.5)] hover:text-white underline">Retry</button>
+                          </div>
+                        )}
+
+                        {sc.imageUrl !== null && !sc.generating && (
+                          <div className="mb-2">
+                            <div className="aspect-video bg-[#131313] rounded-lg border border-[rgba(255,255,255,0.06)] overflow-hidden mb-3">
+                              <img src={sc.imageUrl} alt={`Scene ${idx+1} preview`} className="w-full h-full object-cover" />
+                            </div>
+                            <div className="flex gap-2.5">
+                              <button onClick={() => generateScenePreview(sc.id)}
+                                className="px-3.5 py-2 border border-[rgba(255,255,255,0.1)] rounded-lg text-[12px] text-[rgba(255,255,255,0.55)] hover:text-white hover:border-[rgba(255,255,255,0.18)] transition-all">Regenerate</button>
+                              <button onClick={() => approveScene(sc.id)}
+                                className="px-3.5 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 transition-all">Looks good ✓</button>
+                            </div>
+                          </div>
+                        )}
+
+                        {sc.imageUrl === null && !sc.generating && !sc.error && (
+                          <button onClick={() => generateScenePreview(sc.id)} disabled={!canGenerate}
+                            className="px-4 py-2 bg-[#0f0f0f] border border-[rgba(255,255,255,0.12)] text-[12px] text-[rgba(255,255,255,0.6)] rounded-lg hover:text-white hover:border-[rgba(255,255,255,0.2)] disabled:opacity-20 disabled:cursor-not-allowed transition-all">
+                            Generate Scene Preview
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   )}
                 </div>
-              ))}
+                );
+              })}
 
               <div className="flex items-center justify-between mt-2">
                 <button onClick={addScene} className="text-[11px] px-3 py-1.5 border border-[rgba(255,255,255,0.1)] rounded-lg text-[rgba(255,255,255,0.45)] hover:text-white hover:border-[rgba(255,255,255,0.18)] transition-all">+ Add Scene</button>
