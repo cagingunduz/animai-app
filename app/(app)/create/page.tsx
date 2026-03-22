@@ -443,7 +443,7 @@ export default function CreatePage() {
             )}
 
             <div className="flex-shrink-0 border-t border-[rgba(255,255,255,0.1)] px-5 md:px-7 py-3 flex items-center justify-between bg-[#0f0f0f]">
-              <span className="text-[11px] text-[rgba(255,255,255,0.35)]">Character {chars.length + 1}</span>
+              <span className="text-[11px] text-[rgba(255,255,255,0.35)]">{editingChar ? editingChar.name : `Character ${chars.length + 1}`}</span>
               <div className="flex gap-2.5">
                 <button onClick={handleGenChar} disabled={!prompt.trim() || genLoading}
                   className="px-4 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-15 disabled:cursor-not-allowed transition-all">Generate Character →</button>
