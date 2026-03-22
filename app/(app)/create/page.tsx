@@ -272,6 +272,24 @@ export default function CreatePage() {
   const editScene = (id: string) => upScene(id, { approved: false });
   const approvedCount = scenes.filter(s => s.approved).length;
 
+  const dragSlotI = useRef<{ sceneId: string; slot: number } | null>(null);
+
+  const reorderPlacements = (sceneId: string, fromSlot: number, toSlot: number) => {
+    if (fromSlot === toSlot) return;
+    setScenes(p => p.map(s => {
+      if (s.id !== sceneId) return s;
+      const placements = [...s.characterPlacements];
+      const fromItem = placements[fromSlot];
+      const toItem = placements[toSlot];
+      const newPlacements = placements.map((cp, i) => {
+        if (i === fromSlot) return { ...cp, characterId: toItem.characterId, role: toItem.role, dialogue: toItem.dialogue };
+        if (i === toSlot) return { ...cp, characterId: fromItem.characterId, role: fromItem.role, dialogue: fromItem.dialogue };
+        return cp;
+      });
+      return { ...s, characterPlacements: newPlacements };
+    }));
+  };
+
   const dragI = useRef<number | null>(null);
   const dragO = useRef<number | null>(null);
   const onDragEnd = () => {
@@ -625,11 +643,17 @@ export default function CreatePage() {
                             {sc.characterPlacements.map((cp, si) => {
                               const ch = cp.characterId ? chars.find(c => c.id === cp.characterId) : null;
                               return (
-                                <div key={si} className="flex flex-col items-center gap-1">
+                                <div key={si}
+                                  draggable={!!ch}
+                                  onDragStart={() => { dragSlotI.current = { sceneId: sc.id, slot: si }; }}
+                                  onDragEnter={() => { if (dragSlotI.current?.sceneId === sc.id && dragSlotI.current.slot !== si) { reorderPlacements(sc.id, dragSlotI.current.slot, si); dragSlotI.current = { sceneId: sc.id, slot: si }; } }}
+                                  onDragEnd={() => { dragSlotI.current = null; }}
+                                  onDragOver={e => e.preventDefault()}
+                                  className={`flex flex-col items-center gap-1 ${ch ? 'cursor-grab active:cursor-grabbing' : ''}`}>
                                   {ch ? (
                                     <>
-                                      <div className="w-[48px] h-[52px] rounded-lg border border-[rgba(255,255,255,0.12)] bg-[#161616] flex items-center justify-center overflow-hidden relative">
-                                        {ch.imageUrl ? <img src={ch.imageUrl} alt={ch.name} className="w-full h-full object-cover object-top" /> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>}
+                                      <div className="w-[48px] h-[52px] rounded-lg border border-[rgba(255,255,255,0.12)] bg-[#161616] flex items-center justify-center overflow-hidden relative select-none">
+                                        {ch.imageUrl ? <img src={ch.imageUrl} alt={ch.name} className="w-full h-full object-cover object-top" draggable={false} /> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>}
                                         <span className={`absolute top-0.5 right-0.5 text-[7px] font-bold px-1 rounded ${cp.role === 'speaking' ? 'bg-white text-black' : 'bg-[rgba(255,255,255,0.12)] text-[rgba(255,255,255,0.4)]'}`}>{cp.role === 'speaking' ? 'S' : 'Si'}</span>
                                       </div>
                                       <span className="text-[8px] text-[rgba(255,255,255,0.35)] truncate max-w-[52px]">{ch.name}</span>
