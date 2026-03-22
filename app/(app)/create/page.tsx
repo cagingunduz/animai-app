@@ -95,7 +95,7 @@ export default function CreatePage() {
 
   const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (f) setPhotoUrl(URL.createObjectURL(f)); };
   const clearPhoto = () => { setPhotoUrl(null); if (fileRef.current) fileRef.current.value = ''; };
-  const resetForm = () => { setPrompt(''); setStyle('anime'); setSelVoice(null); clearPhoto(); setEditingChar(null); };
+  const resetForm = () => { setPrompt(''); setStyle('anime'); setSelVoice(null); clearPhoto(); };
 
   const handleGenChar = async () => {
     if (!prompt.trim()) return;
@@ -329,7 +329,7 @@ export default function CreatePage() {
                         )}
                       </div>
                       <div className="flex gap-3">
-                        <button onClick={() => { setGenDone(false); setPendingChar(null); setEditingChar(null); }} className="flex-1 py-2.5 border border-[rgba(255,255,255,0.12)] rounded-lg text-[13px] text-[rgba(255,255,255,0.6)] hover:text-white hover:border-[rgba(255,255,255,0.2)] transition-all">← Edit</button>
+                        <button onClick={() => { setGenDone(false); setPendingChar(null); }} className="flex-1 py-2.5 border border-[rgba(255,255,255,0.12)] rounded-lg text-[13px] text-[rgba(255,255,255,0.6)] hover:text-white hover:border-[rgba(255,255,255,0.2)] transition-all">← Edit</button>
                         <button onClick={confirmChar} className="flex-1 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-all">Use this character →</button>
                       </div>
                     </div>
