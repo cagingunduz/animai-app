@@ -32,7 +32,10 @@ type SceneRenderStatus = { scene_number: number; status: 'queued' | 'processing'
 // ─── Story Mode types ───
 type CreateMode = 'selecting' | 'story' | 'cartoon' | 'custom';
 type StoryGenre = 'drama' | 'fairy-tale' | 'horror' | 'action' | 'motivation' | 'comedy' | 'mystery';
-interface ScriptScene { id: string; sceneNumber: number; title: string; narratorText: string; sceneDescription: string; }
+interface ScriptScene {
+  id: string; sceneNumber: number; title: string; narratorText: string; sceneDescription: string;
+  imageUrl: string | null; generating: boolean; error: string | null; approved: boolean;
+}
 
 const GENRES: { value: StoryGenre; label: string }[] = [
   { value: 'drama', label: 'Drama' }, { value: 'fairy-tale', label: 'Fairy Tale' },
@@ -106,6 +109,9 @@ export default function CreatePage() {
   const [generatedScript, setGeneratedScript] = useState<ScriptScene[]>([]);
   const [storyVSearch, setStoryVSearch] = useState('');
   const [storyVFilters, setStoryVFilters] = useState<Set<string>>(new Set());
+  const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
+  const storyDragI = useRef<number | null>(null);
+  const storyDragO = useRef<number | null>(null);
 
   useEffect(() => { fetch('/api/voices').then(r => r.json()).then(setVoices).catch(() => {}); }, []);
 
@@ -388,6 +394,7 @@ export default function CreatePage() {
     setMode('selecting'); setStoryStep(1); setStoryTitle(''); setStoryGenre(null);
     setStoryStyle('anime'); setStoryNarratorVoiceId(null); setStoryDuration(3);
     setStoryStructure(null); setStoryGenerating(false); setStoryError(null); setGeneratedScript([]);
+    setSelectedSceneId(null);
   };
 
   // ─── Story Mode helpers ───
@@ -415,12 +422,15 @@ export default function CreatePage() {
       if (!r.ok) throw new Error('Request failed');
       const d = await r.json();
       if (d.scenes && Array.isArray(d.scenes)) {
-        setGeneratedScript(d.scenes.map((s: any, i: number) => ({
+        const parsed: ScriptScene[] = d.scenes.map((s: any, i: number) => ({
           id: uid(), sceneNumber: i + 1,
           title: s.title || `Scene ${i + 1}`,
           narratorText: s.narrator_text || s.narratorText || '',
           sceneDescription: s.scene_description || s.sceneDescription || '',
-        })));
+          imageUrl: null, generating: false, error: null, approved: false,
+        }));
+        setGeneratedScript(parsed);
+        if (parsed.length > 0) setSelectedSceneId(parsed[0].id);
       }
     } catch {
       setStoryError('Script generation failed. Please try again.');
@@ -433,16 +443,79 @@ export default function CreatePage() {
   };
 
   const goToTimelineFromScript = () => {
-    const newScenes: SceneDef[] = generatedScript.map((ss) => {
+    // "I'll write my own" — create 1 empty scene and go to timeline
+    const empty: ScriptScene = {
+      id: uid(), sceneNumber: 1, title: 'Scene 1', narratorText: '', sceneDescription: '',
+      imageUrl: null, generating: false, error: null, approved: false,
+    };
+    setGeneratedScript([empty]);
+    setSelectedSceneId(empty.id);
+    setStoryStep(3);
+  };
+
+  const addStoryScene = () => {
+    const n = generatedScript.length + 1;
+    const ns: ScriptScene = {
+      id: uid(), sceneNumber: n, title: `Scene ${n}`, narratorText: '', sceneDescription: '',
+      imageUrl: null, generating: false, error: null, approved: false,
+    };
+    setGeneratedScript(prev => [...prev, ns]);
+    setSelectedSceneId(ns.id);
+  };
+
+  const onStoryDragEnd = () => {
+    if (storyDragI.current === null || storyDragO.current === null || storyDragI.current === storyDragO.current) { storyDragI.current = null; storyDragO.current = null; return; }
+    setGeneratedScript(prev => {
+      const copy = [...prev];
+      const [rm] = copy.splice(storyDragI.current!, 1);
+      copy.splice(storyDragO.current!, 0, rm);
+      return copy.map((s, i) => ({ ...s, sceneNumber: i + 1 }));
+    });
+    storyDragI.current = null; storyDragO.current = null;
+  };
+
+  const generateStoryScenePreview = async (sceneId: string) => {
+    const sc = generatedScript.find(s => s.id === sceneId);
+    if (!sc) return;
+    setGeneratedScript(prev => prev.map(s => s.id === sceneId ? { ...s, generating: true, error: null } : s));
+    try {
+      const payload = { scene_text: sc.sceneDescription, aspect_ratio: '16:9', characters: [] };
+      const r = await fetch('/api/generate-scene-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const d = await r.json();
+      setGeneratedScript(prev => prev.map(s => s.id === sceneId ? { ...s, generating: false, imageUrl: d.scene_image_url || null } : s));
+    } catch {
+      setGeneratedScript(prev => prev.map(s => s.id === sceneId ? { ...s, generating: false, error: 'Failed. Try again.' } : s));
+    }
+  };
+
+  const approveStoryScene = (id: string) => setGeneratedScript(prev => prev.map(s => s.id === id ? { ...s, approved: true } : s));
+
+  const selectedScene = generatedScript.find(s => s.id === selectedSceneId) || null;
+  const selectedSceneIdx = generatedScript.findIndex(s => s.id === selectedSceneId);
+  const storyHasApproved = generatedScript.some(s => s.approved || s.imageUrl);
+
+  const navigateScene = (delta: number) => {
+    const ni = selectedSceneIdx + delta;
+    if (ni >= 0 && ni < generatedScript.length) setSelectedSceneId(generatedScript[ni].id);
+  };
+
+  const handleStoryExport = async () => {
+    // Convert approved story scenes to SceneDefs and use cartoon step 4 for generation
+    const approved = generatedScript.filter(s => s.imageUrl || s.approved);
+    const newScenes: SceneDef[] = approved.map((ss) => {
       const bgId = uid();
       return {
         id: uid(), description: ss.sceneDescription, aspectRatio: '16:9' as AspectRatio,
-        characters: [], generating: false, approved: false, imageUrl: null, error: null,
+        characters: [], generating: false, approved: true, imageUrl: ss.imageUrl, error: null,
         backgrounds: [{ id: bgId, description: ss.sceneDescription, photoUrl: null }],
         selectedBackgroundId: bgId, expandedBgId: null, characterPlacements: [],
       };
     });
-    setScenes(newScenes); setMode('cartoon'); setStep(2);
+    setScenes(newScenes);
+    setMode('cartoon');
+    setStep(4);
+    // Trigger the cartoon generation flow
+    setTimeout(() => handleFinalGenerate(), 100);
   };
 
   const roadmap = [{ n: 1, l: 'Characters' }, { n: 2, l: 'Scenes' }, { n: 3, l: 'Review' }, { n: 4, l: 'Generate' }] as const;
@@ -499,7 +572,7 @@ export default function CreatePage() {
         {/* Story roadmap */}
         <div className="flex-shrink-0 border-b border-[rgba(255,255,255,0.1)] sticky top-0 z-30 bg-black">
           <div className="max-w-[500px] mx-auto px-6 py-4 flex items-center">
-            {[{ n: 1, l: 'Setup' }, { n: 2, l: 'Structure' }, { n: 3, l: 'Generate' }].map((s, i) => (
+            {[{ n: 1, l: 'Setup' }, { n: 2, l: 'Structure' }, { n: 3, l: 'Timeline' }].map((s, i) => (
               <div key={s.n} className="flex items-center flex-1 last:flex-initial">
                 <button onClick={() => { if (s.n <= storyStep) setStoryStep(s.n as 1|2|3); }} className="flex items-center gap-2">
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-medium border transition-all ${storyStep === s.n ? 'bg-white text-black border-white' : storyStep > s.n ? 'border-[rgba(255,255,255,0.25)] text-[rgba(255,255,255,0.5)]' : 'border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.25)]'}`}>
@@ -633,7 +706,7 @@ export default function CreatePage() {
                   </button>
                 </div>
                 <div className="flex justify-end">
-                  <button onClick={() => { if (storyStructure === 'auto') { setStoryStep(3); handleGenerateScript(); } else if (storyStructure === 'manual') goToTimelineFromScript(); }} disabled={!storyStructure}
+                  <button onClick={() => { if (storyStructure === 'auto') { setStoryStep(3); handleGenerateScript(); } else if (storyStructure === 'manual') { goToTimelineFromScript(); } }} disabled={!storyStructure}
                     className="px-5 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-15 disabled:cursor-not-allowed transition-all">
                     {storyStructure === 'auto' ? 'Generate Script →' : storyStructure === 'manual' ? 'Start Building →' : 'Select an option'}
                   </button>
@@ -642,49 +715,219 @@ export default function CreatePage() {
             </div>
           )}
 
-          {/* ── STORY STEP 3: Generate Script ── */}
+          {/* ── STORY STEP 3: Timeline Editor ── */}
           {storyStep === 3 && (
-            <div className="flex-1 overflow-y-auto">
-              <div className="max-w-[700px] mx-auto px-5 md:px-7 py-8 animate-[fadeIn_0.3s_ease]">
-                {storyGenerating ? (
-                  <div className="flex flex-col items-center py-20">
-                    <div className="w-10 h-10 rounded-full border-2 border-[rgba(255,255,255,0.06)] border-t-white animate-spin mb-5" />
-                    <h2 className="text-[16px] font-medium text-white mb-2">Writing your script...</h2>
-                    <p className="text-[13px] text-[rgba(255,255,255,0.35)]">This usually takes 15–30 seconds</p>
+            <div className="flex flex-col flex-1 min-h-0 animate-[fadeIn_0.3s_ease]">
+
+              {/* Script generating overlay */}
+              {storyGenerating && (
+                <div className="flex-1 flex flex-col items-center justify-center">
+                  <div className="w-10 h-10 rounded-full border-2 border-[rgba(255,255,255,0.06)] border-t-white animate-spin mb-5" />
+                  <h2 className="text-[16px] font-medium text-white mb-2">Writing your script...</h2>
+                  <p className="text-[13px] text-[rgba(255,255,255,0.35)]">This usually takes 15–30 seconds</p>
+                </div>
+              )}
+
+              {storyError && !storyGenerating && (
+                <div className="flex-1 flex flex-col items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-[rgba(248,113,113,0.08)] flex items-center justify-center mb-5">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(248,113,113,0.7)" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
                   </div>
-                ) : storyError ? (
-                  <div className="flex flex-col items-center py-20">
-                    <div className="w-10 h-10 rounded-full bg-[rgba(248,113,113,0.08)] flex items-center justify-center mb-5">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(248,113,113,0.7)" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                  <p className="text-[14px] text-[rgba(248,113,113,0.7)] mb-4">{storyError}</p>
+                  <button onClick={handleGenerateScript} className="px-5 py-2 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-all">Retry</button>
+                </div>
+              )}
+
+              {!storyGenerating && !storyError && generatedScript.length > 0 && (
+                <>
+                  {/* TOP BAR */}
+                  <div className="flex-shrink-0 border-b border-[rgba(255,255,255,0.08)] px-5 py-2.5 flex items-center justify-between bg-[#0a0a0a]">
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => setStoryStep(2)} className="text-[11px] text-[rgba(255,255,255,0.3)] hover:text-white transition-colors">← Back</button>
+                      <span className="text-[11px] text-[rgba(255,255,255,0.2)]">|</span>
+                      <span className="text-[13px] font-medium text-white truncate max-w-[200px]">{storyTitle || 'Untitled'}</span>
+                      <span className="text-[10px] text-[rgba(255,255,255,0.25)] bg-[rgba(255,255,255,0.04)] px-2 py-0.5 rounded">{generatedScript.length} scenes</span>
                     </div>
-                    <p className="text-[14px] text-[rgba(248,113,113,0.7)] mb-4">{storyError}</p>
-                    <button onClick={handleGenerateScript} className="px-5 py-2 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-all">Retry</button>
+                    <button onClick={handleStoryExport} disabled={!storyHasApproved}
+                      className="px-4 py-1.5 bg-white text-black text-[11px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-15 disabled:cursor-not-allowed transition-all">
+                      Export →
+                    </button>
                   </div>
-                ) : generatedScript.length > 0 ? (
-                  <div>
-                    <h2 className="text-[16px] font-medium text-white mb-1">Your script is ready</h2>
-                    <p className="text-[13px] text-[rgba(255,255,255,0.4)] mb-6">Review and edit the narrator text, then proceed to the timeline.</p>
-                    <div className="flex flex-col gap-3 mb-8">
-                      {generatedScript.map(ss => (
-                        <div key={ss.id} className="border border-[rgba(255,255,255,0.08)] rounded-xl p-4 bg-[#0f0f0f]">
-                          <div className="flex items-center gap-2.5 mb-3">
-                            <span className="text-[10px] font-medium text-[rgba(255,255,255,0.35)] bg-[rgba(255,255,255,0.04)] px-2 py-0.5 rounded uppercase tracking-wider">Scene {ss.sceneNumber}</span>
-                            <span className="text-[12px] text-[rgba(255,255,255,0.55)] font-medium">{ss.title}</span>
+
+                  {/* MAIN AREA: Preview + Right Panel */}
+                  <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
+                    {/* LEFT — Video Preview */}
+                    <div className="md:w-[55%] flex flex-col bg-black">
+                      <div className="flex-1 flex items-center justify-center p-4 relative">
+                        {selectedScene?.imageUrl ? (
+                          <img src={selectedScene.imageUrl} alt={selectedScene.title} className="max-w-full max-h-full rounded-lg object-contain" />
+                        ) : (
+                          <div className="w-full aspect-video max-w-[520px] bg-[#0a0a0a] rounded-lg border border-[rgba(255,255,255,0.06)] flex items-center justify-center">
+                            {selectedScene?.generating ? (
+                              <div className="flex flex-col items-center gap-2">
+                                <div className="w-6 h-6 rounded-full border-2 border-[rgba(255,255,255,0.06)] border-t-[rgba(255,255,255,0.3)] animate-spin" />
+                                <span className="text-[11px] text-[rgba(255,255,255,0.25)]">Generating...</span>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center gap-2">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1"><rect x="2" y="3" width="20" height="14" rx="2"/><polygon points="10,7 16,10 10,13" fill="rgba(255,255,255,0.04)" stroke="none"/></svg>
+                                <span className="text-[10px] text-[rgba(255,255,255,0.15)]">No preview yet</span>
+                              </div>
+                            )}
                           </div>
-                          <div className="text-[10px] text-[rgba(255,255,255,0.25)] uppercase tracking-wider mb-1.5">Narrator</div>
-                          <textarea value={ss.narratorText} onChange={e => updateScriptScene(ss.id, { narratorText: e.target.value })}
-                            className="w-full bg-[#111] border border-[rgba(255,255,255,0.08)] rounded-lg p-3 text-[13px] text-white outline-none resize-none min-h-[60px] focus:border-[rgba(255,255,255,0.15)] transition-colors leading-relaxed" />
-                          <div className="text-[10px] text-[rgba(255,255,255,0.25)] uppercase tracking-wider mt-3 mb-1">Scene description</div>
-                          <p className="text-[12px] text-[rgba(255,255,255,0.35)] leading-relaxed">{ss.sceneDescription}</p>
-                        </div>
-                      ))}
+                        )}
+                        {selectedScene && (
+                          <span className="absolute top-6 left-6 text-[9px] font-medium text-[rgba(255,255,255,0.3)] bg-[rgba(0,0,0,0.6)] px-2 py-0.5 rounded">Scene {selectedSceneIdx + 1}</span>
+                        )}
+                      </div>
+                      {/* Playback controls */}
+                      <div className="flex-shrink-0 px-5 py-2.5 flex items-center justify-center gap-4 border-t border-[rgba(255,255,255,0.05)]">
+                        <button onClick={() => navigateScene(-1)} disabled={selectedSceneIdx <= 0}
+                          className="text-[rgba(255,255,255,0.3)] hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors">
+                          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><polygon points="10,2 4,8 10,14"/></svg>
+                        </button>
+                        <span className="text-[11px] text-[rgba(255,255,255,0.4)] tabular-nums min-w-[60px] text-center">{selectedSceneIdx + 1} / {generatedScript.length}</span>
+                        <button onClick={() => navigateScene(1)} disabled={selectedSceneIdx >= generatedScript.length - 1}
+                          className="text-[rgba(255,255,255,0.3)] hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors">
+                          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><polygon points="6,2 12,8 6,14"/></svg>
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex justify-end">
-                      <button onClick={goToTimelineFromScript} className="px-6 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-all">Looks good → Go to Timeline</button>
+
+                    {/* RIGHT — Scene Editor */}
+                    <div className="md:w-[45%] border-t md:border-t-0 md:border-l border-[rgba(255,255,255,0.08)] flex flex-col overflow-y-auto bg-[#0a0a0a]">
+                      {selectedScene ? (
+                        <div className="p-5 flex flex-col gap-4">
+                          {/* Title */}
+                          <input
+                            value={selectedScene.title}
+                            onChange={e => updateScriptScene(selectedScene.id, { title: e.target.value })}
+                            className="bg-transparent text-[15px] font-medium text-white outline-none border-b border-transparent focus:border-[rgba(255,255,255,0.1)] pb-1 transition-colors"
+                          />
+
+                          {/* Narrator */}
+                          <div>
+                            <div className="text-[10px] text-[rgba(255,255,255,0.25)] uppercase tracking-wider mb-1.5">Narrator</div>
+                            <textarea value={selectedScene.narratorText} onChange={e => updateScriptScene(selectedScene.id, { narratorText: e.target.value })}
+                              className="w-full bg-[#111] border border-[rgba(255,255,255,0.08)] rounded-lg p-3 text-[13px] text-white outline-none resize-none min-h-[70px] focus:border-[rgba(255,255,255,0.15)] transition-colors leading-relaxed" />
+                          </div>
+
+                          {/* Scene description */}
+                          <div>
+                            <div className="text-[10px] text-[rgba(255,255,255,0.25)] uppercase tracking-wider mb-1.5">Scene description</div>
+                            <textarea value={selectedScene.sceneDescription} onChange={e => updateScriptScene(selectedScene.id, { sceneDescription: e.target.value })}
+                              className="w-full bg-[#111] border border-[rgba(255,255,255,0.08)] rounded-lg p-3 text-[12px] text-[rgba(255,255,255,0.6)] outline-none resize-none min-h-[60px] focus:border-[rgba(255,255,255,0.15)] transition-colors leading-relaxed" />
+                          </div>
+
+                          <div className="border-t border-[rgba(255,255,255,0.05)] pt-4">
+                            {/* Generate preview */}
+                            {selectedScene.generating ? (
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-4 h-4 rounded-full border-2 border-[rgba(255,255,255,0.06)] border-t-white animate-spin" />
+                                <span className="text-[12px] text-[rgba(255,255,255,0.4)]">Generating preview...</span>
+                              </div>
+                            ) : selectedScene.error ? (
+                              <div className="flex items-center gap-2">
+                                <span className="text-[11px] text-[rgba(248,113,113,0.6)]">{selectedScene.error}</span>
+                                <button onClick={() => generateStoryScenePreview(selectedScene.id)} className="text-[11px] text-[rgba(255,255,255,0.5)] hover:text-white underline">Retry</button>
+                              </div>
+                            ) : selectedScene.imageUrl ? (
+                              <div className="flex flex-col gap-2.5">
+                                <div className="h-20 rounded-lg bg-[#111] border border-[rgba(255,255,255,0.06)] overflow-hidden">
+                                  <img src={selectedScene.imageUrl} alt="" className="w-full h-full object-cover" />
+                                </div>
+                                <div className="flex gap-2">
+                                  <button onClick={() => generateStoryScenePreview(selectedScene.id)}
+                                    className="px-3 py-1.5 border border-[rgba(255,255,255,0.1)] rounded-md text-[11px] text-[rgba(255,255,255,0.5)] hover:text-white transition-all">Regenerate</button>
+                                  {!selectedScene.approved && (
+                                    <button onClick={() => approveStoryScene(selectedScene.id)}
+                                      className="px-3 py-1.5 bg-white text-black text-[11px] font-medium rounded-md hover:bg-gray-200 transition-all">Approve ✓</button>
+                                  )}
+                                  {selectedScene.approved && (
+                                    <span className="flex items-center gap-1 text-[11px] text-[rgba(74,222,128,0.6)]">
+                                      <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3,8 6.5,11.5 13,5"/></svg>
+                                      Approved
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <button onClick={() => generateStoryScenePreview(selectedScene.id)} disabled={!selectedScene.sceneDescription.trim()}
+                                className="px-4 py-2 border border-[rgba(255,255,255,0.12)] rounded-lg text-[12px] text-[rgba(255,255,255,0.55)] hover:text-white hover:border-[rgba(255,255,255,0.2)] disabled:opacity-20 disabled:cursor-not-allowed transition-all">
+                                Generate Preview
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Characters note */}
+                          <div className="border-t border-[rgba(255,255,255,0.05)] pt-3 mt-1">
+                            <div className="text-[10px] text-[rgba(255,255,255,0.25)] uppercase tracking-wider mb-1.5">Characters</div>
+                            <p className="text-[11px] text-[rgba(255,255,255,0.2)] italic">No characters · Add in Cartoon mode</p>
+                          </div>
+
+                          {/* Status */}
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className={`text-[9px] px-2 py-0.5 rounded-full font-medium ${
+                              selectedScene.approved ? 'bg-[rgba(74,222,128,0.1)] text-[rgba(74,222,128,0.6)]'
+                              : selectedScene.generating ? 'bg-[rgba(250,204,21,0.08)] text-[rgba(250,204,21,0.5)]'
+                              : selectedScene.imageUrl ? 'bg-[rgba(255,255,255,0.04)] text-[rgba(255,255,255,0.3)]'
+                              : 'bg-[rgba(255,255,255,0.03)] text-[rgba(255,255,255,0.2)]'
+                            }`}>
+                              {selectedScene.approved ? 'Done' : selectedScene.generating ? 'Generating' : selectedScene.imageUrl ? 'Preview ready' : 'Queued'}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex-1 flex items-center justify-center">
+                          <p className="text-[13px] text-[rgba(255,255,255,0.2)]">Select a scene</p>
+                        </div>
+                      )}
                     </div>
                   </div>
-                ) : null}
-              </div>
+
+                  {/* TIMELINE STRIP */}
+                  <div className="flex-shrink-0 h-[100px] border-t border-[rgba(255,255,255,0.08)] bg-[#0a0a0a] flex items-center overflow-x-auto px-3 gap-2">
+                    {generatedScript.map((ss, idx) => {
+                      const isSel = ss.id === selectedSceneId;
+                      return (
+                        <div key={ss.id}
+                          draggable
+                          onDragStart={() => { storyDragI.current = idx; }}
+                          onDragEnter={() => { storyDragO.current = idx; }}
+                          onDragEnd={onStoryDragEnd}
+                          onDragOver={e => e.preventDefault()}
+                          onClick={() => setSelectedSceneId(ss.id)}
+                          className={`flex-shrink-0 w-[90px] h-[76px] rounded-lg border cursor-pointer transition-all flex flex-col overflow-hidden ${
+                            isSel ? 'border-white border-[1.5px]' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.15)]'
+                          }`}
+                        >
+                          <div className="h-[52px] bg-[#111] flex items-center justify-center relative overflow-hidden">
+                            {ss.imageUrl ? (
+                              <img src={ss.imageUrl} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-[10px] text-[rgba(255,255,255,0.15)] font-medium">{ss.sceneNumber}</span>
+                            )}
+                            {ss.approved && (
+                              <div className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-[rgba(74,222,128,0.15)] flex items-center justify-center">
+                                <svg width="7" height="7" viewBox="0 0 16 16" fill="none" stroke="rgba(74,222,128,0.7)" strokeWidth="3"><polyline points="3,8 6.5,11.5 13,5"/></svg>
+                              </div>
+                            )}
+                          </div>
+                          <div className="h-[24px] flex items-center justify-center px-1">
+                            <span className="text-[9px] text-[rgba(255,255,255,0.35)] truncate">{ss.title}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Add scene card */}
+                    <button onClick={addStoryScene}
+                      className="flex-shrink-0 w-[90px] h-[76px] rounded-lg border border-dashed border-[rgba(255,255,255,0.08)] flex items-center justify-center hover:border-[rgba(255,255,255,0.18)] transition-all">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5"><path d="M12 5v14M5 12h14"/></svg>
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
