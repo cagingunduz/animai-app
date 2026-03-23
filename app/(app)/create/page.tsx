@@ -29,6 +29,18 @@ interface SceneDef {
 }
 type SceneRenderStatus = { scene_number: number; status: 'queued' | 'processing' | 'completed' | 'failed'; current_step?: string; video_url?: string; };
 
+// ─── Story Mode types ───
+type CreateMode = 'selecting' | 'story' | 'cartoon' | 'custom';
+type StoryGenre = 'drama' | 'fairy-tale' | 'horror' | 'action' | 'motivation' | 'comedy' | 'mystery';
+interface ScriptScene { id: string; sceneNumber: number; title: string; narratorText: string; sceneDescription: string; }
+
+const GENRES: { value: StoryGenre; label: string }[] = [
+  { value: 'drama', label: 'Drama' }, { value: 'fairy-tale', label: 'Fairy Tale' },
+  { value: 'horror', label: 'Horror' }, { value: 'action', label: 'Action' },
+  { value: 'motivation', label: 'Motivation' }, { value: 'comedy', label: 'Comedy' },
+  { value: 'mystery', label: 'Mystery' },
+];
+
 const STYLES: { value: AnimStyle; label: string }[] = [
   { value: 'western-cartoon', label: 'Western Cartoon' }, { value: 'anime', label: 'Anime' }, { value: 'pixar', label: 'Pixar' },
   { value: 'comic', label: 'Comic' }, { value: 'chibi', label: 'Chibi' }, { value: 'retro', label: 'Retro' }, { value: 'custom', label: 'Custom' },
@@ -79,6 +91,21 @@ export default function CreatePage() {
   const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null);
   const [genStep, setGenStep] = useState(0);
   const [genTotalSteps, setGenTotalSteps] = useState(0);
+
+  // ─── Mode & Story state ───
+  const [mode, setMode] = useState<CreateMode>('selecting');
+  const [storyStep, setStoryStep] = useState<1 | 2 | 3>(1);
+  const [storyTitle, setStoryTitle] = useState('');
+  const [storyGenre, setStoryGenre] = useState<StoryGenre | null>(null);
+  const [storyStyle, setStoryStyle] = useState<AnimStyle>('anime');
+  const [storyNarratorVoiceId, setStoryNarratorVoiceId] = useState<string | null>(null);
+  const [storyDuration, setStoryDuration] = useState<number>(3);
+  const [storyStructure, setStoryStructure] = useState<'auto' | 'manual' | null>(null);
+  const [storyGenerating, setStoryGenerating] = useState(false);
+  const [storyError, setStoryError] = useState<string | null>(null);
+  const [generatedScript, setGeneratedScript] = useState<ScriptScene[]>([]);
+  const [storyVSearch, setStoryVSearch] = useState('');
+  const [storyVFilters, setStoryVFilters] = useState<Set<string>>(new Set());
 
   useEffect(() => { fetch('/api/voices').then(r => r.json()).then(setVoices).catch(() => {}); }, []);
 
@@ -358,14 +385,319 @@ export default function CreatePage() {
   const resetAll = () => {
     setStep(1); setChars([]); setScenes([]); setRes('720p');
     resetForm(); setJobId(null); setGenProgress(0); setGenStatus('idle'); setGenScenes([]); setFinalVideoUrl(null);
+    setMode('selecting'); setStoryStep(1); setStoryTitle(''); setStoryGenre(null);
+    setStoryStyle('anime'); setStoryNarratorVoiceId(null); setStoryDuration(3);
+    setStoryStructure(null); setStoryGenerating(false); setStoryError(null); setGeneratedScript([]);
+  };
+
+  // ─── Story Mode helpers ───
+  const storySetupValid = storyTitle.trim().length > 0 && storyGenre !== null;
+
+  const storyFilteredV = useMemo(() => voices.filter(v => {
+    const s = storyVSearch.trim().toLowerCase();
+    if (s && !v.name.toLowerCase().includes(s)) return false;
+    if (storyVFilters.size === 0) return true;
+    for (const key of storyVFilters) { const opt = FILTER_OPTIONS.find(f => f.key === key); if (opt && !opt.match(v)) return false; }
+    return true;
+  }), [voices, storyVSearch, storyVFilters]);
+
+  const toggleStoryFilter = useCallback((key: string) => {
+    setStoryVFilters(prev => { const n = new Set(prev); if (n.has(key)) n.delete(key); else n.add(key); return n; });
+  }, []);
+
+  const handleGenerateScript = async () => {
+    setStoryGenerating(true); setStoryError(null);
+    try {
+      const r = await fetch('/api/story/generate', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: storyTitle, genre: storyGenre, style: storyStyle, duration_minutes: storyDuration, narrator_voice_id: storyNarratorVoiceId }),
+      });
+      if (!r.ok) throw new Error('Request failed');
+      const d = await r.json();
+      if (d.scenes && Array.isArray(d.scenes)) {
+        setGeneratedScript(d.scenes.map((s: any, i: number) => ({
+          id: uid(), sceneNumber: i + 1,
+          title: s.title || `Scene ${i + 1}`,
+          narratorText: s.narrator_text || s.narratorText || '',
+          sceneDescription: s.scene_description || s.sceneDescription || '',
+        })));
+      }
+    } catch {
+      setStoryError('Script generation failed. Please try again.');
+    }
+    setStoryGenerating(false);
+  };
+
+  const updateScriptScene = (id: string, u: Partial<ScriptScene>) => {
+    setGeneratedScript(prev => prev.map(s => s.id === id ? { ...s, ...u } : s));
+  };
+
+  const goToTimelineFromScript = () => {
+    const newScenes: SceneDef[] = generatedScript.map((ss) => {
+      const bgId = uid();
+      return {
+        id: uid(), description: ss.sceneDescription, aspectRatio: '16:9' as AspectRatio,
+        characters: [], generating: false, approved: false, imageUrl: null, error: null,
+        backgrounds: [{ id: bgId, description: ss.sceneDescription, photoUrl: null }],
+        selectedBackgroundId: bgId, expandedBgId: null, characterPlacements: [],
+      };
+    });
+    setScenes(newScenes); setMode('cartoon'); setStep(2);
   };
 
   const roadmap = [{ n: 1, l: 'Characters' }, { n: 2, l: 'Scenes' }, { n: 3, l: 'Review' }, { n: 4, l: 'Generate' }] as const;
 
-  return (
+  return (<>
+    {/* ═══ MODE SELECTION ═══ */}
+    {mode === 'selecting' && (
+      <div className="flex flex-col h-screen bg-black items-center justify-center px-6 animate-[fadeIn_0.3s_ease]">
+        <h1 className="text-[18px] font-medium text-white mb-8">What do you want to create?</h1>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-[720px] w-full">
+          {/* Story Mode */}
+          <button onClick={() => setMode('story')}
+            className="bg-[#0f0f0f] border border-[rgba(255,255,255,0.08)] rounded-xl p-7 text-left hover:border-[rgba(255,255,255,0.18)] transition-all group">
+            <div className="flex items-start justify-between mb-4">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" className="group-hover:stroke-white transition-colors">
+                <rect x="2" y="4" width="6" height="16" rx="1"/><rect x="9" y="4" width="6" height="16" rx="1"/><rect x="16" y="4" width="6" height="16" rx="1"/>
+                <path d="M4 8h2M11 8h2M18 8h2M4 12h2M11 12h2M18 12h2" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+              <span className="text-[9px] font-medium bg-white text-black px-2 py-0.5 rounded-full">New</span>
+            </div>
+            <h3 className="text-[15px] font-medium text-white mb-1.5">Story Mode</h3>
+            <p className="text-[12px] text-[rgba(255,255,255,0.4)] leading-relaxed">Describe your story, we'll build the scenes</p>
+          </button>
+          {/* Cartoon Series */}
+          <button onClick={() => setMode('cartoon')}
+            className="bg-[#0f0f0f] border border-[rgba(255,255,255,0.08)] rounded-xl p-7 text-left hover:border-[rgba(255,255,255,0.18)] transition-all group">
+            <div className="mb-4">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" className="group-hover:stroke-white transition-colors">
+                <circle cx="9" cy="8" r="4"/><circle cx="17" cy="10" r="3"/><path d="M3 21v-1a5 5 0 015-5h2a5 5 0 015 5v1"/><path d="M17 15a3 3 0 013 3v3"/>
+              </svg>
+            </div>
+            <h3 className="text-[15px] font-medium text-white mb-1.5">Cartoon Series</h3>
+            <p className="text-[12px] text-[rgba(255,255,255,0.4)] leading-relaxed">Build scene by scene with full control</p>
+          </button>
+          {/* Custom */}
+          <button onClick={() => setMode('custom')}
+            className="bg-[#0f0f0f] border border-[rgba(255,255,255,0.08)] rounded-xl p-7 text-left hover:border-[rgba(255,255,255,0.18)] transition-all group">
+            <div className="mb-4">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" className="group-hover:stroke-white transition-colors">
+                <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
+              </svg>
+            </div>
+            <h3 className="text-[15px] font-medium text-white mb-1.5">Custom</h3>
+            <p className="text-[12px] text-[rgba(255,255,255,0.4)] leading-relaxed">Start with a blank timeline</p>
+          </button>
+        </div>
+        <style jsx global>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+      </div>
+    )}
+
+    {/* ═══ STORY MODE ═══ */}
+    {mode === 'story' && (
+      <div className="flex flex-col h-screen bg-black">
+        {/* Story roadmap */}
+        <div className="flex-shrink-0 border-b border-[rgba(255,255,255,0.1)] sticky top-0 z-30 bg-black">
+          <div className="max-w-[500px] mx-auto px-6 py-4 flex items-center">
+            {[{ n: 1, l: 'Setup' }, { n: 2, l: 'Structure' }, { n: 3, l: 'Generate' }].map((s, i) => (
+              <div key={s.n} className="flex items-center flex-1 last:flex-initial">
+                <button onClick={() => { if (s.n <= storyStep) setStoryStep(s.n as 1|2|3); }} className="flex items-center gap-2">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-medium border transition-all ${storyStep === s.n ? 'bg-white text-black border-white' : storyStep > s.n ? 'border-[rgba(255,255,255,0.25)] text-[rgba(255,255,255,0.5)]' : 'border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.25)]'}`}>
+                    {storyStep > s.n ? <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3,8 6.5,11.5 13,5"/></svg> : s.n}
+                  </div>
+                  <span className={`text-[12px] hidden sm:inline ${storyStep === s.n ? 'text-white font-medium' : 'text-[rgba(255,255,255,0.25)]'}`}>{s.l}</span>
+                </button>
+                {i < 2 && <div className={`flex-1 h-px mx-3 ${storyStep > s.n ? 'bg-[rgba(255,255,255,0.2)]' : 'bg-[rgba(255,255,255,0.06)]'}`} />}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-hidden flex flex-col">
+          {/* ── STORY STEP 1: Setup ── */}
+          {storyStep === 1 && (
+            <div className="flex flex-col flex-1 min-h-0 animate-[fadeIn_0.3s_ease]">
+              <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
+                {/* Left: form */}
+                <div className="md:w-1/2 p-5 md:p-7 flex flex-col gap-5 overflow-y-auto">
+                  <button onClick={() => setMode('selecting')} className="self-start text-[11px] text-[rgba(255,255,255,0.3)] hover:text-white transition-colors">← Back</button>
+                  <div>
+                    <h2 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px] mb-3">Story title or topic</h2>
+                    <textarea value={storyTitle} onChange={e => setStoryTitle(e.target.value)}
+                      className="w-full min-h-[120px] bg-[#111] border border-[rgba(255,255,255,0.1)] rounded-xl p-4 text-[15px] text-white placeholder:text-[rgba(255,255,255,0.2)] outline-none resize-none focus:border-[rgba(255,255,255,0.18)] transition-colors leading-relaxed"
+                      placeholder="A soldier returning home after war..." />
+                  </div>
+                  <div>
+                    <h2 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px] mb-3">Genre</h2>
+                    <div className="flex flex-wrap gap-1.5">
+                      {GENRES.map(g => (
+                        <button key={g.value} onClick={() => setStoryGenre(g.value)}
+                          className={`px-3 py-1.5 rounded-full text-[11px] transition-all ${storyGenre === g.value ? 'bg-white text-black font-medium' : 'border border-[rgba(255,255,255,0.12)] text-[rgba(255,255,255,0.45)] hover:border-[rgba(255,255,255,0.2)]'}`}>
+                          {g.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <h2 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px] mb-3">Animation style</h2>
+                    <div className="flex flex-wrap gap-1.5">
+                      {STYLES.map(s => (
+                        <button key={s.value} onClick={() => setStoryStyle(s.value)}
+                          className={`px-3 py-1.5 rounded-full text-[11px] transition-all ${storyStyle === s.value ? 'bg-white text-black font-medium' : 'border border-[rgba(255,255,255,0.12)] text-[rgba(255,255,255,0.45)] hover:border-[rgba(255,255,255,0.2)]'}`}>
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                {/* Right: voice picker */}
+                <div className="md:w-1/2 border-t md:border-t-0 md:border-l border-[rgba(255,255,255,0.1)] flex flex-col min-h-0 overflow-hidden">
+                  <div className="p-5 md:p-7 pb-3 flex flex-col gap-3 flex-shrink-0">
+                    <h2 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px]">Narrator voice</h2>
+                    <div className="relative">
+                      <svg className="absolute left-3 top-1/2 -translate-y-1/2" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                      <input type="text" value={storyVSearch} onChange={e => setStoryVSearch(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 bg-[#111] border border-[rgba(255,255,255,0.1)] rounded-lg text-[13px] text-white placeholder:text-[rgba(255,255,255,0.25)] outline-none focus:border-[rgba(255,255,255,0.18)] transition-colors"
+                        placeholder="Search by name..." />
+                    </div>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {FILTER_OPTIONS.map(f => (
+                        <button key={f.key} onClick={() => toggleStoryFilter(f.key)}
+                          className={`px-2.5 py-1 rounded-full text-[10px] border transition-all ${storyVFilters.has(f.key) ? 'bg-white text-black border-white font-medium' : 'border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.35)] hover:border-[rgba(255,255,255,0.18)]'}`}>
+                          {f.label}
+                        </button>
+                      ))}
+                      {storyVFilters.size > 0 && <button onClick={() => setStoryVFilters(new Set())} className="px-2 py-1 text-[10px] text-[rgba(255,255,255,0.3)] hover:text-white">Clear</button>}
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-y-auto px-2 md:px-3 py-1 min-h-0">
+                    {voices.length === 0 ? (
+                      <div className="flex items-center justify-center py-12"><div className="w-5 h-5 rounded-full border-2 border-[rgba(255,255,255,0.08)] border-t-[rgba(255,255,255,0.35)] animate-spin" /></div>
+                    ) : storyFilteredV.length === 0 ? (
+                      <div className="flex flex-col items-center py-12">
+                        <p className="text-[13px] text-[rgba(255,255,255,0.3)]">No voices match.</p>
+                        <button onClick={() => { setStoryVSearch(''); setStoryVFilters(new Set()); }} className="text-[12px] text-[rgba(255,255,255,0.45)] hover:text-white mt-2">Clear</button>
+                      </div>
+                    ) : storyFilteredV.map((v, idx) => (
+                      <button key={v.voice_id} onClick={() => setStoryNarratorVoiceId(v.voice_id === storyNarratorVoiceId ? null : v.voice_id)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all ${storyNarratorVoiceId === v.voice_id ? 'bg-[rgba(255,255,255,0.06)] border-l-2 border-l-white' : 'hover:bg-[rgba(255,255,255,0.04)] border-l-2 border-l-transparent'}`}>
+                        <div className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-[13px] font-semibold text-white" style={{ backgroundColor: AVATAR_COLORS[idx % AVATAR_COLORS.length] }}>{v.name.charAt(0)}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[13px] font-medium text-[rgba(255,255,255,0.9)]">{v.name}</div>
+                          <div className="text-[11px] text-[rgba(255,255,255,0.35)] truncate">{[v.labels.gender, v.labels.accent, v.labels.age, v.labels.descriptive].filter(Boolean).join(' · ')}</div>
+                        </div>
+                        <button onClick={e => { e.stopPropagation(); handlePlayVoice(v.voice_id, v.preview_url); }}
+                          className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${playingId === v.voice_id ? 'bg-white text-black' : 'border border-[rgba(255,255,255,0.15)] text-[rgba(255,255,255,0.35)] hover:text-white'}`}>
+                          {playingId === v.voice_id
+                            ? <svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor"><rect x="1" y="1" width="3" height="8" rx=".5"/><rect x="6" y="1" width="3" height="8" rx=".5"/></svg>
+                            : <svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor"><polygon points="3,0 10,5 3,10"/></svg>}
+                        </button>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="flex-shrink-0 border-t border-[rgba(255,255,255,0.1)] px-5 md:px-7 py-3 flex justify-end bg-[#0f0f0f]">
+                <button onClick={() => setStoryStep(2)} disabled={!storySetupValid}
+                  className="px-5 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-15 disabled:cursor-not-allowed transition-all">Next →</button>
+              </div>
+            </div>
+          )}
+
+          {/* ── STORY STEP 2: Structure ── */}
+          {storyStep === 2 && (
+            <div className="flex-1 overflow-y-auto">
+              <div className="max-w-[640px] mx-auto px-5 md:px-7 py-10 animate-[fadeIn_0.3s_ease]">
+                <h2 className="text-[16px] font-medium text-white mb-2">How should we build it?</h2>
+                <p className="text-[13px] text-[rgba(255,255,255,0.4)] mb-8">Choose how you want to structure your story.</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                  <button onClick={() => setStoryStructure('auto')}
+                    className={`p-6 rounded-xl border text-left transition-all ${storyStructure === 'auto' ? 'border-white bg-[rgba(255,255,255,0.04)]' : 'border-[rgba(255,255,255,0.08)] bg-[#0f0f0f] hover:border-[rgba(255,255,255,0.18)]'}`}>
+                    <h3 className="text-[14px] font-medium text-white mb-2">Build it for me</h3>
+                    <p className="text-[12px] text-[rgba(255,255,255,0.4)] leading-relaxed mb-5">We'll create a full script with intro, rising action, climax and resolution.</p>
+                    <div className="text-[10px] text-[rgba(255,255,255,0.35)] uppercase tracking-wider mb-2">Video length</div>
+                    <div className="flex gap-1.5">
+                      {[1, 3, 5, 10].map(d => (
+                        <button key={d} onClick={e => { e.stopPropagation(); setStoryStructure('auto'); setStoryDuration(d); }}
+                          className={`px-2.5 py-1 rounded-md text-[11px] transition-all ${storyStructure === 'auto' && storyDuration === d ? 'bg-white text-black font-medium' : 'border border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.4)]'}`}>
+                          {d} min
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-[9px] text-[rgba(255,255,255,0.2)] mt-2.5">{storyDuration === 1 ? '≈ 6 scenes' : storyDuration === 3 ? '≈ 18 scenes' : storyDuration === 5 ? '≈ 30 scenes' : '≈ 60 scenes'}</p>
+                  </button>
+                  <button onClick={() => setStoryStructure('manual')}
+                    className={`p-6 rounded-xl border text-left transition-all ${storyStructure === 'manual' ? 'border-white bg-[rgba(255,255,255,0.04)]' : 'border-[rgba(255,255,255,0.08)] bg-[#0f0f0f] hover:border-[rgba(255,255,255,0.18)]'}`}>
+                    <h3 className="text-[14px] font-medium text-white mb-2">I'll write my own</h3>
+                    <p className="text-[12px] text-[rgba(255,255,255,0.4)] leading-relaxed">Start with a blank timeline and add scenes manually.</p>
+                  </button>
+                </div>
+                <div className="flex justify-end">
+                  <button onClick={() => { if (storyStructure === 'auto') { setStoryStep(3); handleGenerateScript(); } else if (storyStructure === 'manual') goToTimelineFromScript(); }} disabled={!storyStructure}
+                    className="px-5 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-15 disabled:cursor-not-allowed transition-all">
+                    {storyStructure === 'auto' ? 'Generate Script →' : storyStructure === 'manual' ? 'Start Building →' : 'Select an option'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── STORY STEP 3: Generate Script ── */}
+          {storyStep === 3 && (
+            <div className="flex-1 overflow-y-auto">
+              <div className="max-w-[700px] mx-auto px-5 md:px-7 py-8 animate-[fadeIn_0.3s_ease]">
+                {storyGenerating ? (
+                  <div className="flex flex-col items-center py-20">
+                    <div className="w-10 h-10 rounded-full border-2 border-[rgba(255,255,255,0.06)] border-t-white animate-spin mb-5" />
+                    <h2 className="text-[16px] font-medium text-white mb-2">Writing your script...</h2>
+                    <p className="text-[13px] text-[rgba(255,255,255,0.35)]">This usually takes 15–30 seconds</p>
+                  </div>
+                ) : storyError ? (
+                  <div className="flex flex-col items-center py-20">
+                    <div className="w-10 h-10 rounded-full bg-[rgba(248,113,113,0.08)] flex items-center justify-center mb-5">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(248,113,113,0.7)" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                    </div>
+                    <p className="text-[14px] text-[rgba(248,113,113,0.7)] mb-4">{storyError}</p>
+                    <button onClick={handleGenerateScript} className="px-5 py-2 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-all">Retry</button>
+                  </div>
+                ) : generatedScript.length > 0 ? (
+                  <div>
+                    <h2 className="text-[16px] font-medium text-white mb-1">Your script is ready</h2>
+                    <p className="text-[13px] text-[rgba(255,255,255,0.4)] mb-6">Review and edit the narrator text, then proceed to the timeline.</p>
+                    <div className="flex flex-col gap-3 mb-8">
+                      {generatedScript.map(ss => (
+                        <div key={ss.id} className="border border-[rgba(255,255,255,0.08)] rounded-xl p-4 bg-[#0f0f0f]">
+                          <div className="flex items-center gap-2.5 mb-3">
+                            <span className="text-[10px] font-medium text-[rgba(255,255,255,0.35)] bg-[rgba(255,255,255,0.04)] px-2 py-0.5 rounded uppercase tracking-wider">Scene {ss.sceneNumber}</span>
+                            <span className="text-[12px] text-[rgba(255,255,255,0.55)] font-medium">{ss.title}</span>
+                          </div>
+                          <div className="text-[10px] text-[rgba(255,255,255,0.25)] uppercase tracking-wider mb-1.5">Narrator</div>
+                          <textarea value={ss.narratorText} onChange={e => updateScriptScene(ss.id, { narratorText: e.target.value })}
+                            className="w-full bg-[#111] border border-[rgba(255,255,255,0.08)] rounded-lg p-3 text-[13px] text-white outline-none resize-none min-h-[60px] focus:border-[rgba(255,255,255,0.15)] transition-colors leading-relaxed" />
+                          <div className="text-[10px] text-[rgba(255,255,255,0.25)] uppercase tracking-wider mt-3 mb-1">Scene description</div>
+                          <p className="text-[12px] text-[rgba(255,255,255,0.35)] leading-relaxed">{ss.sceneDescription}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex justify-end">
+                      <button onClick={goToTimelineFromScript} className="px-6 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-all">Looks good → Go to Timeline</button>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          )}
+        </div>
+        <style jsx global>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+      </div>
+    )}
+
+    {/* ═══ CARTOON / CUSTOM MODE — existing 4-step flow (unchanged) ═══ */}
+    {(mode === 'cartoon' || mode === 'custom') && (
     <div className="flex flex-col h-screen bg-black">
       <div className="flex-shrink-0 border-b border-[rgba(255,255,255,0.1)] sticky top-0 z-30 bg-black">
         <div className="max-w-[680px] mx-auto px-6 py-4 flex items-center">
+          <button onClick={() => setMode('selecting')} className="text-[11px] text-[rgba(255,255,255,0.25)] hover:text-white mr-4 flex-shrink-0 transition-colors">←</button>
           {roadmap.map((s, i) => (
             <div key={s.n} className="flex items-center flex-1 last:flex-initial">
               <button disabled={s.n === 4} onClick={() => {
@@ -859,5 +1191,6 @@ export default function CreatePage() {
 
       <style jsx global>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
     </div>
-  );
+    )}
+  </>);
 }
