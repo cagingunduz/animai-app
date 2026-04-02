@@ -443,6 +443,9 @@ export default function CreatePage() {
         }));
         setGeneratedScript(parsed);
         if (parsed.length > 0) setSelectedSceneId(parsed[0].id);
+        setStoryGenerating(false);
+        autoGenerateScenePreviews(parsed);
+        return;
       }
     } catch {
       setStoryError('Script generation failed. Please try again.');
@@ -471,15 +474,45 @@ export default function CreatePage() {
     storyDragI.current = null; storyDragO.current = null;
   };
 
+  const callGenerateSingleScene = async (sc: ScriptScene) => {
+    const r = await fetch('/api/generate-single-scene', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        scene_description: sc.sceneDescription,
+        narrator_text: sc.narratorText,
+        narrator_voice_id: storyNarratorVoiceId || 'none',
+        aspect_ratio: '9:16',
+        scene_duration: 8,
+        ken_burns: sc.kenBurns,
+        include_narrator: sc.includeNarrator && !!storyNarratorVoiceId,
+      })
+    });
+    return await r.json();
+  };
+
+  const autoGenerateScenePreviews = async (scenes: ScriptScene[]) => {
+    for (const sc of scenes) {
+      if (!sc.sceneDescription.trim()) continue;
+      setGeneratedScript(prev => prev.map(s => s.id === sc.id ? { ...s, generating: true, error: null } : s));
+      try {
+        const d = await callGenerateSingleScene(sc);
+        setGeneratedScript(prev => prev.map(s => s.id === sc.id ? { ...s, generating: false, imageUrl: d.image_url || null, videoUrl: d.video_url || null } : s));
+      } catch {
+        setGeneratedScript(prev => prev.map(s => s.id === sc.id ? { ...s, generating: false, error: 'Failed' } : s));
+      }
+    }
+  };
+
   const generateStoryScenePreview = async (sceneId: string) => {
     const sc = generatedScript.find(s => s.id === sceneId);
     if (!sc) return;
-    setGeneratedScript(prev => prev.map(s => s.id === sceneId ? { ...s, generating: true, error: null } : s));
+    setGeneratedScript(prev => prev.map(s => s.id === sceneId ? { ...s, generating: true, error: null, imageUrl: null, videoUrl: null } : s));
     try {
-      const r = await fetch('/api/generate-scene-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ scene_text: sc.sceneDescription, aspect_ratio: '9:16', characters: [] }) });
-      const d = await r.json();
-      setGeneratedScript(prev => prev.map(s => s.id === sceneId ? { ...s, generating: false, imageUrl: d.scene_image_url || null } : s));
-    } catch { setGeneratedScript(prev => prev.map(s => s.id === sceneId ? { ...s, generating: false, error: 'Failed. Try again.' } : s)); }
+      const d = await callGenerateSingleScene(sc);
+      setGeneratedScript(prev => prev.map(s => s.id === sceneId ? { ...s, generating: false, imageUrl: d.image_url || null, videoUrl: d.video_url || null } : s));
+    } catch {
+      setGeneratedScript(prev => prev.map(s => s.id === sceneId ? { ...s, generating: false, error: 'Failed. Try again.' } : s));
+    }
   };
 
   const approveStoryScene = (id: string) => setGeneratedScript(prev => prev.map(s => s.id === id ? { ...s, approved: true } : s));
