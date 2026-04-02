@@ -431,7 +431,7 @@ export default function CreatePage() {
       try {
         const r = await fetch('/api/generate-scene-image', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ scene_text: sc.sceneDescription, aspect_ratio: exportAspectRatio || '9:16', characters: [] })
+          body: JSON.stringify({ scene_text: sc.sceneDescription, aspect_ratio: '9:16', characters: [] })
         });
         const d = await r.json();
         setGeneratedScript(prev => prev.map(s => s.id === sc.id ? { ...s, generating: false, imageUrl: d.scene_image_url || null } : s));
@@ -499,7 +499,7 @@ export default function CreatePage() {
     try {
       const r = await fetch('/api/generate-scene-image', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scene_text: sc.sceneDescription, aspect_ratio: exportAspectRatio || '9:16', characters: [] })
+        body: JSON.stringify({ scene_text: sc.sceneDescription, aspect_ratio: '9:16', characters: [] })
       });
       const d = await r.json();
       setGeneratedScript(prev => prev.map(s => s.id === sceneId ? { ...s, generating: false, imageUrl: d.scene_image_url || null } : s));
