@@ -33,7 +33,7 @@ type SceneRenderStatus = { scene_number: number; status: 'queued' | 'processing'
 type CreateMode = 'selecting' | 'theme_select' | 'story' | 'cartoon';
 type StoryTheme = 'true_crime' | 'history' | 'drama' | 'motivation' | 'fairy_tale' | 'mystery';
 type StoryGenre = 'drama' | 'fairy-tale' | 'horror' | 'action' | 'motivation' | 'comedy' | 'mystery';
-interface ScriptScene { id: string; sceneNumber: number; title: string; narratorText: string; sceneDescription: string; imageUrl: string | null; generating: boolean; error: string | null; approved: boolean; }
+interface ScriptScene { id: string; sceneNumber: number; title: string; narratorText: string; sceneDescription: string; imageUrl: string | null; videoUrl: string | null; generating: boolean; error: string | null; approved: boolean; kenBurns: boolean; includeNarrator: boolean; }
 
 const GENRES: { value: StoryGenre; label: string }[] = [
   { value: 'drama', label: 'Drama' }, { value: 'fairy-tale', label: 'Fairy Tale' },
@@ -424,23 +424,6 @@ export default function CreatePage() {
     setStoryVFilters(prev => { const n = new Set(prev); if (n.has(key)) n.delete(key); else n.add(key); return n; });
   }, []);
 
-  const autoGenerateScenePreviews = async (scenes: ScriptScene[]) => {
-    for (const sc of scenes) {
-      if (!sc.sceneDescription.trim()) continue;
-      setGeneratedScript(prev => prev.map(s => s.id === sc.id ? { ...s, generating: true, error: null } : s));
-      try {
-        const r = await fetch('/api/generate-scene-image', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ scene_text: sc.sceneDescription, aspect_ratio: '9:16', characters: [] })
-        });
-        const d = await r.json();
-        setGeneratedScript(prev => prev.map(s => s.id === sc.id ? { ...s, generating: false, imageUrl: d.scene_image_url || null } : s));
-      } catch {
-        setGeneratedScript(prev => prev.map(s => s.id === sc.id ? { ...s, generating: false, error: 'Failed' } : s));
-      }
-    }
-  };
-
   const handleGenerateScript = async () => {
     setStoryGenerating(true); setStoryError(null);
     try {
@@ -456,14 +439,10 @@ export default function CreatePage() {
           title: s.title || `Scene ${i + 1}`,
           narratorText: s.narrator_text || s.narratorText || '',
           sceneDescription: s.scene_description || s.sceneDescription || '',
-          imageUrl: null, generating: false, error: null, approved: false,
+          imageUrl: null, videoUrl: null, generating: false, error: null, approved: false, kenBurns: true, includeNarrator: true,
         }));
         setGeneratedScript(parsed);
         if (parsed.length > 0) setSelectedSceneId(parsed[0].id);
-        setStoryGenerating(false);
-        // Auto-generate all scene previews sequentially
-        autoGenerateScenePreviews(parsed);
-        return;
       }
     } catch {
       setStoryError('Script generation failed. Please try again.');
@@ -476,13 +455,13 @@ export default function CreatePage() {
   };
 
   const goToTimelineFromScript = () => {
-    const empty: ScriptScene = { id: uid(), sceneNumber: 1, title: 'Scene 1', narratorText: '', sceneDescription: '', imageUrl: null, generating: false, error: null, approved: false };
+    const empty: ScriptScene = { id: uid(), sceneNumber: 1, title: 'Scene 1', narratorText: '', sceneDescription: '', imageUrl: null, videoUrl: null, generating: false, error: null, approved: false, kenBurns: true, includeNarrator: true };
     setGeneratedScript([empty]); setSelectedSceneId(empty.id); setStoryStep(3);
   };
 
   const addStoryScene = () => {
     const n = generatedScript.length + 1;
-    const ns: ScriptScene = { id: uid(), sceneNumber: n, title: `Scene ${n}`, narratorText: '', sceneDescription: '', imageUrl: null, generating: false, error: null, approved: false };
+    const ns: ScriptScene = { id: uid(), sceneNumber: n, title: `Scene ${n}`, narratorText: '', sceneDescription: '', imageUrl: null, videoUrl: null, generating: false, error: null, approved: false, kenBurns: true, includeNarrator: true };
     setGeneratedScript(prev => [...prev, ns]); setSelectedSceneId(ns.id);
   };
 
@@ -497,15 +476,10 @@ export default function CreatePage() {
     if (!sc) return;
     setGeneratedScript(prev => prev.map(s => s.id === sceneId ? { ...s, generating: true, error: null } : s));
     try {
-      const r = await fetch('/api/generate-scene-image', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scene_text: sc.sceneDescription, aspect_ratio: '9:16', characters: [] })
-      });
+      const r = await fetch('/api/generate-scene-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ scene_text: sc.sceneDescription, aspect_ratio: '9:16', characters: [] }) });
       const d = await r.json();
       setGeneratedScript(prev => prev.map(s => s.id === sceneId ? { ...s, generating: false, imageUrl: d.scene_image_url || null } : s));
-    } catch {
-      setGeneratedScript(prev => prev.map(s => s.id === sceneId ? { ...s, generating: false, error: 'Failed. Try again.' } : s));
-    }
+    } catch { setGeneratedScript(prev => prev.map(s => s.id === sceneId ? { ...s, generating: false, error: 'Failed. Try again.' } : s)); }
   };
 
   const approveStoryScene = (id: string) => setGeneratedScript(prev => prev.map(s => s.id === id ? { ...s, approved: true } : s));
@@ -513,18 +487,36 @@ export default function CreatePage() {
 
   const selectedScene = generatedScript.find(s => s.id === selectedSceneId) || null;
   const selectedSceneIdx = generatedScript.findIndex(s => s.id === selectedSceneId);
-  const storyHasApproved = generatedScript.some(s => s.imageUrl !== null);
+  const storyHasApproved = generatedScript.some(s => s.approved || s.imageUrl);
   const navigateScene = (d: number) => { const ni = selectedSceneIdx + d; if (ni >= 0 && ni < generatedScript.length) setSelectedSceneId(generatedScript[ni].id); };
 
   const handleStoryExport = async () => {
     setShowExport(false);
-    const approved = generatedScript.filter(s => s.imageUrl || s.approved);
-    const newScenes: SceneDef[] = approved.map((ss) => {
-      const bgId = uid();
-      return { id: uid(), description: ss.sceneDescription, aspectRatio: '9:16' as AspectRatio, characters: [], generating: false, approved: true, imageUrl: ss.imageUrl, error: null, backgrounds: [{ id: bgId, description: ss.sceneDescription, photoUrl: null }], selectedBackgroundId: bgId, expandedBgId: null, characterPlacements: [] };
-    });
-    setScenes(newScenes); setRes(exportRes); setMode('cartoon'); setStep(4);
-    setTimeout(() => handleFinalGenerate(), 100);
+    if (!storyNarratorVoiceId) { alert('Please select a narrator voice first.'); return; }
+    const scenesToExport = generatedScript.filter(s => s.sceneDescription.trim());
+    try {
+      const r = await fetch('/api/generate-storybook', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scenes: scenesToExport.map(ss => ({
+            scene_number: ss.sceneNumber, title: ss.title,
+            scene_description: ss.sceneDescription, narrator_text: ss.narratorText,
+          })),
+          narrator_voice_id: storyNarratorVoiceId,
+          aspect_ratio: '9:16',
+          scene_duration: 8,
+        })
+      });
+      const d = await r.json();
+      if (d.job_id) {
+        setJobId(d.job_id);
+        setGenStatus('processing'); setGenProgress(0); setGenMessage('Starting video generation...');
+        setGenScenes(scenesToExport.map((_, i) => ({ scene_number: i + 1, status: 'queued' })));
+        setMode('cartoon'); setStep(4);
+        pollRef.current = setInterval(() => pollStatus(d.job_id), 3000);
+        pollStatus(d.job_id);
+      }
+    } catch { alert('Failed to start generation. Try again.'); }
   };
 
   const durationSceneNote = (d: number) => d === 1 ? '≈ 10 scenes' : d === 2 ? '≈ 18 scenes' : d === 3 ? '≈ 26 scenes' : d === 5 ? '≈ 40 scenes' : '≈ 60 scenes';
@@ -618,6 +610,12 @@ export default function CreatePage() {
                     <h2 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px] mb-3">Genre</h2>
                     <div className="flex flex-wrap gap-1.5">
                       {GENRES.map(g => (<button key={g.value} onClick={() => setStoryGenre(g.value)} className={`px-3 py-1.5 rounded-full text-[11px] transition-all ${storyGenre === g.value ? 'bg-white text-black font-medium' : 'border border-[rgba(255,255,255,0.12)] text-[rgba(255,255,255,0.45)] hover:border-[rgba(255,255,255,0.2)]'}`}>{g.label}</button>))}
+                    </div>
+                  </div>
+                  <div>
+                    <h2 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px] mb-3">Animation style</h2>
+                    <div className="flex flex-wrap gap-1.5">
+                      {STYLES.map(s => (<button key={s.value} onClick={() => setStoryStyle(s.value)} className={`px-3 py-1.5 rounded-full text-[11px] transition-all ${storyStyle === s.value ? 'bg-white text-black font-medium' : 'border border-[rgba(255,255,255,0.12)] text-[rgba(255,255,255,0.45)] hover:border-[rgba(255,255,255,0.2)]'}`}>{s.label}</button>))}
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -751,7 +749,9 @@ export default function CreatePage() {
                   {/* LEFT — Video Preview */}
                   <div className="md:w-[52%] flex flex-col bg-[#080808] relative">
                     <div className="flex-1 flex items-center justify-center p-3 relative overflow-hidden">
-                      {selectedScene?.imageUrl ? (
+                      {selectedScene?.videoUrl ? (
+                        <video src={selectedScene.videoUrl} autoPlay muted loop playsInline className="max-w-full max-h-full rounded-lg object-contain" />
+                      ) : selectedScene?.imageUrl ? (
                         <img src={selectedScene.imageUrl} alt="" className="max-w-full max-h-full rounded-lg object-contain" />
                       ) : (
                         <div className="w-full aspect-[9/16] max-w-[280px] bg-[#0a0a0a] rounded-lg border border-[rgba(255,255,255,0.05)] flex items-center justify-center">
@@ -779,6 +779,19 @@ export default function CreatePage() {
                           <textarea value={selectedScene.narratorText} onChange={e => updateScriptScene(selectedScene.id, { narratorText: e.target.value })} className="w-full bg-[#111] border border-[rgba(255,255,255,0.08)] rounded-lg p-3 text-[13px] text-white outline-none resize-none min-h-[70px] focus:border-[rgba(255,255,255,0.15)] transition-colors leading-relaxed" /></div>
                         <div><div className="text-[10px] text-[rgba(255,255,255,0.25)] uppercase tracking-wider mb-1.5">Scene description</div>
                           <textarea value={selectedScene.sceneDescription} onChange={e => updateScriptScene(selectedScene.id, { sceneDescription: e.target.value })} className="w-full bg-[#111] border border-[rgba(255,255,255,0.08)] rounded-lg p-3 text-[12px] text-[rgba(255,255,255,0.6)] outline-none resize-none min-h-[60px] focus:border-[rgba(255,255,255,0.15)] transition-colors leading-relaxed" /></div>
+                        {/* Camera movement + Narrator toggles */}
+                        <div className="flex gap-4">
+                          <button onClick={() => updateScriptScene(selectedScene.id, { kenBurns: !selectedScene.kenBurns })}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] transition-all ${selectedScene.kenBurns ? 'border-white text-white' : 'border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.35)]'}`}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 10l4.553-2.069A1 1 0 0121 8.871v6.258a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
+                            Camera move
+                          </button>
+                          <button onClick={() => updateScriptScene(selectedScene.id, { includeNarrator: !selectedScene.includeNarrator })}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] transition-all ${selectedScene.includeNarrator ? 'border-white text-white' : 'border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.35)]'}`}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                            Narrator
+                          </button>
+                        </div>
                         <div className="border-t border-[rgba(255,255,255,0.05)] pt-4">
                           {selectedScene.generating ? (<div className="flex items-center gap-2.5"><div className="w-4 h-4 rounded-full border-2 border-[rgba(255,255,255,0.06)] border-t-white animate-spin" /><span className="text-[12px] text-[rgba(255,255,255,0.4)]">Generating...</span></div>
                           ) : selectedScene.error ? (<div className="flex items-center gap-2"><span className="text-[11px] text-[rgba(248,113,113,0.6)]">{selectedScene.error}</span><button onClick={() => generateStoryScenePreview(selectedScene.id)} className="text-[11px] text-[rgba(255,255,255,0.5)] hover:text-white underline">Retry</button></div>
@@ -788,10 +801,7 @@ export default function CreatePage() {
                               <button onClick={() => generateStoryScenePreview(selectedScene.id)} className="self-start px-3 py-1.5 border border-[rgba(255,255,255,0.1)] rounded-md text-[11px] text-[rgba(255,255,255,0.5)] hover:text-white transition-all">Regenerate</button>
                             </div>
                           ) : (
-                            <div className="flex items-center gap-2">
-                              <button onClick={() => generateStoryScenePreview(selectedScene.id)} disabled={!selectedScene.sceneDescription.trim()} className="px-4 py-2 border border-[rgba(255,255,255,0.12)] rounded-lg text-[12px] text-[rgba(255,255,255,0.55)] hover:text-white hover:border-[rgba(255,255,255,0.2)] disabled:opacity-20 disabled:cursor-not-allowed transition-all">Regenerate scene</button>
-                              <span className="text-[10px] text-[rgba(255,255,255,0.2)]">1 credit</span>
-                            </div>
+                            <button onClick={() => generateStoryScenePreview(selectedScene.id)} disabled={!selectedScene.sceneDescription.trim()} className="px-4 py-2 border border-[rgba(255,255,255,0.12)] rounded-lg text-[12px] text-[rgba(255,255,255,0.55)] hover:text-white hover:border-[rgba(255,255,255,0.2)] disabled:opacity-20 disabled:cursor-not-allowed transition-all">Generate Preview</button>
                           )}
                         </div>
                         <div className="border-t border-[rgba(255,255,255,0.05)] pt-3 flex items-center gap-3">
@@ -813,7 +823,7 @@ export default function CreatePage() {
                       onClick={() => setSelectedSceneId(ss.id)}
                       className={`flex-shrink-0 w-[90px] h-[76px] rounded-lg border cursor-pointer transition-all flex flex-col overflow-hidden ${ss.id === selectedSceneId ? 'border-white border-[1.5px]' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.2)]'} ${ss.generating ? 'animate-pulse' : ''}`}>
                       <div className="h-[52px] bg-[#111] flex items-center justify-center relative overflow-hidden">
-                        {ss.imageUrl ? <img src={ss.imageUrl} alt="" className="w-full h-full object-cover" /> : <span className="text-[12px] text-[rgba(255,255,255,0.12)] font-medium">{ss.sceneNumber}</span>}
+                        {ss.videoUrl ? <video src={ss.videoUrl} muted loop autoPlay playsInline className="w-full h-full object-cover" /> : ss.imageUrl ? <img src={ss.imageUrl} alt="" className="w-full h-full object-cover" /> : <span className="text-[12px] text-[rgba(255,255,255,0.12)] font-medium">{ss.sceneNumber}</span>}
                         {ss.approved && <div className="absolute top-1 right-1 w-3 h-3 rounded-full bg-[rgba(74,222,128,0.2)] flex items-center justify-center"><div className="w-1.5 h-1.5 rounded-full bg-[rgba(74,222,128,0.7)]" /></div>}
                       </div>
                       <div className="h-[24px] bg-[#111] flex items-center justify-center px-1 border-t border-[rgba(255,255,255,0.04)]"><span className="text-[9px] text-[rgba(255,255,255,0.3)] truncate">{ss.title}</span></div>
