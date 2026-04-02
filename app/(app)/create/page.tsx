@@ -424,6 +424,23 @@ export default function CreatePage() {
     setStoryVFilters(prev => { const n = new Set(prev); if (n.has(key)) n.delete(key); else n.add(key); return n; });
   }, []);
 
+  const autoGenerateScenePreviews = async (scenes: ScriptScene[]) => {
+    for (const sc of scenes) {
+      if (!sc.sceneDescription.trim()) continue;
+      setGeneratedScript(prev => prev.map(s => s.id === sc.id ? { ...s, generating: true, error: null } : s));
+      try {
+        const r = await fetch('/api/generate-scene-image', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scene_text: sc.sceneDescription, aspect_ratio: exportAspectRatio || '9:16', characters: [] })
+        });
+        const d = await r.json();
+        setGeneratedScript(prev => prev.map(s => s.id === sc.id ? { ...s, generating: false, imageUrl: d.scene_image_url || null } : s));
+      } catch {
+        setGeneratedScript(prev => prev.map(s => s.id === sc.id ? { ...s, generating: false, error: 'Failed' } : s));
+      }
+    }
+  };
+
   const handleGenerateScript = async () => {
     setStoryGenerating(true); setStoryError(null);
     try {
@@ -443,6 +460,10 @@ export default function CreatePage() {
         }));
         setGeneratedScript(parsed);
         if (parsed.length > 0) setSelectedSceneId(parsed[0].id);
+        setStoryGenerating(false);
+        // Auto-generate all scene previews sequentially
+        autoGenerateScenePreviews(parsed);
+        return;
       }
     } catch {
       setStoryError('Script generation failed. Please try again.');
@@ -476,10 +497,15 @@ export default function CreatePage() {
     if (!sc) return;
     setGeneratedScript(prev => prev.map(s => s.id === sceneId ? { ...s, generating: true, error: null } : s));
     try {
-      const r = await fetch('/api/generate-scene-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ scene_text: sc.sceneDescription, aspect_ratio: '9:16', characters: [] }) });
+      const r = await fetch('/api/generate-scene-image', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scene_text: sc.sceneDescription, aspect_ratio: exportAspectRatio || '9:16', characters: [] })
+      });
       const d = await r.json();
       setGeneratedScript(prev => prev.map(s => s.id === sceneId ? { ...s, generating: false, imageUrl: d.scene_image_url || null } : s));
-    } catch { setGeneratedScript(prev => prev.map(s => s.id === sceneId ? { ...s, generating: false, error: 'Failed. Try again.' } : s)); }
+    } catch {
+      setGeneratedScript(prev => prev.map(s => s.id === sceneId ? { ...s, generating: false, error: 'Failed. Try again.' } : s));
+    }
   };
 
   const approveStoryScene = (id: string) => setGeneratedScript(prev => prev.map(s => s.id === id ? { ...s, approved: true } : s));
@@ -487,7 +513,7 @@ export default function CreatePage() {
 
   const selectedScene = generatedScript.find(s => s.id === selectedSceneId) || null;
   const selectedSceneIdx = generatedScript.findIndex(s => s.id === selectedSceneId);
-  const storyHasApproved = generatedScript.some(s => s.approved || s.imageUrl);
+  const storyHasApproved = generatedScript.some(s => s.imageUrl !== null);
   const navigateScene = (d: number) => { const ni = selectedSceneIdx + d; if (ni >= 0 && ni < generatedScript.length) setSelectedSceneId(generatedScript[ni].id); };
 
   const handleStoryExport = async () => {
@@ -762,7 +788,10 @@ export default function CreatePage() {
                               <button onClick={() => generateStoryScenePreview(selectedScene.id)} className="self-start px-3 py-1.5 border border-[rgba(255,255,255,0.1)] rounded-md text-[11px] text-[rgba(255,255,255,0.5)] hover:text-white transition-all">Regenerate</button>
                             </div>
                           ) : (
-                            <button onClick={() => generateStoryScenePreview(selectedScene.id)} disabled={!selectedScene.sceneDescription.trim()} className="px-4 py-2 border border-[rgba(255,255,255,0.12)] rounded-lg text-[12px] text-[rgba(255,255,255,0.55)] hover:text-white hover:border-[rgba(255,255,255,0.2)] disabled:opacity-20 disabled:cursor-not-allowed transition-all">Generate Preview</button>
+                            <div className="flex items-center gap-2">
+                              <button onClick={() => generateStoryScenePreview(selectedScene.id)} disabled={!selectedScene.sceneDescription.trim()} className="px-4 py-2 border border-[rgba(255,255,255,0.12)] rounded-lg text-[12px] text-[rgba(255,255,255,0.55)] hover:text-white hover:border-[rgba(255,255,255,0.2)] disabled:opacity-20 disabled:cursor-not-allowed transition-all">Regenerate scene</button>
+                              <span className="text-[10px] text-[rgba(255,255,255,0.2)]">1 credit</span>
+                            </div>
                           )}
                         </div>
                         <div className="border-t border-[rgba(255,255,255,0.05)] pt-3 flex items-center gap-3">
