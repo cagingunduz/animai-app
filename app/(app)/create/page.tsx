@@ -123,8 +123,15 @@ export default function CreatePage() {
   const [exportRes, setExportRes] = useState<Resolution>('720p');
   const storyDragI = useRef<number | null>(null);
   const storyDragO = useRef<number | null>(null);
+  const storyVideoRef = useRef<HTMLVideoElement | null>(null);
+  const [storyVideoPlaying, setStoryVideoPlaying] = useState(false);
 
   useEffect(() => { fetch('/api/voices').then(r => r.json()).then(setVoices).catch(() => {}); }, []);
+
+  useEffect(() => {
+    if (storyVideoRef.current) { storyVideoRef.current.pause(); storyVideoRef.current.currentTime = 0; }
+    setStoryVideoPlaying(false);
+  }, [selectedSceneId]);
 
   // ─── Sync characterPlacements when chars changes ───
   useEffect(() => {
@@ -783,7 +790,20 @@ export default function CreatePage() {
                   <div className="md:w-[52%] flex flex-col bg-[#080808] relative">
                     <div className="flex-1 flex items-center justify-center p-3 relative overflow-hidden">
                       {selectedScene?.videoUrl ? (
-                        <video src={selectedScene.videoUrl} autoPlay muted loop playsInline className="max-w-full max-h-full rounded-lg object-contain" />
+                        <video
+                          ref={storyVideoRef}
+                          src={selectedScene.videoUrl}
+                          loop
+                          playsInline
+                          onPlay={() => setStoryVideoPlaying(true)}
+                          onPause={() => setStoryVideoPlaying(false)}
+                          className="max-w-full max-h-full rounded-lg object-contain cursor-pointer"
+                          onClick={() => {
+                            const v = storyVideoRef.current;
+                            if (!v) return;
+                            storyVideoPlaying ? v.pause() : v.play();
+                          }}
+                        />
                       ) : selectedScene?.imageUrl ? (
                         <img src={selectedScene.imageUrl} alt="" className="max-w-full max-h-full rounded-lg object-contain" />
                       ) : (
@@ -797,7 +817,16 @@ export default function CreatePage() {
                     {/* Nav bar */}
                     <div className="flex-shrink-0 h-[40px] bg-gradient-to-t from-black/80 to-transparent flex items-center justify-center gap-5 absolute bottom-0 left-0 right-0">
                       <button onClick={() => navigateScene(-1)} disabled={selectedSceneIdx <= 0} className="text-[rgba(255,255,255,0.3)] hover:text-white disabled:opacity-20 transition-colors"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><polygon points="10,2 4,8 10,14"/></svg></button>
-                      <span className="text-[10px] text-[rgba(255,255,255,0.35)] tabular-nums">{selectedSceneIdx + 1} of {generatedScript.length}</span>
+                      {selectedScene?.videoUrl ? (
+                        <button onClick={() => { const v = storyVideoRef.current; if (!v) return; storyVideoPlaying ? v.pause() : v.play(); }} className="text-[rgba(255,255,255,0.5)] hover:text-white transition-colors">
+                          {storyVideoPlaying
+                            ? <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="2" width="4" height="12"/><rect x="9" y="2" width="4" height="12"/></svg>
+                            : <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><polygon points="3,1 14,8 3,15"/></svg>
+                          }
+                        </button>
+                      ) : (
+                        <span className="text-[10px] text-[rgba(255,255,255,0.35)] tabular-nums">{selectedSceneIdx + 1} of {generatedScript.length}</span>
+                      )}
                       <button onClick={() => navigateScene(1)} disabled={selectedSceneIdx >= generatedScript.length - 1} className="text-[rgba(255,255,255,0.3)] hover:text-white disabled:opacity-20 transition-colors"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><polygon points="6,2 12,8 6,14"/></svg></button>
                     </div>
                   </div>
