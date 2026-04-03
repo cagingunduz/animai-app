@@ -479,12 +479,12 @@ export default function CreatePage() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         scene_description: sc.sceneDescription,
-        narrator_text: sc.narratorText,
-        narrator_voice_id: storyNarratorVoiceId || 'none',
+        narrator_text: sc.narratorText || '',
+        narrator_voice_id: storyNarratorVoiceId || null,
         aspect_ratio: '9:16',
         scene_duration: 8,
         ken_burns: sc.kenBurns,
-        include_narrator: sc.includeNarrator && !!storyNarratorVoiceId,
+        include_narrator: sc.includeNarrator && !!storyNarratorVoiceId && !!sc.narratorText,
       })
     });
     return await r.json();
@@ -533,7 +533,7 @@ export default function CreatePage() {
         body: JSON.stringify({
           scenes: scenesToExport.map(ss => ({
             scene_number: ss.sceneNumber, title: ss.title,
-            scene_description: ss.sceneDescription, narrator_text: ss.narratorText,
+            scene_description: ss.sceneDescription, narrator_text: ss.narratorText || '',
           })),
           narrator_voice_id: storyNarratorVoiceId,
           aspect_ratio: '9:16',
