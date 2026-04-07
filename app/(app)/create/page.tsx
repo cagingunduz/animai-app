@@ -121,6 +121,8 @@ export default function CreatePage() {
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const [showExport, setShowExport] = useState(false);
   const [exportRes, setExportRes] = useState<Resolution>('720p');
+  const [includeSubtitles, setIncludeSubtitles] = useState(false);
+  const [downloadLoading, setDownloadLoading] = useState(false);
   const storyDragI = useRef<number | null>(null);
   const storyDragO = useRef<number | null>(null);
   const storyVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -530,6 +532,26 @@ export default function CreatePage() {
   const storyHasApproved = generatedScript.some(s => s.approved || s.imageUrl);
   const navigateScene = (d: number) => { const ni = selectedSceneIdx + d; if (ni >= 0 && ni < generatedScript.length) setSelectedSceneId(generatedScript[ni].id); };
 
+  const downloadVideo = async (url: string, filename: string) => {
+    setDownloadLoading(true);
+    try {
+      const resp = await fetch(url);
+      const blob = await resp.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(objectUrl);
+    } catch (e) {
+      console.error('Download failed', e);
+    } finally {
+      setDownloadLoading(false);
+    }
+  };
+
   const handleStoryExport = async () => {
     setShowExport(false);
     if (!storyNarratorVoiceId) { alert('Please select a narrator voice first.'); return; }
@@ -545,6 +567,7 @@ export default function CreatePage() {
           narrator_voice_id: storyNarratorVoiceId,
           aspect_ratio: '9:16',
           scene_duration: 8,
+          include_subtitles: includeSubtitles,
         })
       });
       const d = await r.json();
@@ -759,7 +782,16 @@ export default function CreatePage() {
                       <div className="flex border border-[rgba(255,255,255,0.08)] rounded-lg overflow-hidden mb-4">
                         {(['480p', '720p', '1080p'] as Resolution[]).map(r => (<button key={r} onClick={() => setExportRes(r)} className={`flex-1 py-2 text-[11px] transition-all ${exportRes === r ? 'bg-[rgba(255,255,255,0.08)] text-white' : 'text-[rgba(255,255,255,0.3)]'}`}>{r}<div className="text-[8px] text-[rgba(255,255,255,0.15)] mt-0.5">{RESOLUTION_CREDITS[r]} cr</div></button>))}
                       </div>
-                      <div className="text-[12px] text-[rgba(255,255,255,0.4)] mb-5">Estimated: <span className="text-white font-medium">{generatedScript.filter(s => s.imageUrl || s.approved).length * RESOLUTION_CREDITS[exportRes]}</span> credits</div>
+                      <div className="text-[12px] text-[rgba(255,255,255,0.4)] mb-4">Estimated: <span className="text-white font-medium">{generatedScript.filter(s => s.imageUrl || s.approved).length * RESOLUTION_CREDITS[exportRes]}</span> credits</div>
+                      <button onClick={() => setIncludeSubtitles(v => !v)} className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg border mb-5 transition-all ${includeSubtitles ? 'border-[rgba(255,255,255,0.2)] bg-[rgba(255,255,255,0.05)]' : 'border-[rgba(255,255,255,0.08)]'}`}>
+                        <div>
+                          <div className="text-[12px] text-white text-left">Word-by-word subtitles</div>
+                          <div className="text-[10px] text-[rgba(255,255,255,0.35)] text-left">TikTok-style, burned into video</div>
+                        </div>
+                        <div className={`w-9 h-5 rounded-full transition-all relative ${includeSubtitles ? 'bg-white' : 'bg-[rgba(255,255,255,0.1)]'}`}>
+                          <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-black transition-all ${includeSubtitles ? 'left-[18px]' : 'left-0.5'}`} />
+                        </div>
+                      </button>
                       <div className="flex gap-3">
                         <button onClick={() => setShowExport(false)} className="flex-1 py-2.5 border border-[rgba(255,255,255,0.1)] rounded-lg text-[13px] text-[rgba(255,255,255,0.5)] hover:text-white transition-all">Cancel</button>
                         <button onClick={handleStoryExport} className="flex-1 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-all">Generate Video →</button>
@@ -1372,7 +1404,7 @@ export default function CreatePage() {
                         <span className="text-[10px] font-medium text-[rgba(255,255,255,0.3)] bg-[rgba(255,255,255,0.03)] px-1.5 py-0.5 rounded">Scene {s.scene_number}</span>
                         <span className={`text-[10px] capitalize ${s.status === 'completed' ? 'text-[rgba(74,222,128,0.6)]' : s.status === 'processing' ? 'text-[rgba(250,204,21,0.6)]' : 'text-[rgba(255,255,255,0.2)]'}`}>{s.status}</span>
                       </div>
-                      {s.status === 'completed' && s.video_url && <a href={s.video_url} download className="text-[11px] text-[rgba(255,255,255,0.4)] hover:text-white transition-colors">Download</a>}
+                      {s.status === 'completed' && s.video_url && <button onClick={() => downloadVideo(s.video_url!, `scene-${s.scene_number}.mp4`)} className="text-[11px] text-[rgba(255,255,255,0.4)] hover:text-white transition-colors">Download</button>}
                     </div>
                   </div>
                 ))}
@@ -1383,7 +1415,9 @@ export default function CreatePage() {
                   <video src={finalVideoUrl} controls autoPlay muted loop playsInline className="w-full aspect-video bg-[#0e0e0e]" />
                   <div className="p-4 flex items-center justify-between">
                     <div><h3 className="text-[15px] font-medium">Final Video Ready</h3><p className="text-[12px] text-[rgba(255,255,255,0.35)] mt-0.5">{genScenes.length} scene{genScenes.length > 1 ? 's' : ''} · {res}</p></div>
-                    <a href={finalVideoUrl} download className="px-4 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 transition-colors">Download MP4</a>
+                    <button onClick={() => downloadVideo(finalVideoUrl!, 'animave-story.mp4')} disabled={downloadLoading} className="px-4 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50">
+                      {downloadLoading ? 'Downloading...' : 'Download MP4'}
+                    </button>
                   </div>
                 </div>
               )}
