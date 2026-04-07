@@ -33,7 +33,7 @@ type SceneRenderStatus = { scene_number: number; status: 'queued' | 'processing'
 type CreateMode = 'selecting' | 'theme_select' | 'story' | 'cartoon';
 type StoryTheme = 'true_crime' | 'history' | 'drama' | 'motivation' | 'fairy_tale' | 'mystery';
 type StoryGenre = 'drama' | 'fairy-tale' | 'horror' | 'action' | 'motivation' | 'comedy' | 'mystery';
-interface ScriptScene { id: string; sceneNumber: number; title: string; narratorText: string; sceneDescription: string; imageUrl: string | null; videoUrl: string | null; generating: boolean; error: string | null; approved: boolean; kenBurns: boolean; includeNarrator: boolean; }
+interface ScriptScene { id: string; sceneNumber: number; title: string; narratorText: string; sceneDescription: string; imageUrl: string | null; videoUrl: string | null; generating: boolean; error: string | null; approved: boolean; kenBurns: boolean; includeNarrator: boolean; includeSubtitles: boolean; }
 
 const GENRES: { value: StoryGenre; label: string }[] = [
   { value: 'drama', label: 'Drama' }, { value: 'fairy-tale', label: 'Fairy Tale' },
@@ -448,7 +448,7 @@ export default function CreatePage() {
           title: s.title || `Scene ${i + 1}`,
           narratorText: s.narrator_text || s.narratorText || '',
           sceneDescription: s.scene_description || s.sceneDescription || '',
-          imageUrl: null, videoUrl: null, generating: false, error: null, approved: false, kenBurns: true, includeNarrator: true,
+          imageUrl: null, videoUrl: null, generating: false, error: null, approved: false, kenBurns: true, includeNarrator: true, includeSubtitles: true,
         }));
         setGeneratedScript(parsed);
         if (parsed.length > 0) setSelectedSceneId(parsed[0].id);
@@ -494,6 +494,7 @@ export default function CreatePage() {
         scene_duration: 8,
         ken_burns: sc.kenBurns,
         include_narrator: sc.includeNarrator && !!storyNarratorVoiceId && !!sc.narratorText,
+        include_subtitles: false,
       })
     });
     return await r.json();
@@ -563,11 +564,11 @@ export default function CreatePage() {
           scenes: scenesToExport.map(ss => ({
             scene_number: ss.sceneNumber, title: ss.title,
             scene_description: ss.sceneDescription, narrator_text: ss.narratorText || '',
+            include_subtitles: ss.includeSubtitles,
           })),
           narrator_voice_id: storyNarratorVoiceId,
           aspect_ratio: '9:16',
           scene_duration: 8,
-          include_subtitles: includeSubtitles,
         })
       });
       const d = await r.json();
@@ -783,15 +784,6 @@ export default function CreatePage() {
                         {(['480p', '720p', '1080p'] as Resolution[]).map(r => (<button key={r} onClick={() => setExportRes(r)} className={`flex-1 py-2 text-[11px] transition-all ${exportRes === r ? 'bg-[rgba(255,255,255,0.08)] text-white' : 'text-[rgba(255,255,255,0.3)]'}`}>{r}<div className="text-[8px] text-[rgba(255,255,255,0.15)] mt-0.5">{RESOLUTION_CREDITS[r]} cr</div></button>))}
                       </div>
                       <div className="text-[12px] text-[rgba(255,255,255,0.4)] mb-4">Estimated: <span className="text-white font-medium">{generatedScript.filter(s => s.imageUrl || s.approved).length * RESOLUTION_CREDITS[exportRes]}</span> credits</div>
-                      <button onClick={() => setIncludeSubtitles(v => !v)} className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg border mb-5 transition-all ${includeSubtitles ? 'border-[rgba(255,255,255,0.2)] bg-[rgba(255,255,255,0.05)]' : 'border-[rgba(255,255,255,0.08)]'}`}>
-                        <div>
-                          <div className="text-[12px] text-white text-left">Word-by-word subtitles</div>
-                          <div className="text-[10px] text-[rgba(255,255,255,0.35)] text-left">TikTok-style, burned into video</div>
-                        </div>
-                        <div className={`w-9 h-5 rounded-full transition-all relative ${includeSubtitles ? 'bg-white' : 'bg-[rgba(255,255,255,0.1)]'}`}>
-                          <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-black transition-all ${includeSubtitles ? 'left-[18px]' : 'left-0.5'}`} />
-                        </div>
-                      </button>
                       <div className="flex gap-3">
                         <button onClick={() => setShowExport(false)} className="flex-1 py-2.5 border border-[rgba(255,255,255,0.1)] rounded-lg text-[13px] text-[rgba(255,255,255,0.5)] hover:text-white transition-all">Cancel</button>
                         <button onClick={handleStoryExport} className="flex-1 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-all">Generate Video →</button>
@@ -879,6 +871,11 @@ export default function CreatePage() {
                             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] transition-all ${selectedScene.includeNarrator ? 'border-white text-white' : 'border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.35)]'}`}>
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
                             Narrator
+                          </button>
+                          <button onClick={() => updateScriptScene(selectedScene.id, { includeSubtitles: !selectedScene.includeSubtitles })}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] transition-all ${selectedScene.includeSubtitles ? 'border-white text-white' : 'border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.35)]'}`}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15h4M13 15h4M7 11h2M11 11h6"/></svg>
+                            Subtitles
                           </button>
                         </div>
                         <div className="border-t border-[rgba(255,255,255,0.05)] pt-4">
