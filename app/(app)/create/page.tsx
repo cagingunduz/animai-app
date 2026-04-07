@@ -33,7 +33,7 @@ type SceneRenderStatus = { scene_number: number; status: 'queued' | 'processing'
 type CreateMode = 'selecting' | 'theme_select' | 'story' | 'cartoon';
 type StoryTheme = 'true_crime' | 'history' | 'drama' | 'motivation' | 'fairy_tale' | 'mystery';
 type StoryGenre = 'drama' | 'fairy-tale' | 'horror' | 'action' | 'motivation' | 'comedy' | 'mystery';
-interface ScriptScene { id: string; sceneNumber: number; title: string; narratorText: string; sceneDescription: string; imageUrl: string | null; videoUrl: string | null; generating: boolean; error: string | null; approved: boolean; kenBurns: boolean; includeNarrator: boolean; }
+interface ScriptScene { id: string; sceneNumber: number; title: string; narratorText: string; sceneDescription: string; imageUrl: string | null; videoUrl: string | null; generating: boolean; error: string | null; approved: boolean; kenBurns: boolean; includeNarrator: boolean; includeSubtitles: boolean; }
 
 const GENRES: { value: StoryGenre; label: string }[] = [
   { value: 'drama', label: 'Drama' }, { value: 'fairy-tale', label: 'Fairy Tale' },
@@ -121,6 +121,8 @@ export default function CreatePage() {
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const [showExport, setShowExport] = useState(false);
   const [exportRes, setExportRes] = useState<Resolution>('720p');
+  const [includeSubtitles, setIncludeSubtitles] = useState(false);
+  const [downloadLoading, setDownloadLoading] = useState(false);
   const storyDragI = useRef<number | null>(null);
   const storyDragO = useRef<number | null>(null);
   const storyVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -446,7 +448,7 @@ export default function CreatePage() {
           title: s.title || `Scene ${i + 1}`,
           narratorText: s.narrator_text || s.narratorText || '',
           sceneDescription: s.scene_description || s.sceneDescription || '',
-          imageUrl: null, videoUrl: null, generating: false, error: null, approved: false, kenBurns: true, includeNarrator: true,
+          imageUrl: null, videoUrl: null, generating: false, error: null, approved: false, kenBurns: true, includeNarrator: true, includeSubtitles: true,
         }));
         setGeneratedScript(parsed);
         if (parsed.length > 0) setSelectedSceneId(parsed[0].id);
@@ -465,13 +467,13 @@ export default function CreatePage() {
   };
 
   const goToTimelineFromScript = () => {
-    const empty: ScriptScene = { id: uid(), sceneNumber: 1, title: 'Scene 1', narratorText: '', sceneDescription: '', imageUrl: null, videoUrl: null, generating: false, error: null, approved: false, kenBurns: true, includeNarrator: true };
+    const empty: ScriptScene = { id: uid(), sceneNumber: 1, title: 'Scene 1', narratorText: '', sceneDescription: '', imageUrl: null, videoUrl: null, generating: false, error: null, approved: false, kenBurns: true, includeNarrator: true, includeSubtitles: true };
     setGeneratedScript([empty]); setSelectedSceneId(empty.id); setStoryStep(3);
   };
 
   const addStoryScene = () => {
     const n = generatedScript.length + 1;
-    const ns: ScriptScene = { id: uid(), sceneNumber: n, title: `Scene ${n}`, narratorText: '', sceneDescription: '', imageUrl: null, videoUrl: null, generating: false, error: null, approved: false, kenBurns: true, includeNarrator: true };
+    const ns: ScriptScene = { id: uid(), sceneNumber: n, title: `Scene ${n}`, narratorText: '', sceneDescription: '', imageUrl: null, videoUrl: null, generating: false, error: null, approved: false, kenBurns: true, includeNarrator: true, includeSubtitles: true };
     setGeneratedScript(prev => [...prev, ns]); setSelectedSceneId(ns.id);
   };
 
@@ -492,6 +494,7 @@ export default function CreatePage() {
         scene_duration: 8,
         ken_burns: sc.kenBurns,
         include_narrator: sc.includeNarrator && !!storyNarratorVoiceId && !!sc.narratorText,
+        include_subtitles: false,
       })
     });
     return await r.json();
@@ -530,6 +533,26 @@ export default function CreatePage() {
   const storyHasApproved = generatedScript.some(s => s.approved || s.imageUrl);
   const navigateScene = (d: number) => { const ni = selectedSceneIdx + d; if (ni >= 0 && ni < generatedScript.length) setSelectedSceneId(generatedScript[ni].id); };
 
+  const downloadVideo = async (url: string, filename: string) => {
+    setDownloadLoading(true);
+    try {
+      const resp = await fetch(url);
+      const blob = await resp.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(objectUrl);
+    } catch (e) {
+      console.error('Download failed', e);
+    } finally {
+      setDownloadLoading(false);
+    }
+  };
+
   const handleStoryExport = async () => {
     setShowExport(false);
     if (!storyNarratorVoiceId) { alert('Please select a narrator voice first.'); return; }
@@ -541,6 +564,7 @@ export default function CreatePage() {
           scenes: scenesToExport.map(ss => ({
             scene_number: ss.sceneNumber, title: ss.title,
             scene_description: ss.sceneDescription, narrator_text: ss.narratorText || '',
+            include_subtitles: ss.includeSubtitles,
           })),
           narrator_voice_id: storyNarratorVoiceId,
           aspect_ratio: '9:16',
@@ -759,7 +783,7 @@ export default function CreatePage() {
                       <div className="flex border border-[rgba(255,255,255,0.08)] rounded-lg overflow-hidden mb-4">
                         {(['480p', '720p', '1080p'] as Resolution[]).map(r => (<button key={r} onClick={() => setExportRes(r)} className={`flex-1 py-2 text-[11px] transition-all ${exportRes === r ? 'bg-[rgba(255,255,255,0.08)] text-white' : 'text-[rgba(255,255,255,0.3)]'}`}>{r}<div className="text-[8px] text-[rgba(255,255,255,0.15)] mt-0.5">{RESOLUTION_CREDITS[r]} cr</div></button>))}
                       </div>
-                      <div className="text-[12px] text-[rgba(255,255,255,0.4)] mb-5">Estimated: <span className="text-white font-medium">{generatedScript.filter(s => s.imageUrl || s.approved).length * RESOLUTION_CREDITS[exportRes]}</span> credits</div>
+                      <div className="text-[12px] text-[rgba(255,255,255,0.4)] mb-4">Estimated: <span className="text-white font-medium">{generatedScript.filter(s => s.imageUrl || s.approved).length * RESOLUTION_CREDITS[exportRes]}</span> credits</div>
                       <div className="flex gap-3">
                         <button onClick={() => setShowExport(false)} className="flex-1 py-2.5 border border-[rgba(255,255,255,0.1)] rounded-lg text-[13px] text-[rgba(255,255,255,0.5)] hover:text-white transition-all">Cancel</button>
                         <button onClick={handleStoryExport} className="flex-1 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-all">Generate Video →</button>
@@ -847,6 +871,11 @@ export default function CreatePage() {
                             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] transition-all ${selectedScene.includeNarrator ? 'border-white text-white' : 'border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.35)]'}`}>
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
                             Narrator
+                          </button>
+                          <button onClick={() => updateScriptScene(selectedScene.id, { includeSubtitles: !selectedScene.includeSubtitles })}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] transition-all ${selectedScene.includeSubtitles ? 'border-white text-white' : 'border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.35)]'}`}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15h4M13 15h4M7 11h2M11 11h6"/></svg>
+                            Subtitles
                           </button>
                         </div>
                         <div className="border-t border-[rgba(255,255,255,0.05)] pt-4">
@@ -1372,7 +1401,7 @@ export default function CreatePage() {
                         <span className="text-[10px] font-medium text-[rgba(255,255,255,0.3)] bg-[rgba(255,255,255,0.03)] px-1.5 py-0.5 rounded">Scene {s.scene_number}</span>
                         <span className={`text-[10px] capitalize ${s.status === 'completed' ? 'text-[rgba(74,222,128,0.6)]' : s.status === 'processing' ? 'text-[rgba(250,204,21,0.6)]' : 'text-[rgba(255,255,255,0.2)]'}`}>{s.status}</span>
                       </div>
-                      {s.status === 'completed' && s.video_url && <a href={s.video_url} download className="text-[11px] text-[rgba(255,255,255,0.4)] hover:text-white transition-colors">Download</a>}
+                      {s.status === 'completed' && s.video_url && <button onClick={() => downloadVideo(s.video_url!, `scene-${s.scene_number}.mp4`)} className="text-[11px] text-[rgba(255,255,255,0.4)] hover:text-white transition-colors">Download</button>}
                     </div>
                   </div>
                 ))}
@@ -1383,7 +1412,9 @@ export default function CreatePage() {
                   <video src={finalVideoUrl} controls autoPlay muted loop playsInline className="w-full aspect-video bg-[#0e0e0e]" />
                   <div className="p-4 flex items-center justify-between">
                     <div><h3 className="text-[15px] font-medium">Final Video Ready</h3><p className="text-[12px] text-[rgba(255,255,255,0.35)] mt-0.5">{genScenes.length} scene{genScenes.length > 1 ? 's' : ''} · {res}</p></div>
-                    <a href={finalVideoUrl} download className="px-4 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 transition-colors">Download MP4</a>
+                    <button onClick={() => downloadVideo(finalVideoUrl!, 'animave-story.mp4')} disabled={downloadLoading} className="px-4 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50">
+                      {downloadLoading ? 'Downloading...' : 'Download MP4'}
+                    </button>
                   </div>
                 </div>
               )}
