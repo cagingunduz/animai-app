@@ -467,7 +467,7 @@ export default function CreatePage() {
   };
 
   const goToTimelineFromScript = () => {
-    const empty: ScriptScene = { id: uid(), sceneNumber: 1, title: 'Scene 1', narratorText: '', sceneDescription: '', imageUrl: null, videoUrl: null, generating: false, error: null, approved: false, kenBurns: true, includeNarrator: true };
+    const empty: ScriptScene = { id: uid(), sceneNumber: 1, title: 'Scene 1', narratorText: '', sceneDescription: '', imageUrl: null, videoUrl: null, generating: false, error: null, approved: false, kenBurns: true, includeNarrator: true, includeSubtitles: true };
     setGeneratedScript([empty]); setSelectedSceneId(empty.id); setStoryStep(3);
   };
 
