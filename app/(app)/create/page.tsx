@@ -473,7 +473,7 @@ export default function CreatePage() {
 
   const addStoryScene = () => {
     const n = generatedScript.length + 1;
-    const ns: ScriptScene = { id: uid(), sceneNumber: n, title: `Scene ${n}`, narratorText: '', sceneDescription: '', imageUrl: null, videoUrl: null, generating: false, error: null, approved: false, kenBurns: true, includeNarrator: true };
+    const ns: ScriptScene = { id: uid(), sceneNumber: n, title: `Scene ${n}`, narratorText: '', sceneDescription: '', imageUrl: null, videoUrl: null, generating: false, error: null, approved: false, kenBurns: true, includeNarrator: true, includeSubtitles: true };
     setGeneratedScript(prev => [...prev, ns]); setSelectedSceneId(ns.id);
   };
 
