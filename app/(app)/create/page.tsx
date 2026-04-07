@@ -494,7 +494,7 @@ export default function CreatePage() {
         scene_duration: 8,
         ken_burns: sc.kenBurns,
         include_narrator: sc.includeNarrator && !!storyNarratorVoiceId && !!sc.narratorText,
-        include_subtitles: false,
+        include_subtitles: sc.includeSubtitles && !!storyNarratorVoiceId && !!sc.narratorText,
       })
     });
     return await r.json();
