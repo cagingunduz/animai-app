@@ -87,7 +87,7 @@ const GENRE_EXAMPLES: { value: StoryGenre; label: string; icon: string; desc: st
 const GENRE_RECOMMENDED_STYLE: Partial<Record<StoryGenre, AnimStyle>> = {
   'mystery': 'custom',
   'horror': 'custom',
-  'motivation': 'anime',
+  'motivation': 'custom',
   'fairy-tale': 'pixar',
 };
 
