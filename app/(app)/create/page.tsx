@@ -118,6 +118,9 @@ export default function CreatePage() {
   const [storyVSearch, setStoryVSearch] = useState('');
   const [storyVFilters, setStoryVFilters] = useState<Set<string>>(new Set());
   const [blurFaces, setBlurFaces] = useState(false);
+  const [globalCameraMove, setGlobalCameraMove] = useState(true);
+  const [globalNarrator, setGlobalNarrator] = useState(true);
+  const [globalSubtitles, setGlobalSubtitles] = useState(true);
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const [showExport, setShowExport] = useState(false);
   const [exportRes, setExportRes] = useState<Resolution>('720p');
@@ -448,7 +451,7 @@ export default function CreatePage() {
           title: s.title || `Scene ${i + 1}`,
           narratorText: s.narrator_text || s.narratorText || '',
           sceneDescription: s.scene_description || s.sceneDescription || '',
-          imageUrl: null, videoUrl: null, generating: false, error: null, approved: false, kenBurns: true, includeNarrator: true, includeSubtitles: true,
+          imageUrl: null, videoUrl: null, generating: false, error: null, approved: false, kenBurns: globalCameraMove, includeNarrator: globalNarrator, includeSubtitles: globalSubtitles,
         }));
         setGeneratedScript(parsed);
         if (parsed.length > 0) setSelectedSceneId(parsed[0].id);
@@ -467,13 +470,13 @@ export default function CreatePage() {
   };
 
   const goToTimelineFromScript = () => {
-    const empty: ScriptScene = { id: uid(), sceneNumber: 1, title: 'Scene 1', narratorText: '', sceneDescription: '', imageUrl: null, videoUrl: null, generating: false, error: null, approved: false, kenBurns: true, includeNarrator: true, includeSubtitles: true };
+    const empty: ScriptScene = { id: uid(), sceneNumber: 1, title: 'Scene 1', narratorText: '', sceneDescription: '', imageUrl: null, videoUrl: null, generating: false, error: null, approved: false, kenBurns: globalCameraMove, includeNarrator: globalNarrator, includeSubtitles: globalSubtitles };
     setGeneratedScript([empty]); setSelectedSceneId(empty.id); setStoryStep(3);
   };
 
   const addStoryScene = () => {
     const n = generatedScript.length + 1;
-    const ns: ScriptScene = { id: uid(), sceneNumber: n, title: `Scene ${n}`, narratorText: '', sceneDescription: '', imageUrl: null, videoUrl: null, generating: false, error: null, approved: false, kenBurns: true, includeNarrator: true, includeSubtitles: true };
+    const ns: ScriptScene = { id: uid(), sceneNumber: n, title: `Scene ${n}`, narratorText: '', sceneDescription: '', imageUrl: null, videoUrl: null, generating: false, error: null, approved: false, kenBurns: globalCameraMove, includeNarrator: globalNarrator, includeSubtitles: globalSubtitles };
     setGeneratedScript(prev => [...prev, ns]); setSelectedSceneId(ns.id);
   };
 
@@ -483,7 +486,7 @@ export default function CreatePage() {
     storyDragI.current = null; storyDragO.current = null;
   };
 
-  const callGenerateSingleScene = async (sc: ScriptScene) => {
+  const callGenerateSingleScene = async (sc: ScriptScene, isRegeneration = false) => {
     const r = await fetch('/api/generate-single-scene', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -495,6 +498,7 @@ export default function CreatePage() {
         ken_burns: sc.kenBurns,
         include_narrator: sc.includeNarrator && !!storyNarratorVoiceId && !!sc.narratorText,
         include_subtitles: sc.includeSubtitles && !!storyNarratorVoiceId && !!sc.narratorText,
+        is_regeneration: isRegeneration,
       })
     });
     return await r.json();
@@ -516,9 +520,14 @@ export default function CreatePage() {
   const generateStoryScenePreview = async (sceneId: string) => {
     const sc = generatedScript.find(s => s.id === sceneId);
     if (!sc) return;
+    const isRegen = !!sc.videoUrl;
     setGeneratedScript(prev => prev.map(s => s.id === sceneId ? { ...s, generating: true, error: null, imageUrl: null, videoUrl: null } : s));
     try {
-      const d = await callGenerateSingleScene(sc);
+      const d = await callGenerateSingleScene(sc, isRegen);
+      if (d.status === 402 || d.error?.includes('kredi')) {
+        updateScriptScene(sceneId, { generating: false, error: d.error || 'Yetersiz kredi' });
+        return;
+      }
       setGeneratedScript(prev => prev.map(s => s.id === sceneId ? { ...s, generating: false, imageUrl: d.image_url || null, videoUrl: d.video_url || null } : s));
     } catch {
       setGeneratedScript(prev => prev.map(s => s.id === sceneId ? { ...s, generating: false, error: 'Failed. Try again.' } : s));
@@ -546,39 +555,63 @@ export default function CreatePage() {
     setShowExport(false);
     if (!storyNarratorVoiceId) { alert('Please select a narrator voice first.'); return; }
     const scenesToExport = generatedScript.filter(s => s.sceneDescription.trim());
+    const allHaveVideos = scenesToExport.every(s => s.videoUrl);
+
     try {
-      const r = await fetch('/api/generate-storybook', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          scenes: scenesToExport.map(ss => ({
-            scene_number: ss.sceneNumber, title: ss.title,
-            scene_description: ss.sceneDescription, narrator_text: ss.narratorText || '',
-            include_subtitles: ss.includeSubtitles,
-          })),
-          narrator_voice_id: storyNarratorVoiceId,
-          aspect_ratio: '9:16',
-          scene_duration: 8,
-        })
-      });
-      const d = await r.json();
-      if (r.status === 402) {
-        alert(d.error || 'Yetersiz kredi.');
-        setShowExport(true);
-        return;
+      setJobId(null);
+      setGenStatus('processing');
+      setGenProgress(0);
+      setGenMessage('Videolar birleştiriliyor...');
+      setGenScenes(scenesToExport.map((_, i) => ({ scene_number: i + 1, status: 'completed', video_url: scenesToExport[i].videoUrl || undefined })));
+      setMode('cartoon');
+      setStep(4);
+
+      if (allHaveVideos) {
+        // Fast path: just merge already-generated videos
+        const videoUrls = scenesToExport.map(s => s.videoUrl!);
+        const r = await fetch('/api/merge-storybook', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ video_urls: videoUrls }),
+        });
+        const d = await r.json();
+        if (d.final_video_url) {
+          setGenStatus('completed');
+          setFinalVideoUrl(d.final_video_url);
+          setGenMessage('Tamamlandı!');
+        } else {
+          throw new Error(d.error || 'Merge failed');
+        }
+      } else {
+        // Slow path: regenerate all scenes via generate-storybook
+        const r = await fetch('/api/generate-storybook', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            scenes: scenesToExport.map(ss => ({
+              scene_number: ss.sceneNumber, title: ss.title,
+              scene_description: ss.sceneDescription, narrator_text: ss.narratorText || '',
+              include_subtitles: ss.includeSubtitles,
+            })),
+            narrator_voice_id: storyNarratorVoiceId,
+            aspect_ratio: '9:16',
+            scene_duration: 8,
+          })
+        });
+        const d = await r.json();
+        if (d.error) { alert(d.error); setGenStatus('idle'); setStep(3); return; }
+        if (d.job_id) {
+          setJobId(d.job_id);
+          setGenStatus('processing'); setGenProgress(0); setGenMessage('Starting video generation...');
+          setGenScenes(scenesToExport.map((_, i) => ({ scene_number: i + 1, status: 'queued' })));
+          pollRef.current = setInterval(() => pollStatus(d.job_id), 3000);
+          pollStatus(d.job_id);
+        }
       }
-      if (d.error) {
-        alert(d.error);
-        return;
-      }
-      if (d.job_id) {
-        setJobId(d.job_id);
-        setGenStatus('processing'); setGenProgress(0); setGenMessage('Starting video generation...');
-        setGenScenes(scenesToExport.map((_, i) => ({ scene_number: i + 1, status: 'queued' })));
-        setMode('cartoon'); setStep(4);
-        pollRef.current = setInterval(() => pollStatus(d.job_id), 3000);
-        pollStatus(d.job_id);
-      }
-    } catch { alert('Failed to start generation. Try again.'); }
+    } catch (e) {
+      setGenStatus('failed');
+      setGenMessage('Export failed. Please try again.');
+    }
   };
 
   const durationSceneNote = (d: number) => d === 1 ? '≈ 10 scenes' : d === 2 ? '≈ 18 scenes' : d === 3 ? '≈ 26 scenes' : d === 5 ? '≈ 40 scenes' : '≈ 60 scenes';
@@ -689,6 +722,24 @@ export default function CreatePage() {
                       <span className="text-[10px] text-[rgba(255,255,255,0.25)] ml-2">Recommended for crime & mystery</span>
                     </div>
                   </div>
+                  {/* Global feature toggles */}
+                  <div className="flex flex-col gap-2 mt-1">
+                    {[
+                      { key: 'camera', label: 'Camera movement', desc: 'Ken Burns zoom effect', value: globalCameraMove, set: setGlobalCameraMove },
+                      { key: 'narrator', label: 'Narrator voice', desc: 'AI voice reads the script', value: globalNarrator, set: setGlobalNarrator },
+                      { key: 'subtitles', label: 'Subtitles', desc: 'Word-by-word captions', value: globalSubtitles, set: setGlobalSubtitles },
+                    ].map(({ key, label, desc, value, set }) => (
+                      <div key={key} className="flex items-center gap-3">
+                        <button onClick={() => set(!value)} className={`relative w-10 h-5 rounded-full transition-all flex-shrink-0 ${value ? 'bg-white' : 'bg-[rgba(255,255,255,0.1)]'}`}>
+                          <div className={`absolute top-0.5 w-4 h-4 rounded-full transition-all ${value ? 'left-[22px] bg-black' : 'left-0.5 bg-[rgba(255,255,255,0.3)]'}`} />
+                        </button>
+                        <div>
+                          <span className="text-[12px] text-[rgba(255,255,255,0.6)]">{label}</span>
+                          <span className="text-[10px] text-[rgba(255,255,255,0.25)] ml-2">{desc}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 {/* Right: voice picker */}
                 <div className="md:w-1/2 border-t md:border-t-0 md:border-l border-[rgba(255,255,255,0.1)] flex flex-col min-h-0 overflow-hidden">
@@ -781,7 +832,12 @@ export default function CreatePage() {
                       <div className="flex border border-[rgba(255,255,255,0.08)] rounded-lg overflow-hidden mb-4">
                         {(['480p', '720p', '1080p'] as Resolution[]).map(r => (<button key={r} onClick={() => setExportRes(r)} className={`flex-1 py-2 text-[11px] transition-all ${exportRes === r ? 'bg-[rgba(255,255,255,0.08)] text-white' : 'text-[rgba(255,255,255,0.3)]'}`}>{r}<div className="text-[8px] text-[rgba(255,255,255,0.15)] mt-0.5">{RESOLUTION_CREDITS[r]} cr</div></button>))}
                       </div>
-                      <div className="text-[12px] text-[rgba(255,255,255,0.4)] mb-4">Tahmini maliyet: <span className="text-white font-medium">{generatedScript.filter(s => s.sceneDescription.trim()).length * STORYBOOK_CREDITS_PER_SCENE}</span> kredi ({generatedScript.filter(s => s.sceneDescription.trim()).length} sahne × {STORYBOOK_CREDITS_PER_SCENE})</div>
+                      <div className="text-[12px] text-[rgba(255,255,255,0.4)] mb-4">
+                        {generatedScript.filter(s => s.sceneDescription.trim()).every(s => s.videoUrl)
+                          ? <span className="text-[rgba(74,222,128,0.7)]">Tüm sahneler hazır — export ücretsiz</span>
+                          : <span>Eksik sahneler üretilecek · {generatedScript.filter(s => s.sceneDescription.trim() && !s.videoUrl).length} sahne kaldı</span>
+                        }
+                      </div>
                       <div className="flex gap-3">
                         <button onClick={() => setShowExport(false)} className="flex-1 py-2.5 border border-[rgba(255,255,255,0.1)] rounded-lg text-[13px] text-[rgba(255,255,255,0.5)] hover:text-white transition-all">Cancel</button>
                         <button onClick={handleStoryExport} className="flex-1 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-all">Generate Video →</button>
