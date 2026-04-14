@@ -666,7 +666,7 @@ export default function CreatePage() {
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" className="group-hover:stroke-white transition-colors"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 8h20M2 16h20M7 4v16M17 4v16"/></svg>
               <span className="text-[9px] font-medium bg-white text-black px-2 py-0.5 rounded-full">Most Popular</span>
             </div>
-            <h3 className="text-[15px] font-medium text-white mb-0.5">2.5D Animation</h3>
+            <h3 className="text-[15px] font-medium text-white mb-0.5">Storytelling</h3>
             <p className="text-[11px] text-[rgba(255,255,255,0.3)] mb-2">YouTube Story Videos</p>
             <p className="text-[12px] text-[rgba(255,255,255,0.4)] leading-relaxed">AI-generated cinematic scenes with camera movement, narrator voice and sound effects</p>
           </button>
