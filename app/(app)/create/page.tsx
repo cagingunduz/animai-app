@@ -30,7 +30,7 @@ interface SceneDef {
 type SceneRenderStatus = { scene_number: number; status: 'queued' | 'processing' | 'completed' | 'failed'; current_step?: string; video_url?: string; };
 
 // ─── Story Mode types ───
-type CreateMode = 'selecting' | 'theme_select' | 'custom_select' | 'story' | 'cartoon';
+type CreateMode = 'selecting' | 'theme_select' | 'story' | 'cartoon';
 type StoryTheme = 'true_crime' | 'history' | 'drama' | 'fairy_tale' | 'custom';
 type StoryGenre = 'drama' | 'fairy-tale' | 'horror' | 'action' | 'motivation' | 'comedy' | 'mystery';
 interface ScriptScene { id: string; sceneNumber: number; title: string; narratorText: string; sceneDescription: string; imageUrl: string | null; videoUrl: string | null; generating: boolean; error: string | null; approved: boolean; kenBurns: boolean; includeNarrator: boolean; includeSubtitles: boolean; }
@@ -681,29 +681,11 @@ export default function CreatePage() {
 
     {/* ═══ THEME SELECTION ═══ */}
     {mode === 'theme_select' && (
-      <div className="flex flex-col h-screen bg-black items-center justify-center px-6 animate-[fadeIn_0.3s_ease]">
-        <button onClick={() => setMode('selecting')} className="absolute top-6 left-6 text-[11px] text-[rgba(255,255,255,0.3)] hover:text-white transition-colors">← Back</button>
-        <h1 className="text-[18px] font-medium text-white mb-8">Choose your theme</h1>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-[640px] w-full">
-          {THEMES.map(t => (
-            <button key={t.value} onClick={() => { setStoryTheme(t.value); setBlurFaces(t.value === 'true_crime'); if (t.isCustom) { setMode('custom_select'); } else { setStoryStyle(THEME_STYLES[t.value]); setMode('story'); } }}
-              className="bg-[#0f0f0f] border border-[rgba(255,255,255,0.08)] rounded-xl p-6 flex flex-col items-center gap-3 hover:border-[rgba(255,255,255,0.18)] transition-all group">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:stroke-white transition-colors"><path d={t.icon}/></svg>
-              <span className="text-[14px] font-medium text-white">{t.label}</span>
-            </button>
-          ))}
-        </div>
-        <style jsx global>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
-      </div>
-    )}
-
-    {/* ═══ CUSTOM SELECT ═══ */}
-    {mode === 'custom_select' && (
       <div className="flex flex-col min-h-screen bg-black px-6 py-8 animate-[fadeIn_0.3s_ease] overflow-y-auto">
-        <button onClick={() => setMode('theme_select')} className="text-[11px] text-[rgba(255,255,255,0.3)] hover:text-white transition-colors mb-8 self-start">← Back</button>
+        <button onClick={() => setMode('selecting')} className="text-[11px] text-[rgba(255,255,255,0.3)] hover:text-white transition-colors mb-8 self-start">← Back</button>
         <div className="max-w-[680px] mx-auto w-full flex flex-col gap-10">
           <div>
-            <h1 className="text-[18px] font-medium text-white mb-1">Custom story</h1>
+            <h1 className="text-[18px] font-medium text-white mb-1">Create a story</h1>
             <p className="text-[12px] text-[rgba(255,255,255,0.35)]">Choose your genre and animation style</p>
           </div>
 
@@ -747,7 +729,7 @@ export default function CreatePage() {
           </div>
 
           <button
-            onClick={() => setMode('story')}
+            onClick={() => { setStoryTheme('custom'); setMode('story'); }}
             className="w-full py-3 rounded-xl bg-white text-black text-[14px] font-medium hover:bg-[rgba(255,255,255,0.9)] transition-colors">
             Continue
           </button>
@@ -762,7 +744,7 @@ export default function CreatePage() {
         {/* Roadmap */}
         <div className="flex-shrink-0 border-b border-[rgba(255,255,255,0.1)] sticky top-0 z-30 bg-black">
           <div className="max-w-[560px] mx-auto px-6 py-4 flex items-center">
-            <button onClick={() => setMode(storyTheme === 'custom' ? 'custom_select' : 'theme_select')} className="text-[11px] text-[rgba(255,255,255,0.25)] hover:text-white mr-3 flex-shrink-0 transition-colors">←</button>
+            <button onClick={() => setMode('theme_select')} className="text-[11px] text-[rgba(255,255,255,0.25)] hover:text-white mr-3 flex-shrink-0 transition-colors">←</button>
             <span className="text-[10px] font-medium text-[rgba(255,255,255,0.45)] bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.08)] px-2 py-0.5 rounded mr-3 flex-shrink-0">{themeLabel}</span>
             {[{ n: 1, l: 'Setup' }, { n: 2, l: 'Structure' }, { n: 3, l: 'Timeline' }].map((s, i) => (
               <div key={s.n} className="flex items-center flex-1 last:flex-initial">
