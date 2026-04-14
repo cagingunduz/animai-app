@@ -31,7 +31,7 @@ type SceneRenderStatus = { scene_number: number; status: 'queued' | 'processing'
 
 // ─── Story Mode types ───
 type CreateMode = 'selecting' | 'theme_select' | 'story' | 'cartoon';
-type StoryTheme = 'true_crime' | 'history' | 'drama' | 'motivation' | 'fairy_tale' | 'mystery';
+type StoryTheme = 'true_crime' | 'history' | 'drama' | 'fairy_tale';
 type StoryGenre = 'drama' | 'fairy-tale' | 'horror' | 'action' | 'motivation' | 'comedy' | 'mystery';
 interface ScriptScene { id: string; sceneNumber: number; title: string; narratorText: string; sceneDescription: string; imageUrl: string | null; videoUrl: string | null; generating: boolean; error: string | null; approved: boolean; kenBurns: boolean; includeNarrator: boolean; includeSubtitles: boolean; }
 
@@ -40,9 +40,7 @@ const THEMES: { value: StoryTheme; label: string; icon: string }[] = [
   { value: 'true_crime', label: 'True Crime', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
   { value: 'history', label: 'History', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
   { value: 'drama', label: 'Drama', icon: 'M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-  { value: 'motivation', label: 'Motivation', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
   { value: 'fairy_tale', label: 'Fairy Tale', icon: 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z' },
-  { value: 'mystery', label: 'Mystery', icon: 'M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z' },
 ];
 
 const STYLES: { value: AnimStyle; label: string }[] = [
@@ -54,18 +52,14 @@ const THEME_STYLES: Record<StoryTheme, AnimStyle> = {
   true_crime: 'custom',
   history: 'retro',
   drama: 'anime',
-  motivation: 'anime',
   fairy_tale: 'pixar',
-  mystery: 'custom',
 };
 
 const THEME_GENRES: Record<StoryTheme, StoryGenre> = {
   true_crime: 'mystery',
   history: 'drama',
   drama: 'drama',
-  motivation: 'motivation',
   fairy_tale: 'fairy-tale',
-  mystery: 'mystery',
 };
 
 const AVATAR_COLORS = ['#4a90d9','#e8607a','#50b87a','#c084fc','#f59e0b','#6ee7b7','#38bdf8','#fb7185','#a78bfa','#fbbf24','#ef4444','#22d3ee'];
