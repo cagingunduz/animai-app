@@ -662,7 +662,7 @@ export default function CreatePage() {
         <h1 className="text-[18px] font-medium text-white mb-8">Choose your theme</h1>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-[640px] w-full">
           {THEMES.map(t => (
-            <button key={t.value} onClick={() => { setStoryTheme(t.value); setStoryStyle(THEME_STYLES[t.value]); setBlurFaces(t.value === 'true_crime' || t.value === 'mystery'); setMode('story'); }}
+            <button key={t.value} onClick={() => { setStoryTheme(t.value); setStoryStyle(THEME_STYLES[t.value]); setBlurFaces(t.value === 'true_crime'); setMode('story'); }}
               className="bg-[#0f0f0f] border border-[rgba(255,255,255,0.08)] rounded-xl p-6 flex flex-col items-center gap-3 hover:border-[rgba(255,255,255,0.18)] transition-all group">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:stroke-white transition-colors"><path d={t.icon}/></svg>
               <span className="text-[14px] font-medium text-white">{t.label}</span>
