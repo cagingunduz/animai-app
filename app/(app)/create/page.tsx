@@ -46,7 +46,7 @@ const THEMES: { value: StoryTheme; label: string; icon: string; isCustom?: boole
 
 const STYLES: { value: AnimStyle; label: string }[] = [
   { value: 'western-cartoon', label: 'Western Cartoon' }, { value: 'anime', label: 'Anime' }, { value: 'pixar', label: 'Pixar' },
-  { value: 'comic', label: 'Comic' }, { value: 'chibi', label: 'Chibi' }, { value: 'retro', label: 'Retro' }, { value: 'custom', label: 'Realistic' },
+  { value: 'comic', label: 'Comic' }, { value: 'retro', label: 'Retro' }, { value: 'custom', label: 'Realistic' },
 ];
 
 const THEME_STYLES: Record<StoryTheme, AnimStyle> = {
