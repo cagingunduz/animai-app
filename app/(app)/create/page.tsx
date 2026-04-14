@@ -46,7 +46,7 @@ const THEMES: { value: StoryTheme; label: string; icon: string; isCustom?: boole
 
 const STYLES: { value: AnimStyle; label: string }[] = [
   { value: 'western-cartoon', label: 'Western Cartoon' }, { value: 'anime', label: 'Anime' }, { value: 'pixar', label: 'Pixar' },
-  { value: 'comic', label: 'Comic' }, { value: 'chibi', label: 'Chibi' }, { value: 'retro', label: 'Retro' }, { value: 'custom', label: 'Custom' },
+  { value: 'comic', label: 'Comic' }, { value: 'chibi', label: 'Chibi' }, { value: 'retro', label: 'Retro' }, { value: 'custom', label: 'Realistic' },
 ];
 
 const THEME_STYLES: Record<StoryTheme, AnimStyle> = {
@@ -72,7 +72,7 @@ const STYLE_EXAMPLES: Record<AnimStyle, { gradient: string; desc: string }> = {
   'comic': { gradient: 'from-[#1a0a2e] to-[#2d1b4e]', desc: 'Comic book panels with halftone effects' },
   'chibi': { gradient: 'from-[#1a002e] to-[#2e0a4e]', desc: 'Super-deformed cute characters, big heads' },
   'retro': { gradient: 'from-[#1a1200] to-[#2e2000]', desc: 'Vintage look, aged textures, warm palette' },
-  'custom': { gradient: 'from-[#0a0a0a] to-[#1a1a1a]', desc: 'Realistic style, photographic quality' },
+  'custom': { gradient: 'from-[#0a0a0a] to-[#1a1a1a]', desc: 'Photo-realistic scenes, cinematic lighting and lifelike detail' },
 };
 
 const GENRE_EXAMPLES: { value: StoryGenre; label: string; icon: string; desc: string }[] = [
