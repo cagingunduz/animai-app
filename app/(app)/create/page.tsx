@@ -533,24 +533,13 @@ export default function CreatePage() {
   const storyHasApproved = generatedScript.some(s => s.approved || s.imageUrl);
   const navigateScene = (d: number) => { const ni = selectedSceneIdx + d; if (ni >= 0 && ni < generatedScript.length) setSelectedSceneId(generatedScript[ni].id); };
 
-  const downloadVideo = async (url: string, filename: string) => {
-    setDownloadLoading(true);
-    try {
-      const resp = await fetch(url);
-      const blob = await resp.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = objectUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(objectUrl);
-    } catch (e) {
-      console.error('Download failed', e);
-    } finally {
-      setDownloadLoading(false);
-    }
+  const downloadVideo = (url: string, filename: string) => {
+    const a = document.createElement('a');
+    a.href = `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   const handleStoryExport = async () => {
@@ -1412,8 +1401,8 @@ export default function CreatePage() {
                   <video src={finalVideoUrl} controls autoPlay muted loop playsInline className="w-full aspect-video bg-[#0e0e0e]" />
                   <div className="p-4 flex items-center justify-between">
                     <div><h3 className="text-[15px] font-medium">Final Video Ready</h3><p className="text-[12px] text-[rgba(255,255,255,0.35)] mt-0.5">{genScenes.length} scene{genScenes.length > 1 ? 's' : ''} · {res}</p></div>
-                    <button onClick={() => downloadVideo(finalVideoUrl!, 'animave-story.mp4')} disabled={downloadLoading} className="px-4 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50">
-                      {downloadLoading ? 'Downloading...' : 'Download MP4'}
+                    <button onClick={() => downloadVideo(finalVideoUrl!, 'animave-story.mp4')} className="px-4 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 transition-colors">
+                      Download MP4
                     </button>
                   </div>
                 </div>
