@@ -74,14 +74,14 @@ const STYLE_EXAMPLES: Record<AnimStyle, { gradient: string; desc: string }> = {
   'custom': { gradient: 'from-[#0a0a0a] to-[#1a1a1a]', desc: 'Photo-realistic scenes, cinematic lighting and lifelike detail' },
 };
 
-const GENRE_EXAMPLES: { value: StoryGenre; label: string; icon: string; desc: string }[] = [
-  { value: 'drama', label: 'Drama', icon: 'M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z', desc: 'Emotional, character-driven stories' },
-  { value: 'mystery', label: 'Mystery', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z', desc: 'Suspense, crime, detective stories' },
-  { value: 'horror', label: 'Horror', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z', desc: 'Dark, eerie and frightening narratives' },
-  { value: 'action', label: 'Action', icon: 'M13 10V3L4 14h7v7l9-11h-7z', desc: 'Fast-paced adventures and battles' },
-  { value: 'motivation', label: 'Motivation', icon: 'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z', desc: 'Inspiring journeys and success stories' },
-  { value: 'comedy', label: 'Comedy', icon: 'M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z', desc: 'Humor, light-hearted fun stories' },
-  { value: 'fairy-tale', label: 'Fairy Tale', icon: 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z', desc: 'Magical worlds, heroes and enchantment' },
+const GENRE_EXAMPLES: { value: StoryGenre; label: string; icon: string; desc: string; placeholder: string; recommended?: boolean }[] = [
+  { value: 'drama', label: 'Drama', icon: 'M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z', desc: 'Emotional, character-driven stories', placeholder: 'A mother and daughter separated by war, searching for each other across borders...' },
+  { value: 'mystery', label: 'Mystery', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z', desc: 'Suspense, crime, detective stories', placeholder: 'A detective unravels a decades-old murder in a small coastal town...', recommended: true },
+  { value: 'horror', label: 'Horror', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z', desc: 'Dark, eerie and frightening narratives', placeholder: 'A family moves into an old house where the walls seem to breathe at night...' },
+  { value: 'action', label: 'Action', icon: 'M13 10V3L4 14h7v7l9-11h-7z', desc: 'Fast-paced adventures and battles', placeholder: 'A former soldier must infiltrate a heavily guarded compound to save his team...' },
+  { value: 'motivation', label: 'Motivation', icon: 'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z', desc: 'Inspiring journeys and success stories', placeholder: 'A young athlete overcomes every setback to reach the Olympic podium...' },
+  { value: 'comedy', label: 'Comedy', icon: 'M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z', desc: 'Humor, light-hearted fun stories', placeholder: 'Three best friends accidentally swap phones and discover hilarious secrets...' },
+  { value: 'fairy-tale', label: 'Fairy Tale', icon: 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z', desc: 'Magical worlds, heroes and enchantment', placeholder: 'A cursed prince seeks the one person brave enough to break his spell...' },
 ];
 
 const AVATAR_COLORS = ['#4a90d9','#e8607a','#50b87a','#c084fc','#f59e0b','#6ee7b7','#38bdf8','#fb7185','#a78bfa','#fbbf24','#ef4444','#22d3ee'];
@@ -692,16 +692,23 @@ export default function CreatePage() {
           <div>
             <h2 className="text-[11px] font-medium text-[rgba(255,255,255,0.4)] uppercase tracking-[1.5px] mb-3">Genre</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {GENRE_EXAMPLES.map(g => (
-                <button key={g.value} onClick={() => setCustomGenre(g.value)}
-                  className={`p-4 rounded-xl border text-left transition-all ${customGenre === g.value ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] bg-[#0f0f0f] hover:border-[rgba(255,255,255,0.16)]'}`}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={customGenre === g.value ? 'white' : 'rgba(255,255,255,0.4)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d={g.icon}/></svg>
-                    <span className={`text-[13px] font-medium ${customGenre === g.value ? 'text-white' : 'text-[rgba(255,255,255,0.6)]'}`}>{g.label}</span>
-                  </div>
-                  <p className="text-[11px] text-[rgba(255,255,255,0.3)] leading-relaxed">{g.desc}</p>
-                </button>
-              ))}
+              {GENRE_EXAMPLES.map(g => {
+                const isSelected = customGenre === g.value;
+                const isMystery = g.value === 'mystery';
+                return (
+                  <button key={g.value} onClick={() => setCustomGenre(g.value)}
+                    className={`relative p-4 rounded-xl border text-left transition-all ${isSelected ? (isMystery ? 'border-red-500 bg-[rgba(239,68,68,0.06)]' : 'border-white bg-[rgba(255,255,255,0.06)]') : 'border-[rgba(255,255,255,0.08)] bg-[#0f0f0f] hover:border-[rgba(255,255,255,0.16)]'}`}>
+                    {g.recommended && (
+                      <span className="absolute top-2 right-2 text-[9px] font-medium bg-red-500 text-white px-1.5 py-0.5 rounded-full">Recommended</span>
+                    )}
+                    <div className="flex items-center gap-2 mb-2">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={isSelected ? (isMystery ? '#ef4444' : 'white') : 'rgba(255,255,255,0.4)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d={g.icon}/></svg>
+                      <span className={`text-[13px] font-medium ${isSelected ? (isMystery ? 'text-red-400' : 'text-white') : 'text-[rgba(255,255,255,0.6)]'}`}>{g.label}</span>
+                    </div>
+                    <p className="text-[11px] text-[rgba(255,255,255,0.3)] leading-relaxed">{g.desc}</p>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -769,7 +776,7 @@ export default function CreatePage() {
                     <h2 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px] mb-3">Story title or topic</h2>
                     <textarea value={storyTitle} onChange={e => setStoryTitle(e.target.value)}
                       className="w-full min-h-[120px] bg-[#111] border border-[rgba(255,255,255,0.1)] rounded-xl p-4 text-[15px] text-white placeholder:text-[rgba(255,255,255,0.2)] outline-none resize-none focus:border-[rgba(255,255,255,0.18)] transition-colors leading-relaxed"
-                      placeholder="A bank heist in Zurich that shocked the world..." />
+                      placeholder={GENRE_EXAMPLES.find(g => g.value === customGenre)?.placeholder ?? 'Describe your story topic...'} />
                   </div>
                   <div className="flex items-center gap-3">
                     <button onClick={() => setBlurFaces(!blurFaces)} className={`relative w-10 h-5 rounded-full transition-all ${blurFaces ? 'bg-white' : 'bg-[rgba(255,255,255,0.1)]'}`}>
