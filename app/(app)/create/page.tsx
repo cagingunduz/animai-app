@@ -84,6 +84,16 @@ const GENRE_EXAMPLES: { value: StoryGenre; label: string; icon: string; desc: st
   { value: 'fairy-tale', label: 'Fairy Tale', icon: 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z', desc: 'Magical worlds, heroes and enchantment', placeholder: 'A cursed prince seeks the one person brave enough to break his spell...' },
 ];
 
+const GENRE_RECOMMENDED_STYLE: Record<StoryGenre, AnimStyle> = {
+  'drama': 'anime',
+  'mystery': 'custom',
+  'horror': 'custom',
+  'action': 'comic',
+  'motivation': 'anime',
+  'comedy': 'pixar',
+  'fairy-tale': 'pixar',
+};
+
 const AVATAR_COLORS = ['#4a90d9','#e8607a','#50b87a','#c084fc','#f59e0b','#6ee7b7','#38bdf8','#fb7185','#a78bfa','#fbbf24','#ef4444','#22d3ee'];
 
 const FILTER_OPTIONS = [
@@ -695,7 +705,7 @@ export default function CreatePage() {
               {GENRE_EXAMPLES.map(g => {
                 const isSelected = customGenre === g.value;
                 return (
-                  <button key={g.value} onClick={() => { setCustomGenre(g.value); if (g.value === 'mystery') setStoryStyle('custom'); }}
+                  <button key={g.value} onClick={() => setCustomGenre(g.value)}
                     className={`relative p-4 rounded-xl border text-left transition-all ${isSelected ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] bg-[#0f0f0f] hover:border-[rgba(255,255,255,0.16)]'}`}>
                     <div className="flex items-center gap-2 mb-2">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={isSelected ? 'white' : 'rgba(255,255,255,0.4)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d={g.icon}/></svg>
@@ -715,7 +725,7 @@ export default function CreatePage() {
               {STYLES.map(s => {
                 const ex = STYLE_EXAMPLES[s.value];
                 const isSelected = storyStyle === s.value;
-                const isRecommended = s.value === 'custom' && customGenre === 'mystery';
+                const isRecommended = GENRE_RECOMMENDED_STYLE[customGenre] === s.value;
                 return (
                   <button key={s.value} onClick={() => setStoryStyle(s.value)}
                     className={`relative rounded-xl border overflow-hidden text-left transition-all ${isSelected ? (isRecommended ? 'border-red-500' : 'border-white') : isRecommended ? 'border-red-500/40 hover:border-red-500' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.16)]'}`}>
