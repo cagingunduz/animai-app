@@ -45,6 +45,11 @@ const THEMES: { value: StoryTheme; label: string; icon: string }[] = [
   { value: 'mystery', label: 'Mystery', icon: 'M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z' },
 ];
 
+const STYLES: { value: AnimStyle; label: string }[] = [
+  { value: 'western-cartoon', label: 'Western Cartoon' }, { value: 'anime', label: 'Anime' }, { value: 'pixar', label: 'Pixar' },
+  { value: 'comic', label: 'Comic' }, { value: 'chibi', label: 'Chibi' }, { value: 'retro', label: 'Retro' }, { value: 'custom', label: 'Custom' },
+];
+
 const THEME_STYLES: Record<StoryTheme, AnimStyle> = {
   true_crime: 'custom',
   history: 'retro',
