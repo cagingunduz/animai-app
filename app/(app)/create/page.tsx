@@ -35,12 +35,6 @@ type StoryTheme = 'true_crime' | 'history' | 'drama' | 'motivation' | 'fairy_tal
 type StoryGenre = 'drama' | 'fairy-tale' | 'horror' | 'action' | 'motivation' | 'comedy' | 'mystery';
 interface ScriptScene { id: string; sceneNumber: number; title: string; narratorText: string; sceneDescription: string; imageUrl: string | null; videoUrl: string | null; generating: boolean; error: string | null; approved: boolean; kenBurns: boolean; includeNarrator: boolean; includeSubtitles: boolean; }
 
-const GENRES: { value: StoryGenre; label: string }[] = [
-  { value: 'drama', label: 'Drama' }, { value: 'fairy-tale', label: 'Fairy Tale' },
-  { value: 'horror', label: 'Horror' }, { value: 'action', label: 'Action' },
-  { value: 'motivation', label: 'Motivation' }, { value: 'comedy', label: 'Comedy' },
-  { value: 'mystery', label: 'Mystery' },
-];
 
 const THEMES: { value: StoryTheme; label: string; icon: string }[] = [
   { value: 'true_crime', label: 'True Crime', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
@@ -51,10 +45,23 @@ const THEMES: { value: StoryTheme; label: string; icon: string }[] = [
   { value: 'mystery', label: 'Mystery', icon: 'M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z' },
 ];
 
-const STYLES: { value: AnimStyle; label: string }[] = [
-  { value: 'western-cartoon', label: 'Western Cartoon' }, { value: 'anime', label: 'Anime' }, { value: 'pixar', label: 'Pixar' },
-  { value: 'comic', label: 'Comic' }, { value: 'chibi', label: 'Chibi' }, { value: 'retro', label: 'Retro' }, { value: 'custom', label: 'Custom' },
-];
+const THEME_STYLES: Record<StoryTheme, AnimStyle> = {
+  true_crime: 'custom',
+  history: 'retro',
+  drama: 'anime',
+  motivation: 'anime',
+  fairy_tale: 'pixar',
+  mystery: 'custom',
+};
+
+const THEME_GENRES: Record<StoryTheme, StoryGenre> = {
+  true_crime: 'mystery',
+  history: 'drama',
+  drama: 'drama',
+  motivation: 'motivation',
+  fairy_tale: 'fairy-tale',
+  mystery: 'mystery',
+};
 
 const AVATAR_COLORS = ['#4a90d9','#e8607a','#50b87a','#c084fc','#f59e0b','#6ee7b7','#38bdf8','#fb7185','#a78bfa','#fbbf24','#ef4444','#22d3ee'];
 
@@ -107,7 +114,7 @@ export default function CreatePage() {
   const [storyTheme, setStoryTheme] = useState<StoryTheme | null>(null);
   const [storyStep, setStoryStep] = useState<1 | 2 | 3>(1);
   const [storyTitle, setStoryTitle] = useState('');
-  const [storyGenre, setStoryGenre] = useState<StoryGenre | null>(null);
+
   const [storyStyle, setStoryStyle] = useState<AnimStyle>('anime');
   const [storyNarratorVoiceId, setStoryNarratorVoiceId] = useState<string | null>(null);
   const [storyDuration, setStoryDuration] = useState<number>(3);
@@ -414,14 +421,14 @@ export default function CreatePage() {
   const resetAll = () => {
     setStep(1); setChars([]); setScenes([]); setRes('720p');
     resetForm(); setJobId(null); setGenProgress(0); setGenStatus('idle'); setGenScenes([]); setFinalVideoUrl(null);
-    setMode('selecting'); setStoryTheme(null); setStoryStep(1); setStoryTitle(''); setStoryGenre(null);
+    setMode('selecting'); setStoryTheme(null); setStoryStep(1); setStoryTitle('');
     setStoryStyle('anime'); setStoryNarratorVoiceId(null); setStoryDuration(3);
     setStoryStructure(null); setStoryGenerating(false); setStoryError(null); setGeneratedScript([]);
     setBlurFaces(false); setSelectedSceneId(null); setShowExport(false); setExportRes('720p');
   };
 
   // ─── Story Mode helpers ───
-  const storySetupValid = storyTitle.trim().length > 0 && storyGenre !== null;
+  const storySetupValid = storyTitle.trim().length > 0;
   const themeLabel = THEMES.find(t => t.value === storyTheme)?.label || '';
 
   const storyFilteredV = useMemo(() => voices.filter(v => {
@@ -441,7 +448,7 @@ export default function CreatePage() {
     try {
       const r = await fetch('/api/story/generate', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: storyTitle, genre: storyGenre, style: storyStyle, theme: storyTheme, duration_minutes: storyDuration, narrator_voice_id: storyNarratorVoiceId, blur_faces: blurFaces }),
+        body: JSON.stringify({ title: storyTitle, genre: storyTheme ? THEME_GENRES[storyTheme] : 'drama', style: storyStyle, theme: storyTheme, duration_minutes: storyDuration, narrator_voice_id: storyNarratorVoiceId, blur_faces: blurFaces }),
       });
       if (!r.ok) throw new Error('Request failed');
       const d = await r.json();
@@ -656,7 +663,7 @@ export default function CreatePage() {
         <h1 className="text-[18px] font-medium text-white mb-8">Choose your theme</h1>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-[640px] w-full">
           {THEMES.map(t => (
-            <button key={t.value} onClick={() => { setStoryTheme(t.value); setBlurFaces(t.value === 'true_crime' || t.value === 'mystery'); setMode('story'); }}
+            <button key={t.value} onClick={() => { setStoryTheme(t.value); setStoryStyle(THEME_STYLES[t.value]); setBlurFaces(t.value === 'true_crime' || t.value === 'mystery'); setMode('story'); }}
               className="bg-[#0f0f0f] border border-[rgba(255,255,255,0.08)] rounded-xl p-6 flex flex-col items-center gap-3 hover:border-[rgba(255,255,255,0.18)] transition-all group">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:stroke-white transition-colors"><path d={t.icon}/></svg>
               <span className="text-[14px] font-medium text-white">{t.label}</span>
@@ -700,18 +707,6 @@ export default function CreatePage() {
                     <textarea value={storyTitle} onChange={e => setStoryTitle(e.target.value)}
                       className="w-full min-h-[120px] bg-[#111] border border-[rgba(255,255,255,0.1)] rounded-xl p-4 text-[15px] text-white placeholder:text-[rgba(255,255,255,0.2)] outline-none resize-none focus:border-[rgba(255,255,255,0.18)] transition-colors leading-relaxed"
                       placeholder="A bank heist in Zurich that shocked the world..." />
-                  </div>
-                  <div>
-                    <h2 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px] mb-3">Genre</h2>
-                    <div className="flex flex-wrap gap-1.5">
-                      {GENRES.map(g => (<button key={g.value} onClick={() => setStoryGenre(g.value)} className={`px-3 py-1.5 rounded-full text-[11px] transition-all ${storyGenre === g.value ? 'bg-white text-black font-medium' : 'border border-[rgba(255,255,255,0.12)] text-[rgba(255,255,255,0.45)] hover:border-[rgba(255,255,255,0.2)]'}`}>{g.label}</button>))}
-                    </div>
-                  </div>
-                  <div>
-                    <h2 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px] mb-3">Animation style</h2>
-                    <div className="flex flex-wrap gap-1.5">
-                      {STYLES.map(s => (<button key={s.value} onClick={() => setStoryStyle(s.value)} className={`px-3 py-1.5 rounded-full text-[11px] transition-all ${storyStyle === s.value ? 'bg-white text-black font-medium' : 'border border-[rgba(255,255,255,0.12)] text-[rgba(255,255,255,0.45)] hover:border-[rgba(255,255,255,0.2)]'}`}>{s.label}</button>))}
-                    </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <button onClick={() => setBlurFaces(!blurFaces)} className={`relative w-10 h-5 rounded-full transition-all ${blurFaces ? 'bg-white' : 'bg-[rgba(255,255,255,0.1)]'}`}>
