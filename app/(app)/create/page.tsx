@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { type Resolution, RESOLUTION_CREDITS } from '@/lib/types';
+import { type Resolution, RESOLUTION_CREDITS, STORYBOOK_CREDITS_PER_SCENE } from '@/lib/types';
 
 type AnimStyle = 'western-cartoon' | 'anime' | 'pixar' | 'comic' | 'chibi' | 'retro' | 'custom';
 type AspectRatio = '16:9' | '9:16' | '1:1';
@@ -561,6 +561,15 @@ export default function CreatePage() {
         })
       });
       const d = await r.json();
+      if (r.status === 402) {
+        alert(d.error || 'Yetersiz kredi.');
+        setShowExport(true);
+        return;
+      }
+      if (d.error) {
+        alert(d.error);
+        return;
+      }
       if (d.job_id) {
         setJobId(d.job_id);
         setGenStatus('processing'); setGenProgress(0); setGenMessage('Starting video generation...');
@@ -772,7 +781,7 @@ export default function CreatePage() {
                       <div className="flex border border-[rgba(255,255,255,0.08)] rounded-lg overflow-hidden mb-4">
                         {(['480p', '720p', '1080p'] as Resolution[]).map(r => (<button key={r} onClick={() => setExportRes(r)} className={`flex-1 py-2 text-[11px] transition-all ${exportRes === r ? 'bg-[rgba(255,255,255,0.08)] text-white' : 'text-[rgba(255,255,255,0.3)]'}`}>{r}<div className="text-[8px] text-[rgba(255,255,255,0.15)] mt-0.5">{RESOLUTION_CREDITS[r]} cr</div></button>))}
                       </div>
-                      <div className="text-[12px] text-[rgba(255,255,255,0.4)] mb-4">Estimated: <span className="text-white font-medium">{generatedScript.filter(s => s.imageUrl || s.approved).length * RESOLUTION_CREDITS[exportRes]}</span> credits</div>
+                      <div className="text-[12px] text-[rgba(255,255,255,0.4)] mb-4">Tahmini maliyet: <span className="text-white font-medium">{generatedScript.filter(s => s.sceneDescription.trim()).length * STORYBOOK_CREDITS_PER_SCENE}</span> kredi ({generatedScript.filter(s => s.sceneDescription.trim()).length} sahne × {STORYBOOK_CREDITS_PER_SCENE})</div>
                       <div className="flex gap-3">
                         <button onClick={() => setShowExport(false)} className="flex-1 py-2.5 border border-[rgba(255,255,255,0.1)] rounded-lg text-[13px] text-[rgba(255,255,255,0.5)] hover:text-white transition-all">Cancel</button>
                         <button onClick={handleStoryExport} className="flex-1 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-all">Generate Video →</button>

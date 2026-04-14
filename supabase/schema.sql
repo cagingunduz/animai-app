@@ -13,6 +13,7 @@ create table public.users (
   full_name text,
   plan text not null default 'free' check (plan in ('free', 'starter', 'pro', 'studio')),
   credits integer not null default 500,
+  is_admin boolean not null default false,
   created_at timestamptz not null default now()
 );
 

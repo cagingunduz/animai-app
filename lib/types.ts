@@ -7,6 +7,7 @@ export const STYLE_LABELS: Record<AnimationStyle, string> = {
 
 export type Resolution = '480p' | '720p' | '1080p';
 export const RESOLUTION_CREDITS: Record<Resolution, number> = { '480p': 50, '720p': 100, '1080p': 200 };
+export const STORYBOOK_CREDITS_PER_SCENE = 50; // 500 credits = 10 scenes ≈ 2 short videos
 
 export type CharacterRole = 'silent' | 'speaking';
 export type Framing = 'full-body' | 'half-body' | 'close-up';
