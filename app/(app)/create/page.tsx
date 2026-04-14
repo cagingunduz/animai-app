@@ -30,17 +30,18 @@ interface SceneDef {
 type SceneRenderStatus = { scene_number: number; status: 'queued' | 'processing' | 'completed' | 'failed'; current_step?: string; video_url?: string; };
 
 // ─── Story Mode types ───
-type CreateMode = 'selecting' | 'theme_select' | 'story' | 'cartoon';
-type StoryTheme = 'true_crime' | 'history' | 'drama' | 'fairy_tale';
+type CreateMode = 'selecting' | 'theme_select' | 'custom_select' | 'story' | 'cartoon';
+type StoryTheme = 'true_crime' | 'history' | 'drama' | 'fairy_tale' | 'custom';
 type StoryGenre = 'drama' | 'fairy-tale' | 'horror' | 'action' | 'motivation' | 'comedy' | 'mystery';
 interface ScriptScene { id: string; sceneNumber: number; title: string; narratorText: string; sceneDescription: string; imageUrl: string | null; videoUrl: string | null; generating: boolean; error: string | null; approved: boolean; kenBurns: boolean; includeNarrator: boolean; includeSubtitles: boolean; }
 
 
-const THEMES: { value: StoryTheme; label: string; icon: string }[] = [
+const THEMES: { value: StoryTheme; label: string; icon: string; isCustom?: boolean }[] = [
   { value: 'true_crime', label: 'True Crime', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
   { value: 'history', label: 'History', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
   { value: 'drama', label: 'Drama', icon: 'M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
   { value: 'fairy_tale', label: 'Fairy Tale', icon: 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z' },
+  { value: 'custom', label: 'Custom', icon: 'M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4', isCustom: true },
 ];
 
 const STYLES: { value: AnimStyle; label: string }[] = [
@@ -53,6 +54,7 @@ const THEME_STYLES: Record<StoryTheme, AnimStyle> = {
   history: 'retro',
   drama: 'anime',
   fairy_tale: 'pixar',
+  custom: 'anime',
 };
 
 const THEME_GENRES: Record<StoryTheme, StoryGenre> = {
@@ -60,7 +62,28 @@ const THEME_GENRES: Record<StoryTheme, StoryGenre> = {
   history: 'drama',
   drama: 'drama',
   fairy_tale: 'fairy-tale',
+  custom: 'drama',
 };
+
+const STYLE_EXAMPLES: Record<AnimStyle, { gradient: string; desc: string }> = {
+  'anime': { gradient: 'from-[#1a1a2e] to-[#16213e]', desc: 'Japanese animation style with expressive characters' },
+  'pixar': { gradient: 'from-[#0d1b2a] to-[#1b4332]', desc: '3D rendered, vibrant and family-friendly' },
+  'western-cartoon': { gradient: 'from-[#2d1b00] to-[#4a2c00]', desc: 'Bold lines, flat colors, classic cartoon feel' },
+  'comic': { gradient: 'from-[#1a0a2e] to-[#2d1b4e]', desc: 'Comic book panels with halftone effects' },
+  'chibi': { gradient: 'from-[#1a002e] to-[#2e0a4e]', desc: 'Super-deformed cute characters, big heads' },
+  'retro': { gradient: 'from-[#1a1200] to-[#2e2000]', desc: 'Vintage look, aged textures, warm palette' },
+  'custom': { gradient: 'from-[#0a0a0a] to-[#1a1a1a]', desc: 'Realistic style, photographic quality' },
+};
+
+const GENRE_EXAMPLES: { value: StoryGenre; label: string; icon: string; desc: string }[] = [
+  { value: 'drama', label: 'Drama', icon: 'M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z', desc: 'Emotional, character-driven stories' },
+  { value: 'mystery', label: 'Mystery', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z', desc: 'Suspense, crime, detective stories' },
+  { value: 'horror', label: 'Horror', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z', desc: 'Dark, eerie and frightening narratives' },
+  { value: 'action', label: 'Action', icon: 'M13 10V3L4 14h7v7l9-11h-7z', desc: 'Fast-paced adventures and battles' },
+  { value: 'motivation', label: 'Motivation', icon: 'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z', desc: 'Inspiring journeys and success stories' },
+  { value: 'comedy', label: 'Comedy', icon: 'M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z', desc: 'Humor, light-hearted fun stories' },
+  { value: 'fairy-tale', label: 'Fairy Tale', icon: 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z', desc: 'Magical worlds, heroes and enchantment' },
+];
 
 const AVATAR_COLORS = ['#4a90d9','#e8607a','#50b87a','#c084fc','#f59e0b','#6ee7b7','#38bdf8','#fb7185','#a78bfa','#fbbf24','#ef4444','#22d3ee'];
 
@@ -115,6 +138,7 @@ export default function CreatePage() {
   const [storyTitle, setStoryTitle] = useState('');
 
   const [storyStyle, setStoryStyle] = useState<AnimStyle>('anime');
+  const [customGenre, setCustomGenre] = useState<StoryGenre>('drama');
   const [storyNarratorVoiceId, setStoryNarratorVoiceId] = useState<string | null>(null);
   const [storyDuration, setStoryDuration] = useState<number>(3);
   const [storyStructure, setStoryStructure] = useState<'auto' | 'manual' | null>(null);
@@ -447,7 +471,7 @@ export default function CreatePage() {
     try {
       const r = await fetch('/api/story/generate', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: storyTitle, genre: storyTheme ? THEME_GENRES[storyTheme] : 'drama', style: storyStyle, theme: storyTheme, duration_minutes: storyDuration, narrator_voice_id: storyNarratorVoiceId, blur_faces: blurFaces }),
+        body: JSON.stringify({ title: storyTitle, genre: storyTheme === 'custom' ? customGenre : (storyTheme ? THEME_GENRES[storyTheme] : 'drama'), style: storyStyle, theme: storyTheme, duration_minutes: storyDuration, narrator_voice_id: storyNarratorVoiceId, blur_faces: blurFaces }),
       });
       if (!r.ok) throw new Error('Request failed');
       const d = await r.json();
@@ -662,12 +686,71 @@ export default function CreatePage() {
         <h1 className="text-[18px] font-medium text-white mb-8">Choose your theme</h1>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-[640px] w-full">
           {THEMES.map(t => (
-            <button key={t.value} onClick={() => { setStoryTheme(t.value); setStoryStyle(THEME_STYLES[t.value]); setBlurFaces(t.value === 'true_crime'); setMode('story'); }}
+            <button key={t.value} onClick={() => { setStoryTheme(t.value); setBlurFaces(t.value === 'true_crime'); if (t.isCustom) { setMode('custom_select'); } else { setStoryStyle(THEME_STYLES[t.value]); setMode('story'); } }}
               className="bg-[#0f0f0f] border border-[rgba(255,255,255,0.08)] rounded-xl p-6 flex flex-col items-center gap-3 hover:border-[rgba(255,255,255,0.18)] transition-all group">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:stroke-white transition-colors"><path d={t.icon}/></svg>
               <span className="text-[14px] font-medium text-white">{t.label}</span>
             </button>
           ))}
+        </div>
+        <style jsx global>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+      </div>
+    )}
+
+    {/* ═══ CUSTOM SELECT ═══ */}
+    {mode === 'custom_select' && (
+      <div className="flex flex-col min-h-screen bg-black px-6 py-8 animate-[fadeIn_0.3s_ease] overflow-y-auto">
+        <button onClick={() => setMode('theme_select')} className="text-[11px] text-[rgba(255,255,255,0.3)] hover:text-white transition-colors mb-8 self-start">← Back</button>
+        <div className="max-w-[680px] mx-auto w-full flex flex-col gap-10">
+          <div>
+            <h1 className="text-[18px] font-medium text-white mb-1">Custom story</h1>
+            <p className="text-[12px] text-[rgba(255,255,255,0.35)]">Choose your genre and animation style</p>
+          </div>
+
+          {/* Genre */}
+          <div>
+            <h2 className="text-[11px] font-medium text-[rgba(255,255,255,0.4)] uppercase tracking-[1.5px] mb-3">Genre</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {GENRE_EXAMPLES.map(g => (
+                <button key={g.value} onClick={() => setCustomGenre(g.value)}
+                  className={`p-4 rounded-xl border text-left transition-all ${customGenre === g.value ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] bg-[#0f0f0f] hover:border-[rgba(255,255,255,0.16)]'}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={customGenre === g.value ? 'white' : 'rgba(255,255,255,0.4)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d={g.icon}/></svg>
+                    <span className={`text-[13px] font-medium ${customGenre === g.value ? 'text-white' : 'text-[rgba(255,255,255,0.6)]'}`}>{g.label}</span>
+                  </div>
+                  <p className="text-[11px] text-[rgba(255,255,255,0.3)] leading-relaxed">{g.desc}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Animation Style */}
+          <div>
+            <h2 className="text-[11px] font-medium text-[rgba(255,255,255,0.4)] uppercase tracking-[1.5px] mb-3">Animation Style</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {STYLES.map(s => {
+                const ex = STYLE_EXAMPLES[s.value];
+                return (
+                  <button key={s.value} onClick={() => setStoryStyle(s.value)}
+                    className={`rounded-xl border overflow-hidden text-left transition-all ${storyStyle === s.value ? 'border-white' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.16)]'}`}>
+                    <div className={`h-16 bg-gradient-to-br ${ex.gradient} flex items-center justify-center`}>
+                      <span className="text-[22px] font-black text-white opacity-20 select-none">{s.label[0]}</span>
+                    </div>
+                    <div className="p-3 bg-[#0f0f0f]">
+                      <p className={`text-[13px] font-medium mb-0.5 ${storyStyle === s.value ? 'text-white' : 'text-[rgba(255,255,255,0.6)]'}`}>{s.label}</p>
+                      <p className="text-[10px] text-[rgba(255,255,255,0.3)] leading-relaxed">{ex.desc}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <button
+            onClick={() => setMode('story')}
+            className="w-full py-3 rounded-xl bg-white text-black text-[14px] font-medium hover:bg-[rgba(255,255,255,0.9)] transition-colors">
+            Continue
+          </button>
         </div>
         <style jsx global>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
       </div>
@@ -679,7 +762,7 @@ export default function CreatePage() {
         {/* Roadmap */}
         <div className="flex-shrink-0 border-b border-[rgba(255,255,255,0.1)] sticky top-0 z-30 bg-black">
           <div className="max-w-[560px] mx-auto px-6 py-4 flex items-center">
-            <button onClick={() => setMode('theme_select')} className="text-[11px] text-[rgba(255,255,255,0.25)] hover:text-white mr-3 flex-shrink-0 transition-colors">←</button>
+            <button onClick={() => setMode(storyTheme === 'custom' ? 'custom_select' : 'theme_select')} className="text-[11px] text-[rgba(255,255,255,0.25)] hover:text-white mr-3 flex-shrink-0 transition-colors">←</button>
             <span className="text-[10px] font-medium text-[rgba(255,255,255,0.45)] bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.08)] px-2 py-0.5 rounded mr-3 flex-shrink-0">{themeLabel}</span>
             {[{ n: 1, l: 'Setup' }, { n: 2, l: 'Structure' }, { n: 3, l: 'Timeline' }].map((s, i) => (
               <div key={s.n} className="flex items-center flex-1 last:flex-initial">
