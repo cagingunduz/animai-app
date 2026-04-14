@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { type Resolution, RESOLUTION_CREDITS, STORYBOOK_CREDITS_PER_SCENE } from '@/lib/types';
 
-type AnimStyle = 'western-cartoon' | 'anime' | 'pixar' | 'comic' | 'chibi' | 'retro' | 'custom';
+type AnimStyle = 'western-cartoon' | 'anime' | 'pixar' | 'comic' | 'retro' | 'custom';
 type AspectRatio = '16:9' | '9:16' | '1:1';
 
 interface VoiceLabels { gender?: string; accent?: string; age?: string; use_case?: string; descriptive?: string; }
@@ -70,7 +70,6 @@ const STYLE_EXAMPLES: Record<AnimStyle, { gradient: string; desc: string }> = {
   'pixar': { gradient: 'from-[#0d1b2a] to-[#1b4332]', desc: '3D rendered, vibrant and family-friendly' },
   'western-cartoon': { gradient: 'from-[#2d1b00] to-[#4a2c00]', desc: 'Bold lines, flat colors, classic cartoon feel' },
   'comic': { gradient: 'from-[#1a0a2e] to-[#2d1b4e]', desc: 'Comic book panels with halftone effects' },
-  'chibi': { gradient: 'from-[#1a002e] to-[#2e0a4e]', desc: 'Super-deformed cute characters, big heads' },
   'retro': { gradient: 'from-[#1a1200] to-[#2e2000]', desc: 'Vintage look, aged textures, warm palette' },
   'custom': { gradient: 'from-[#0a0a0a] to-[#1a1a1a]', desc: 'Photo-realistic scenes, cinematic lighting and lifelike detail' },
 };
