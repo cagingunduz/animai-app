@@ -694,16 +694,12 @@ export default function CreatePage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {GENRE_EXAMPLES.map(g => {
                 const isSelected = customGenre === g.value;
-                const isMystery = g.value === 'mystery';
                 return (
-                  <button key={g.value} onClick={() => setCustomGenre(g.value)}
-                    className={`relative p-4 rounded-xl border text-left transition-all ${isSelected ? (isMystery ? 'border-red-500 bg-[rgba(239,68,68,0.06)]' : 'border-white bg-[rgba(255,255,255,0.06)]') : 'border-[rgba(255,255,255,0.08)] bg-[#0f0f0f] hover:border-[rgba(255,255,255,0.16)]'}`}>
-                    {g.recommended && (
-                      <span className="absolute top-2 right-2 text-[9px] font-medium bg-red-500 text-white px-1.5 py-0.5 rounded-full">Recommended</span>
-                    )}
+                  <button key={g.value} onClick={() => { setCustomGenre(g.value); if (g.value === 'mystery') setStoryStyle('custom'); }}
+                    className={`relative p-4 rounded-xl border text-left transition-all ${isSelected ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] bg-[#0f0f0f] hover:border-[rgba(255,255,255,0.16)]'}`}>
                     <div className="flex items-center gap-2 mb-2">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={isSelected ? (isMystery ? '#ef4444' : 'white') : 'rgba(255,255,255,0.4)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d={g.icon}/></svg>
-                      <span className={`text-[13px] font-medium ${isSelected ? (isMystery ? 'text-red-400' : 'text-white') : 'text-[rgba(255,255,255,0.6)]'}`}>{g.label}</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={isSelected ? 'white' : 'rgba(255,255,255,0.4)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d={g.icon}/></svg>
+                      <span className={`text-[13px] font-medium ${isSelected ? 'text-white' : 'text-[rgba(255,255,255,0.6)]'}`}>{g.label}</span>
                     </div>
                     <p className="text-[11px] text-[rgba(255,255,255,0.3)] leading-relaxed">{g.desc}</p>
                   </button>
@@ -718,14 +714,19 @@ export default function CreatePage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {STYLES.map(s => {
                 const ex = STYLE_EXAMPLES[s.value];
+                const isSelected = storyStyle === s.value;
+                const isRecommended = s.value === 'custom' && customGenre === 'mystery';
                 return (
                   <button key={s.value} onClick={() => setStoryStyle(s.value)}
-                    className={`rounded-xl border overflow-hidden text-left transition-all ${storyStyle === s.value ? 'border-white' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.16)]'}`}>
+                    className={`relative rounded-xl border overflow-hidden text-left transition-all ${isSelected ? (isRecommended ? 'border-red-500' : 'border-white') : isRecommended ? 'border-red-500/40 hover:border-red-500' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.16)]'}`}>
+                    {isRecommended && (
+                      <span className="absolute top-2 right-2 z-10 text-[9px] font-medium bg-red-500 text-white px-1.5 py-0.5 rounded-full">Recommended</span>
+                    )}
                     <div className={`h-16 bg-gradient-to-br ${ex.gradient} flex items-center justify-center`}>
                       <span className="text-[22px] font-black text-white opacity-20 select-none">{s.label[0]}</span>
                     </div>
                     <div className="p-3 bg-[#0f0f0f]">
-                      <p className={`text-[13px] font-medium mb-0.5 ${storyStyle === s.value ? 'text-white' : 'text-[rgba(255,255,255,0.6)]'}`}>{s.label}</p>
+                      <p className={`text-[13px] font-medium mb-0.5 ${isSelected ? (isRecommended ? 'text-red-400' : 'text-white') : 'text-[rgba(255,255,255,0.6)]'}`}>{s.label}</p>
                       <p className="text-[10px] text-[rgba(255,255,255,0.3)] leading-relaxed">{ex.desc}</p>
                     </div>
                   </button>
