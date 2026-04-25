@@ -109,43 +109,71 @@ export default function DashboardPage() {
         </div>
       ) : (
         <>
+          {/* ── Exported Videos ── */}
+          {projects.filter(p => p.final_video_url).length > 0 && (
+            <div className="mb-8">
+              <h2 className="text-[11px] font-medium text-[rgba(255,255,255,0.35)] uppercase tracking-[1.5px] mb-3">Exported Videos</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {projects.filter(p => p.final_video_url).map(p => (
+                  <div key={p.id} className="relative border border-[rgba(255,255,255,0.08)] rounded-xl overflow-hidden bg-[#0a0a0a] group">
+                    <div className="aspect-video bg-gradient-to-br from-[#0f0f0f] to-[#1a1a1a] relative flex items-center justify-center overflow-hidden">
+                      {p.thumbnail_url
+                        ? <img src={p.thumbnail_url} alt="" className="w-full h-full object-cover" />
+                        : <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1"><rect x="2" y="3" width="20" height="14" rx="2"/><polygon points="9,7 16,10 9,13" fill="rgba(255,255,255,0.04)" stroke="none"/></svg>
+                      }
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <a href={`/api/download?url=${encodeURIComponent(p.final_video_url!)}&filename=${encodeURIComponent(p.title + '.mp4')}`}
+                          download className="px-3 py-1.5 bg-white text-black text-[11px] font-medium rounded-lg flex items-center gap-1.5">
+                          <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 1v8M3 6l4 4 4-4"/><path d="M1 11h12"/></svg>
+                          Download
+                        </a>
+                      </div>
+                      <div className="absolute top-2 left-2">
+                        <span className="text-[9px] font-medium bg-[rgba(74,222,128,0.15)] text-[rgba(74,222,128,0.8)] px-1.5 py-0.5 rounded-full">✓ Exported</span>
+                      </div>
+                      <button onClick={(e) => deleteProject(p.id, e)} className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[rgba(0,0,0,0.6)] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[rgba(239,68,68,0.3)]">
+                        {deletingId === p.id ? <div className="w-3 h-3 rounded-full border border-white/30 border-t-white animate-spin" /> : <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2"><path d="M1 1l12 12M13 1L1 13"/></svg>}
+                      </button>
+                    </div>
+                    <div className="px-3 py-2.5">
+                      <h3 className="text-[12px] font-medium truncate mb-1 text-[rgba(255,255,255,0.8)]">{p.title}</h3>
+                      <div className="flex items-center gap-1.5 text-[10px] text-[rgba(255,255,255,0.25)]">
+                        {p.genre && <span className="capitalize">{p.genre}</span>}
+                        {p.genre && <span className="w-0.5 h-0.5 rounded-full bg-[rgba(255,255,255,0.12)]" />}
+                        <span>{timeAgo(p.updated_at)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* ── Draft Projects ── */}
-          {projects.length > 0 && (
+          {projects.filter(p => !p.final_video_url).length > 0 && (
             <div className="mb-8">
               <h2 className="text-[11px] font-medium text-[rgba(255,255,255,0.35)] uppercase tracking-[1.5px] mb-3">Continue where you left off</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {projects.map(p => (
+                {projects.filter(p => !p.final_video_url).map(p => (
                   <Link key={p.id} href={`/create?projectId=${p.id}`}
                     className="relative border border-[rgba(255,255,255,0.08)] rounded-xl overflow-hidden bg-[#0a0a0a] hover:border-[rgba(255,255,255,0.15)] hover:-translate-y-[1px] transition-all group block">
-                    {/* Thumb */}
                     <div className="aspect-video bg-gradient-to-br from-[#0f0f0f] to-[#1a1a1a] relative flex items-center justify-center overflow-hidden">
                       {p.thumbnail_url
                         ? <img src={p.thumbnail_url} alt="" className="w-full h-full object-cover" />
                         : <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10,9 9,9 8,9"/></svg>
                       }
-                      {/* Status pill */}
                       <div className="absolute top-2 left-2">
-                        {p.final_video_url
-                          ? <span className="text-[9px] font-medium bg-[rgba(74,222,128,0.15)] text-[rgba(74,222,128,0.8)] px-1.5 py-0.5 rounded-full">✓ Exported</span>
-                          : p.has_videos
+                        {p.has_videos
                           ? <span className="text-[9px] font-medium bg-[rgba(74,222,128,0.12)] text-[rgba(74,222,128,0.7)] px-1.5 py-0.5 rounded-full">{p.scenes_count} scenes ready</span>
                           : p.scenes_count > 0
                           ? <span className="text-[9px] font-medium bg-[rgba(250,204,21,0.1)] text-[rgba(250,204,21,0.6)] px-1.5 py-0.5 rounded-full">{p.scenes_count} scenes</span>
                           : <span className="text-[9px] font-medium bg-[rgba(255,255,255,0.05)] text-[rgba(255,255,255,0.3)] px-1.5 py-0.5 rounded-full">Draft</span>
                         }
                       </div>
-                      {/* Delete button */}
-                      <button
-                        onClick={(e) => deleteProject(p.id, e)}
-                        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[rgba(0,0,0,0.6)] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[rgba(239,68,68,0.3)]"
-                      >
-                        {deletingId === p.id
-                          ? <div className="w-3 h-3 rounded-full border border-white/30 border-t-white animate-spin" />
-                          : <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2"><path d="M1 1l12 12M13 1L1 13"/></svg>
-                        }
+                      <button onClick={(e) => deleteProject(p.id, e)} className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[rgba(0,0,0,0.6)] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[rgba(239,68,68,0.3)]">
+                        {deletingId === p.id ? <div className="w-3 h-3 rounded-full border border-white/30 border-t-white animate-spin" /> : <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2"><path d="M1 1l12 12M13 1L1 13"/></svg>}
                       </button>
                     </div>
-                    {/* Info */}
                     <div className="px-3 py-2.5">
                       <h3 className="text-[12px] font-medium truncate mb-1 group-hover:text-white text-[rgba(255,255,255,0.8)]">{p.title}</h3>
                       <div className="flex items-center gap-1.5 text-[10px] text-[rgba(255,255,255,0.25)]">
@@ -156,7 +184,6 @@ export default function DashboardPage() {
                         <span>{timeAgo(p.updated_at)}</span>
                       </div>
                     </div>
-                    {/* Continue arrow */}
                     <div className="absolute bottom-2.5 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
                       <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5"><path d="M1 7h12M8 2l5 5-5 5"/></svg>
                     </div>
