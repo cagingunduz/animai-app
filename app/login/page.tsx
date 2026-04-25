@@ -1,12 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
   const router = useRouter();
+
+  // Client-side mobile fallback (in case middleware is bypassed)
+  useEffect(() => {
+    if (/Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) &&
+        !/iPad/i.test(navigator.userAgent)) {
+      router.replace('/mobile');
+    }
+  }, []);
   const supabase = createClient();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
