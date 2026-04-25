@@ -37,7 +37,7 @@ export default function DashboardPage() {
       const [profileRes, projectsRes] = await Promise.all([
         supabase.from('users').select('credits, plan').eq('id', user.id).single(),
         supabase.from('projects').select('id, title, genre, style, scenes_count, has_videos, thumbnail_url, final_video_url, updated_at, created_at')
-          .eq('user_id', user.id).order('updated_at', { ascending: false }).limit(20),
+          .eq('user_id', user.id).is('deleted_at', null).order('updated_at', { ascending: false }).limit(20),
       ]);
 
       if (profileRes.data) { setCredits(profileRes.data.credits); setPlan(profileRes.data.plan); }
@@ -48,8 +48,9 @@ export default function DashboardPage() {
 
   const deleteProject = async (id: string, e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setDeletingId(id);
-    await supabase.from('projects').delete().eq('id', id);
+    await supabase.from('projects').update({ deleted_at: new Date().toISOString() }).eq('id', id);
     setProjects(prev => prev.filter(p => p.id !== id));
     setDeletingId(null);
   };

@@ -115,6 +115,7 @@ create table public.projects (
   has_videos boolean not null default false,
   thumbnail_url text,
   final_video_url text,
+  deleted_at timestamptz,
   updated_at timestamptz not null default now(),
   created_at timestamptz not null default now()
 );
