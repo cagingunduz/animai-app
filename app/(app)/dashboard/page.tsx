@@ -3,25 +3,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { type AnimationStatus } from '@/lib/types';
-
-interface AnimRow {
-  id: string; title: string; status: AnimationStatus; created_at: string;
-  scenes_count: number; resolution: string; job_id: string | null;
-}
-
 interface ProjectRow {
   id: string; title: string; genre: string | null; style: string | null;
   scenes_count: number; has_videos: boolean; thumbnail_url: string | null;
   final_video_url: string | null; updated_at: string; created_at: string;
 }
-
-const st: Record<AnimationStatus, { cls: string; label: string }> = {
-  completed: { cls: 'bg-[rgba(74,222,128,0.08)] text-[rgba(74,222,128,0.65)]', label: 'Done' },
-  processing: { cls: 'bg-[rgba(250,204,21,0.08)] text-[rgba(250,204,21,0.65)]', label: 'Running' },
-  failed: { cls: 'bg-[rgba(248,113,113,0.08)] text-[rgba(248,113,113,0.65)]', label: 'Failed' },
-  queued: { cls: 'bg-[rgba(255,255,255,0.04)] text-[rgba(255,255,255,0.35)]', label: 'Queued' },
-};
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -37,7 +23,6 @@ function timeAgo(dateStr: string) {
 
 export default function DashboardPage() {
   const supabase = createClient();
-  const [animations, setAnimations] = useState<AnimRow[]>([]);
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [credits, setCredits] = useState(0);
   const [plan, setPlan] = useState('free');
@@ -49,16 +34,13 @@ export default function DashboardPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [profileRes, animsRes, projectsRes] = await Promise.all([
+      const [profileRes, projectsRes] = await Promise.all([
         supabase.from('users').select('credits, plan').eq('id', user.id).single(),
-        supabase.from('animations').select('id, title, status, created_at, scenes_count, resolution, job_id')
-          .eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
         supabase.from('projects').select('id, title, genre, style, scenes_count, has_videos, thumbnail_url, final_video_url, updated_at, created_at')
           .eq('user_id', user.id).order('updated_at', { ascending: false }).limit(20),
       ]);
 
       if (profileRes.data) { setCredits(profileRes.data.credits); setPlan(profileRes.data.plan); }
-      if (animsRes.data) setAnimations(animsRes.data as AnimRow[]);
       if (projectsRes.data) setProjects(projectsRes.data as ProjectRow[]);
       setLoading(false);
     })();
@@ -109,50 +91,10 @@ export default function DashboardPage() {
         </div>
       ) : (
         <>
-          {/* ── Exported Videos ── */}
-          {projects.filter(p => p.final_video_url).length > 0 && (
-            <div className="mb-8">
-              <h2 className="text-[11px] font-medium text-[rgba(255,255,255,0.35)] uppercase tracking-[1.5px] mb-3">Exported Videos</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {projects.filter(p => p.final_video_url).map(p => (
-                  <div key={p.id} className="relative border border-[rgba(255,255,255,0.08)] rounded-xl overflow-hidden bg-[#0a0a0a] group">
-                    <div className="aspect-video bg-gradient-to-br from-[#0f0f0f] to-[#1a1a1a] relative flex items-center justify-center overflow-hidden">
-                      {p.thumbnail_url
-                        ? <img src={p.thumbnail_url} alt="" className="w-full h-full object-cover" />
-                        : <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1"><rect x="2" y="3" width="20" height="14" rx="2"/><polygon points="9,7 16,10 9,13" fill="rgba(255,255,255,0.04)" stroke="none"/></svg>
-                      }
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                        <a href={`/api/download?url=${encodeURIComponent(p.final_video_url!)}&filename=${encodeURIComponent(p.title + '.mp4')}`}
-                          download className="px-3 py-1.5 bg-white text-black text-[11px] font-medium rounded-lg flex items-center gap-1.5">
-                          <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 1v8M3 6l4 4 4-4"/><path d="M1 11h12"/></svg>
-                          Download
-                        </a>
-                      </div>
-                      <div className="absolute top-2 left-2">
-                        <span className="text-[9px] font-medium bg-[rgba(74,222,128,0.15)] text-[rgba(74,222,128,0.8)] px-1.5 py-0.5 rounded-full">✓ Exported</span>
-                      </div>
-                      <button onClick={(e) => deleteProject(p.id, e)} className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[rgba(0,0,0,0.6)] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[rgba(239,68,68,0.3)]">
-                        {deletingId === p.id ? <div className="w-3 h-3 rounded-full border border-white/30 border-t-white animate-spin" /> : <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2"><path d="M1 1l12 12M13 1L1 13"/></svg>}
-                      </button>
-                    </div>
-                    <div className="px-3 py-2.5">
-                      <h3 className="text-[12px] font-medium truncate mb-1 text-[rgba(255,255,255,0.8)]">{p.title}</h3>
-                      <div className="flex items-center gap-1.5 text-[10px] text-[rgba(255,255,255,0.25)]">
-                        {p.genre && <span className="capitalize">{p.genre}</span>}
-                        {p.genre && <span className="w-0.5 h-0.5 rounded-full bg-[rgba(255,255,255,0.12)]" />}
-                        <span>{timeAgo(p.updated_at)}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* ── Draft Projects ── */}
           {projects.filter(p => !p.final_video_url).length > 0 && (
             <div className="mb-8">
-              <h2 className="text-[11px] font-medium text-[rgba(255,255,255,0.35)] uppercase tracking-[1.5px] mb-3">Continue where you left off</h2>
+              <h2 className="text-[11px] font-medium text-[rgba(255,255,255,0.35)] uppercase tracking-[1.5px] mb-3">Continue</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 {projects.filter(p => !p.final_video_url).map(p => (
                   <Link key={p.id} href={`/create?projectId=${p.id}`}
@@ -193,41 +135,48 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* ── Completed Animations ── */}
-          {animations.length > 0 && (
-            <div>
+          {/* ── Completed ── */}
+          {projects.filter(p => p.final_video_url).length > 0 && (
+            <div className="mb-8">
               <h2 className="text-[11px] font-medium text-[rgba(255,255,255,0.35)] uppercase tracking-[1.5px] mb-3">Completed</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {animations.map((a) => {
-                  const s = st[a.status];
-                  return (
-                    <Link key={a.id} href={a.job_id ? `/status/${a.job_id}` : '#'}
-                      className="border border-[rgba(255,255,255,0.06)] rounded-xl overflow-hidden bg-[#0a0a0a] hover:border-[rgba(255,255,255,0.1)] hover:-translate-y-[1px] transition-all group block">
-                      <div className="aspect-video bg-[#0e0e0e] relative">
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1"><rect x="2" y="3" width="20" height="14" rx="2"/><polygon points="9,7 16,10 9,13" fill="rgba(255,255,255,0.04)" stroke="none"/></svg>
-                        </div>
-                        <div className={`absolute top-2 right-2 px-1.5 py-0.5 rounded text-[9px] font-medium ${s.cls}`}>{s.label}</div>
+                {projects.filter(p => p.final_video_url).map(p => (
+                  <div key={p.id} className="relative border border-[rgba(255,255,255,0.08)] rounded-xl overflow-hidden bg-[#0a0a0a] group">
+                    <div className="aspect-video bg-gradient-to-br from-[#0f0f0f] to-[#1a1a1a] relative flex items-center justify-center overflow-hidden">
+                      {p.thumbnail_url
+                        ? <img src={p.thumbnail_url} alt="" className="w-full h-full object-cover" />
+                        : <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1"><rect x="2" y="3" width="20" height="14" rx="2"/><polygon points="9,7 16,10 9,13" fill="rgba(255,255,255,0.04)" stroke="none"/></svg>
+                      }
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <a href={`/api/download?url=${encodeURIComponent(p.final_video_url!)}&filename=${encodeURIComponent(p.title + '.mp4')}`}
+                          download className="px-3 py-1.5 bg-white text-black text-[11px] font-medium rounded-lg flex items-center gap-1.5">
+                          <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 1v8M3 6l4 4 4-4"/><path d="M1 11h12"/></svg>
+                          Download
+                        </a>
                       </div>
-                      <div className="px-3 py-2.5">
-                        <h3 className="text-[12px] font-medium truncate mb-1 group-hover:text-white text-[rgba(255,255,255,0.8)]">{a.title}</h3>
-                        <div className="flex items-center gap-1.5 text-[10px] text-[rgba(255,255,255,0.25)]">
-                          <span>{a.scenes_count}s</span>
-                          <span className="w-0.5 h-0.5 rounded-full bg-[rgba(255,255,255,0.12)]" />
-                          <span>{a.resolution}</span>
-                          <span className="w-0.5 h-0.5 rounded-full bg-[rgba(255,255,255,0.12)]" />
-                          <span>{new Date(a.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                        </div>
+                      <div className="absolute top-2 left-2">
+                        <span className="text-[9px] font-medium bg-[rgba(74,222,128,0.15)] text-[rgba(74,222,128,0.8)] px-1.5 py-0.5 rounded-full">✓ Exported</span>
                       </div>
-                    </Link>
-                  );
-                })}
+                      <button onClick={(e) => deleteProject(p.id, e)} className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[rgba(0,0,0,0.6)] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[rgba(239,68,68,0.3)]">
+                        {deletingId === p.id ? <div className="w-3 h-3 rounded-full border border-white/30 border-t-white animate-spin" /> : <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2"><path d="M1 1l12 12M13 1L1 13"/></svg>}
+                      </button>
+                    </div>
+                    <div className="px-3 py-2.5">
+                      <h3 className="text-[12px] font-medium truncate mb-1 text-[rgba(255,255,255,0.8)]">{p.title}</h3>
+                      <div className="flex items-center gap-1.5 text-[10px] text-[rgba(255,255,255,0.25)]">
+                        {p.genre && <span className="capitalize">{p.genre}</span>}
+                        {p.genre && <span className="w-0.5 h-0.5 rounded-full bg-[rgba(255,255,255,0.12)]" />}
+                        <span>{timeAgo(p.updated_at)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
           {/* Empty state */}
-          {projects.length === 0 && animations.length === 0 && (
+          {projects.length === 0 && (
             <div className="border border-[rgba(255,255,255,0.06)] rounded-xl py-16 flex flex-col items-center">
               <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1"><rect x="2" y="3" width="20" height="14" rx="2"/><polygon points="10,7 16,10 10,13" fill="rgba(255,255,255,0.05)" stroke="none"/></svg>
               <p className="text-[13px] text-[rgba(255,255,255,0.3)] mt-3 mb-3">No projects yet</p>
