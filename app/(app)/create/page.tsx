@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { type Resolution, RESOLUTION_CREDITS, STORYBOOK_CREDITS_PER_SCENE } from '@/lib/types';
 
@@ -105,7 +106,7 @@ const FILTER_OPTIONS = [
 let _u = 0;
 function uid() { return `u${++_u}-${Date.now()}`; }
 
-export default function CreatePage() {
+function CreatePageInner() {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [chars, setChars] = useState<CharDef[]>([]);
   const [scenes, setScenes] = useState<SceneDef[]>([]);
@@ -162,12 +163,79 @@ export default function CreatePage() {
   const [exportRes, setExportRes] = useState<Resolution>('720p');
   const [includeSubtitles, setIncludeSubtitles] = useState(false);
   const [downloadLoading, setDownloadLoading] = useState(false);
+  const [projectId, setProjectId] = useState<string | null>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const storyDragI = useRef<number | null>(null);
   const storyDragO = useRef<number | null>(null);
   const storyVideoRef = useRef<HTMLVideoElement | null>(null);
   const [storyVideoPlaying, setStoryVideoPlaying] = useState(false);
+  const searchParams = useSearchParams();
 
   useEffect(() => { fetch('/api/voices').then(r => r.json()).then(setVoices).catch(() => {}); }, []);
+
+  // ─── Load project from URL param ───
+  useEffect(() => {
+    const pid = searchParams.get('projectId');
+    if (!pid) return;
+    (async () => {
+      const sb = createClient();
+      const { data } = await sb.from('projects').select('*').eq('id', pid).single();
+      if (!data) return;
+      const s = data.state as any;
+      setProjectId(pid);
+      setMode('story');
+      setStoryTheme(s.storyTheme ?? null);
+      setStoryTitle(s.storyTitle ?? '');
+      setStoryStyle(s.storyStyle ?? 'anime');
+      setCustomGenre(s.customGenre ?? 'drama');
+      setStoryDuration(s.storyDuration ?? 3);
+      setStoryNarratorVoiceId(s.storyNarratorVoiceId ?? null);
+      setBlurFaces(s.blurFaces ?? false);
+      setGlobalCameraMove(s.globalCameraMove ?? true);
+      setGlobalNarrator(s.globalNarrator ?? true);
+      setGlobalSubtitles(s.globalSubtitles ?? true);
+      if (s.generatedScript?.length) {
+        setGeneratedScript(s.generatedScript);
+        setStoryStep(3);
+      } else if (s.storyTitle) {
+        setStoryStep(s.storyStep ?? 1);
+      }
+    })();
+  }, []);
+
+  // ─── Auto-save project (debounced 2s) ───
+  useEffect(() => {
+    if (mode !== 'story' || !storyTitle.trim()) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      const sb = createClient();
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) return;
+      const state = {
+        storyTheme, storyTitle, storyStyle, customGenre, storyDuration,
+        storyNarratorVoiceId, blurFaces, globalCameraMove, globalNarrator,
+        globalSubtitles, generatedScript, storyStep,
+      };
+      const hasVideos = generatedScript.some(s => s.videoUrl);
+      const meta = {
+        user_id: user.id,
+        title: storyTitle.trim() || 'Untitled',
+        genre: customGenre,
+        style: storyStyle,
+        state,
+        scenes_count: generatedScript.length,
+        has_videos: hasVideos,
+      };
+      if (projectId) {
+        await sb.from('projects').update(meta).eq('id', projectId);
+      } else {
+        const { data } = await sb.from('projects').insert(meta).select('id').single();
+        if (data) setProjectId(data.id);
+      }
+    }, 2000);
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, [mode, storyTitle, storyStyle, customGenre, storyDuration, storyNarratorVoiceId,
+      blurFaces, globalCameraMove, globalNarrator, globalSubtitles, generatedScript, storyStep]);
 
   useEffect(() => {
     if (storyVideoRef.current) { storyVideoRef.current.pause(); storyVideoRef.current.currentTime = 0; }
@@ -450,7 +518,7 @@ export default function CreatePage() {
   const resetAll = () => {
     setStep(1); setChars([]); setScenes([]); setRes('720p');
     resetForm(); setJobId(null); setGenProgress(0); setGenStatus('idle'); setGenScenes([]); setFinalVideoUrl(null);
-    setMode('selecting'); setStoryTheme(null); setStoryStep(1); setStoryTitle('');
+    setMode('selecting'); setStoryTheme(null); setStoryStep(1); setStoryTitle(''); setProjectId(null);
     setStoryStyle('anime'); setStoryNarratorVoiceId(null); setStoryDuration(3);
     setStoryStructure(null); setStoryGenerating(false); setStoryError(null); setGeneratedScript([]);
     setBlurFaces(false); setSelectedSceneId(null); setShowExport(false); setExportRes('720p');
@@ -1558,3 +1626,5 @@ export default function CreatePage() {
     )}
   </>);
 }
+
+export default function CreatePage() { return <Suspense><CreatePageInner /></Suspense>; }

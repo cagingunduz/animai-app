@@ -100,3 +100,41 @@ create policy "Users can insert own transactions"
   with check (auth.uid() = user_id);
 
 create index idx_transactions_user on public.credit_transactions(user_id);
+
+-- ═══════════════════════════════════════
+-- PROJECTS TABLE (draft/in-progress stories)
+-- ═══════════════════════════════════════
+create table public.projects (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references public.users(id) on delete cascade not null,
+  title text not null default 'Untitled',
+  genre text,
+  style text,
+  state jsonb not null default '{}',
+  scenes_count integer not null default 0,
+  has_videos boolean not null default false,
+  updated_at timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+
+alter table public.projects enable row level security;
+
+create policy "Users can read own projects" on public.projects for select using (auth.uid() = user_id);
+create policy "Users can insert own projects" on public.projects for insert with check (auth.uid() = user_id);
+create policy "Users can update own projects" on public.projects for update using (auth.uid() = user_id);
+create policy "Users can delete own projects" on public.projects for delete using (auth.uid() = user_id);
+
+create index idx_projects_user on public.projects(user_id);
+
+-- Auto-update updated_at
+create or replace function public.handle_project_updated()
+returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql;
+
+create trigger on_project_updated
+  before update on public.projects
+  for each row execute function public.handle_project_updated();
