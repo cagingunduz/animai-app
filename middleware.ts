@@ -1,21 +1,19 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 
-const MOBILE_UA = /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini|Mobile Safari/i;
+const MOBILE_UA = /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i;
 
-// iPad is excluded — large enough to use the app
+// iPad excluded — screen is large enough
 function isMobileDevice(ua: string) {
   return MOBILE_UA.test(ua) && !/iPad/i.test(ua);
 }
-
-const APP_PATHS = ['/dashboard', '/create', '/billing', '/status'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const ua = request.headers.get('user-agent') ?? '';
 
-  // Block mobile on app routes
-  if (APP_PATHS.some(p => pathname.startsWith(p)) && isMobileDevice(ua)) {
+  // Redirect all mobile phones to /mobile — except /mobile itself and static assets
+  if (pathname !== '/mobile' && isMobileDevice(ua)) {
     const url = request.nextUrl.clone();
     url.pathname = '/mobile';
     return NextResponse.redirect(url);

@@ -1,28 +1,95 @@
+'use client';
+
+import { useState } from 'react';
+
 export default function MobilePage() {
+  const [showWarning, setShowWarning] = useState(false);
+
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center px-8 text-center">
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1.2" className="mb-7">
-        <rect x="2" y="3" width="20" height="14" rx="2"/>
-        <path d="M8 21h8M12 17v4" stroke="rgba(255,255,255,0.2)"/>
-      </svg>
+    <div className="min-h-screen bg-black text-white flex flex-col">
+      {/* Navbar */}
+      <header className="flex items-center justify-between px-5 py-4">
+        {/* Logo */}
+        <div className="flex items-center gap-2">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5">
+            <polygon points="12,2 22,20 2,20"/>
+            <line x1="12" y1="8" x2="12" y2="15"/>
+            <circle cx="12" cy="17" r="0.5" fill="white"/>
+          </svg>
+          <span className="text-[15px] font-semibold tracking-[-0.3px]">AnimAI</span>
+        </div>
 
-      <h1 className="text-[20px] font-semibold tracking-[-0.5px] text-white mb-3">
-        Desktop only
-      </h1>
-      <p className="text-[14px] text-[rgba(255,255,255,0.4)] leading-relaxed max-w-[280px]">
-        AnimAI requires a desktop browser. Please open{' '}
-        <span className="text-[rgba(255,255,255,0.65)]">animave.com</span>{' '}
-        on your computer to continue.
-      </p>
+        {/* Start Creating */}
+        <button
+          onClick={() => setShowWarning(true)}
+          className="px-3.5 py-2 bg-white text-black text-[12px] font-semibold rounded-lg"
+        >
+          Start Creating
+        </button>
+      </header>
 
-      <div className="mt-10 flex items-center gap-2 text-[11px] text-[rgba(255,255,255,0.2)]">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <polygon points="12,2 22,20 2,20"/>
-          <line x1="12" y1="8" x2="12" y2="15"/>
-          <circle cx="12" cy="17" r="0.5" fill="currentColor"/>
-        </svg>
-        AnimAI
-      </div>
+      {/* Hero */}
+      <main className="flex-1 flex flex-col items-center justify-center px-6 text-center pb-16">
+        <div className="w-16 h-16 rounded-2xl bg-[#111] border border-[rgba(255,255,255,0.08)] flex items-center justify-center mb-6">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1.2">
+            <rect x="2" y="3" width="20" height="14" rx="2"/>
+            <polygon points="9,7 16,10.5 9,14" fill="rgba(255,255,255,0.15)" stroke="none"/>
+          </svg>
+        </div>
+
+        <h1 className="text-[26px] font-bold tracking-[-0.8px] leading-tight mb-3">
+          Turn ideas into<br/>animations
+        </h1>
+        <p className="text-[14px] text-[rgba(255,255,255,0.4)] leading-relaxed max-w-[260px]">
+          AI-powered storytelling with voiceover, cinematic scenes and automatic editing.
+        </p>
+
+        <button
+          onClick={() => setShowWarning(true)}
+          className="mt-8 px-6 py-3 bg-white text-black text-[14px] font-semibold rounded-xl"
+        >
+          Start Creating →
+        </button>
+
+        {/* Feature pills */}
+        <div className="flex flex-wrap gap-2 justify-center mt-8">
+          {['AI Voiceover', 'Ken Burns', 'Auto Export', 'Story Scripts'].map(f => (
+            <span key={f} className="text-[11px] text-[rgba(255,255,255,0.35)] border border-[rgba(255,255,255,0.08)] rounded-full px-3 py-1">
+              {f}
+            </span>
+          ))}
+        </div>
+      </main>
+
+      {/* Warning modal */}
+      {showWarning && (
+        <div className="fixed inset-0 bg-black/80 flex items-end justify-center z-50 px-4 pb-8"
+          onClick={() => setShowWarning(false)}>
+          <div className="w-full max-w-sm bg-[#111] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 text-center"
+            onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-10 rounded-full bg-[rgba(255,255,255,0.05)] flex items-center justify-center mx-auto mb-4">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5">
+                <rect x="5" y="2" width="14" height="20" rx="2"/>
+                <line x1="9" y1="7" x2="15" y2="7" strokeWidth="1"/>
+                <line x1="9" y1="10" x2="15" y2="10" strokeWidth="1"/>
+                <circle cx="12" cy="17" r="0.5" fill="rgba(255,255,255,0.4)"/>
+              </svg>
+            </div>
+            <h2 className="text-[16px] font-semibold mb-2">Desktop required</h2>
+            <p className="text-[13px] text-[rgba(255,255,255,0.4)] leading-relaxed mb-5">
+              AnimAI is built for desktop. Open{' '}
+              <span className="text-[rgba(255,255,255,0.7)]">animave.com</span>{' '}
+              on your computer to start creating.
+            </p>
+            <button
+              onClick={() => setShowWarning(false)}
+              className="w-full py-2.5 bg-[rgba(255,255,255,0.07)] text-[rgba(255,255,255,0.6)] text-[13px] rounded-xl"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
