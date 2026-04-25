@@ -37,7 +37,7 @@ export default function DashboardPage() {
       const [profileRes, projectsRes] = await Promise.all([
         supabase.from('users').select('credits, plan').eq('id', user.id).single(),
         supabase.from('projects').select('id, title, genre, style, scenes_count, has_videos, thumbnail_url, final_video_url, updated_at, created_at')
-          .eq('user_id', user.id).is('deleted_at', null).order('updated_at', { ascending: false }).limit(20),
+          .eq('user_id', user.id).order('updated_at', { ascending: false }).limit(20),
       ]);
 
       if (profileRes.data) { setCredits(profileRes.data.credits); setPlan(profileRes.data.plan); }
@@ -50,7 +50,7 @@ export default function DashboardPage() {
     e.preventDefault();
     e.stopPropagation();
     setDeletingId(id);
-    await supabase.from('projects').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+    await supabase.from('projects').delete().eq('id', id);
     setProjects(prev => prev.filter(p => p.id !== id));
     setDeletingId(null);
   };
@@ -76,9 +76,12 @@ export default function DashboardPage() {
           </div>
           <span className="text-[11px] text-[rgba(255,255,255,0.25)] border border-[rgba(255,255,255,0.06)] rounded-full px-2 py-0.5 capitalize">{plan}</span>
         </div>
-        <Link href="/billing" className="px-3 py-1.5 text-[12px] border border-[rgba(255,255,255,0.08)] rounded-lg text-[rgba(255,255,255,0.5)] hover:text-white hover:border-[rgba(255,255,255,0.15)] transition-all">
-          Buy Credits
-        </Link>
+        <div className="flex flex-col items-end gap-1.5">
+          <Link href="/billing" className="px-3 py-1.5 text-[12px] border border-[rgba(255,255,255,0.08)] rounded-lg text-[rgba(255,255,255,0.5)] hover:text-white hover:border-[rgba(255,255,255,0.15)] transition-all">
+            Buy Credits
+          </Link>
+          <span className="text-[10px] text-[rgba(255,255,255,0.2)]">Videos expire after 30 days</span>
+        </div>
       </div>
 
       {loading ? (
