@@ -145,7 +145,9 @@ function CreatePageInner() {
   const [storyTitle, setStoryTitle] = useState('');
 
   const [storyStyle, setStoryStyle] = useState<AnimStyle>('anime');
+  const [storyAspectRatio, setStoryAspectRatio] = useState<'9:16' | '16:9'>('9:16');
   const [customGenre, setCustomGenre] = useState<StoryGenre>('drama');
+  const [userCredits, setUserCredits] = useState<number | null>(null);
   const [storyNarratorVoiceId, setStoryNarratorVoiceId] = useState<string | null>(null);
   const [storyDuration, setStoryDuration] = useState<number>(3);
   const [storyStructure, setStoryStructure] = useState<'auto' | 'manual' | null>(null);
@@ -171,7 +173,16 @@ function CreatePageInner() {
   const [storyVideoPlaying, setStoryVideoPlaying] = useState(false);
   const searchParams = useSearchParams();
 
-  useEffect(() => { fetch('/api/voices').then(r => r.json()).then(setVoices).catch(() => {}); }, []);
+  useEffect(() => {
+    fetch('/api/voices').then(r => r.json()).then(setVoices).catch(() => {});
+    (async () => {
+      const sb = createClient();
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) return;
+      const { data } = await sb.from('users').select('credits').eq('id', user.id).single();
+      if (data) setUserCredits(data.credits);
+    })();
+  }, []);
 
   // ─── Load project from URL param ───
   useEffect(() => {
@@ -191,6 +202,7 @@ function CreatePageInner() {
       setStoryDuration(s.storyDuration ?? 3);
       setStoryNarratorVoiceId(s.storyNarratorVoiceId ?? null);
       setBlurFaces(s.blurFaces ?? false);
+      setStoryAspectRatio(s.storyAspectRatio ?? '9:16');
       setGlobalCameraMove(s.globalCameraMove ?? true);
       setGlobalNarrator(s.globalNarrator ?? true);
       setGlobalSubtitles(s.globalSubtitles ?? true);
@@ -212,11 +224,12 @@ function CreatePageInner() {
       const { data: { user } } = await sb.auth.getUser();
       if (!user) return;
       const state = {
-        storyTheme, storyTitle, storyStyle, customGenre, storyDuration,
+        storyTheme, storyTitle, storyStyle, storyAspectRatio, customGenre, storyDuration,
         storyNarratorVoiceId, blurFaces, globalCameraMove, globalNarrator,
         globalSubtitles, generatedScript, storyStep,
       };
       const hasVideos = generatedScript.some(s => s.videoUrl);
+      const thumbnailUrl = generatedScript.find(s => s.imageUrl)?.imageUrl ?? null;
       const meta = {
         user_id: user.id,
         title: storyTitle.trim() || 'Untitled',
@@ -225,6 +238,7 @@ function CreatePageInner() {
         state,
         scenes_count: generatedScript.length,
         has_videos: hasVideos,
+        thumbnail_url: thumbnailUrl,
       };
       if (projectId) {
         await sb.from('projects').update(meta).eq('id', projectId);
@@ -234,7 +248,7 @@ function CreatePageInner() {
       }
     }, 2000);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
-  }, [mode, storyTitle, storyStyle, customGenre, storyDuration, storyNarratorVoiceId,
+  }, [mode, storyTitle, storyStyle, storyAspectRatio, customGenre, storyDuration, storyNarratorVoiceId,
       blurFaces, globalCameraMove, globalNarrator, globalSubtitles, generatedScript, storyStep]);
 
   useEffect(() => {
@@ -518,7 +532,7 @@ function CreatePageInner() {
   const resetAll = () => {
     setStep(1); setChars([]); setScenes([]); setRes('720p');
     resetForm(); setJobId(null); setGenProgress(0); setGenStatus('idle'); setGenScenes([]); setFinalVideoUrl(null);
-    setMode('selecting'); setStoryTheme(null); setStoryStep(1); setStoryTitle(''); setProjectId(null);
+    setMode('selecting'); setStoryTheme(null); setStoryStep(1); setStoryTitle(''); setStoryAspectRatio('9:16'); setProjectId(null);
     setStoryStyle('anime'); setStoryNarratorVoiceId(null); setStoryDuration(3);
     setStoryStructure(null); setStoryGenerating(false); setStoryError(null); setGeneratedScript([]);
     setBlurFaces(false); setSelectedSceneId(null); setShowExport(false); setExportRes('720p');
@@ -597,7 +611,7 @@ function CreatePageInner() {
         scene_description: sc.sceneDescription,
         narrator_text: sc.narratorText || '',
         narrator_voice_id: storyNarratorVoiceId || null,
-        aspect_ratio: '9:16',
+        aspect_ratio: storyAspectRatio,
         scene_duration: 8,
         ken_burns: sc.kenBurns,
         include_narrator: sc.includeNarrator && !!storyNarratorVoiceId && !!sc.narratorText,
@@ -633,6 +647,7 @@ function CreatePageInner() {
         return;
       }
       setGeneratedScript(prev => prev.map(s => s.id === sceneId ? { ...s, generating: false, imageUrl: d.image_url || null, videoUrl: d.video_url || null } : s));
+      setUserCredits(prev => prev !== null ? Math.max(0, prev - (isRegen ? 25 : 50)) : prev);
     } catch {
       setGeneratedScript(prev => prev.map(s => s.id === sceneId ? { ...s, generating: false, error: 'Failed. Try again.' } : s));
     }
@@ -683,6 +698,10 @@ function CreatePageInner() {
           setGenStatus('completed');
           setFinalVideoUrl(d.final_video_url);
           setGenMessage('Tamamlandı!');
+          if (projectId) {
+            const sb = createClient();
+            await sb.from('projects').update({ final_video_url: d.final_video_url }).eq('id', projectId);
+          }
         } else {
           throw new Error(d.error || 'Merge failed');
         }
@@ -698,7 +717,7 @@ function CreatePageInner() {
               include_subtitles: ss.includeSubtitles,
             })),
             narrator_voice_id: storyNarratorVoiceId,
-            aspect_ratio: '9:16',
+            aspect_ratio: storyAspectRatio,
             scene_duration: 8,
           })
         });
@@ -828,6 +847,7 @@ function CreatePageInner() {
           <div className="max-w-[560px] mx-auto px-6 py-4 flex items-center">
             <button onClick={() => setMode('theme_select')} className="text-[11px] text-[rgba(255,255,255,0.25)] hover:text-white mr-3 flex-shrink-0 transition-colors">←</button>
             <span className="text-[10px] font-medium text-[rgba(255,255,255,0.45)] bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.08)] px-2 py-0.5 rounded mr-3 flex-shrink-0">{themeLabel}</span>
+            {userCredits !== null && <span className="text-[10px] text-[rgba(255,255,255,0.3)] border border-[rgba(255,255,255,0.06)] px-2 py-0.5 rounded mr-3 flex-shrink-0 ml-auto">{userCredits.toLocaleString()} cr</span>}
             {[{ n: 1, l: 'Setup' }, { n: 2, l: 'Structure' }, { n: 3, l: 'Timeline' }].map((s, i) => (
               <div key={s.n} className="flex items-center flex-1 last:flex-initial">
                 <button onClick={() => { if (s.n <= storyStep) setStoryStep(s.n as 1|2|3); }} className="flex items-center gap-2">
@@ -861,6 +881,25 @@ function CreatePageInner() {
                     <div>
                       <span className="text-[12px] text-[rgba(255,255,255,0.6)]">Blur faces</span>
                       <span className="text-[10px] text-[rgba(255,255,255,0.25)] ml-2">Recommended for crime & mystery</span>
+                    </div>
+                  </div>
+                  {/* Aspect ratio */}
+                  <div>
+                    <h2 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px] mb-2">Format</h2>
+                    <div className="flex gap-2">
+                      {([
+                        { value: '9:16', label: 'Vertical', sub: 'TikTok / Reels', icon: 'M7 2h10a1 1 0 011 1v18a1 1 0 01-1 1H7a1 1 0 01-1-1V3a1 1 0 011-1z' },
+                        { value: '16:9', label: 'Horizontal', sub: 'YouTube', icon: 'M2 7h20a1 1 0 011 1v8a1 1 0 01-1 1H2a1 1 0 01-1-1V8a1 1 0 011-1z' },
+                      ] as const).map(r => (
+                        <button key={r.value} onClick={() => setStoryAspectRatio(r.value)}
+                          className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border flex-1 transition-all ${storyAspectRatio === r.value ? 'border-white bg-[rgba(255,255,255,0.05)]' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.16)]'}`}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={storyAspectRatio === r.value ? 'white' : 'rgba(255,255,255,0.3)'} strokeWidth="1.5"><path d={r.icon}/></svg>
+                          <div className="text-left">
+                            <div className={`text-[12px] font-medium ${storyAspectRatio === r.value ? 'text-white' : 'text-[rgba(255,255,255,0.5)]'}`}>{r.label}</div>
+                            <div className="text-[10px] text-[rgba(255,255,255,0.25)]">{r.sub}</div>
+                          </div>
+                        </button>
+                      ))}
                     </div>
                   </div>
                   {/* Global feature toggles */}
@@ -1021,7 +1060,7 @@ function CreatePageInner() {
                       ) : selectedScene?.imageUrl ? (
                         <img src={selectedScene.imageUrl} alt="" className="max-w-full max-h-full rounded-lg object-contain" />
                       ) : (
-                        <div className="w-full aspect-[9/16] max-w-[280px] bg-[#0a0a0a] rounded-lg border border-[rgba(255,255,255,0.05)] flex items-center justify-center">
+                        <div className={`w-full ${storyAspectRatio === '9:16' ? 'aspect-[9/16] max-w-[280px]' : 'aspect-[16/9] max-w-[420px]'} bg-[#0a0a0a] rounded-lg border border-[rgba(255,255,255,0.05)] flex items-center justify-center`}>
                           {selectedScene?.generating ? (<div className="flex flex-col items-center gap-2"><div className="w-6 h-6 rounded-full border-2 border-[rgba(255,255,255,0.06)] border-t-[rgba(255,255,255,0.3)] animate-spin" /><span className="text-[10px] text-[rgba(255,255,255,0.2)]">Generating...</span></div>
                           ) : (<span className="text-[14px] text-[rgba(255,255,255,0.08)] font-medium">{selectedScene ? selectedScene.sceneNumber : ''}</span>)}
                         </div>

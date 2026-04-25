@@ -113,6 +113,8 @@ create table public.projects (
   state jsonb not null default '{}',
   scenes_count integer not null default 0,
   has_videos boolean not null default false,
+  thumbnail_url text,
+  final_video_url text,
   updated_at timestamptz not null default now(),
   created_at timestamptz not null default now()
 );

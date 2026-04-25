@@ -12,7 +12,8 @@ interface AnimRow {
 
 interface ProjectRow {
   id: string; title: string; genre: string | null; style: string | null;
-  scenes_count: number; has_videos: boolean; updated_at: string; created_at: string;
+  scenes_count: number; has_videos: boolean; thumbnail_url: string | null;
+  final_video_url: string | null; updated_at: string; created_at: string;
 }
 
 const st: Record<AnimationStatus, { cls: string; label: string }> = {
@@ -52,7 +53,7 @@ export default function DashboardPage() {
         supabase.from('users').select('credits, plan').eq('id', user.id).single(),
         supabase.from('animations').select('id, title, status, created_at, scenes_count, resolution, job_id')
           .eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
-        supabase.from('projects').select('id, title, genre, style, scenes_count, has_videos, updated_at, created_at')
+        supabase.from('projects').select('id, title, genre, style, scenes_count, has_videos, thumbnail_url, final_video_url, updated_at, created_at')
           .eq('user_id', user.id).order('updated_at', { ascending: false }).limit(20),
       ]);
 
@@ -117,11 +118,16 @@ export default function DashboardPage() {
                   <Link key={p.id} href={`/create?projectId=${p.id}`}
                     className="relative border border-[rgba(255,255,255,0.08)] rounded-xl overflow-hidden bg-[#0a0a0a] hover:border-[rgba(255,255,255,0.15)] hover:-translate-y-[1px] transition-all group block">
                     {/* Thumb */}
-                    <div className="aspect-video bg-gradient-to-br from-[#0f0f0f] to-[#1a1a1a] relative flex items-center justify-center">
-                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10,9 9,9 8,9"/></svg>
+                    <div className="aspect-video bg-gradient-to-br from-[#0f0f0f] to-[#1a1a1a] relative flex items-center justify-center overflow-hidden">
+                      {p.thumbnail_url
+                        ? <img src={p.thumbnail_url} alt="" className="w-full h-full object-cover" />
+                        : <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10,9 9,9 8,9"/></svg>
+                      }
                       {/* Status pill */}
                       <div className="absolute top-2 left-2">
-                        {p.has_videos
+                        {p.final_video_url
+                          ? <span className="text-[9px] font-medium bg-[rgba(74,222,128,0.15)] text-[rgba(74,222,128,0.8)] px-1.5 py-0.5 rounded-full">✓ Exported</span>
+                          : p.has_videos
                           ? <span className="text-[9px] font-medium bg-[rgba(74,222,128,0.12)] text-[rgba(74,222,128,0.7)] px-1.5 py-0.5 rounded-full">{p.scenes_count} scenes ready</span>
                           : p.scenes_count > 0
                           ? <span className="text-[9px] font-medium bg-[rgba(250,204,21,0.1)] text-[rgba(250,204,21,0.6)] px-1.5 py-0.5 rounded-full">{p.scenes_count} scenes</span>
