@@ -279,6 +279,13 @@ function CreatePageInner() {
     }
   }, [step, scenes, activeSceneId]);
 
+  // ─── Keep a story scene selected while in the timeline editor ───
+  useEffect(() => {
+    if (storyStep === 3 && generatedScript.length > 0 && !generatedScript.some(s => s.id === selectedSceneId)) {
+      setSelectedSceneId(generatedScript[0].id);
+    }
+  }, [storyStep, generatedScript, selectedSceneId]);
+
   const toggleFilter = useCallback((key: string) => {
     setActiveFilters(prev => { const n = new Set(prev); if (n.has(key)) n.delete(key); else n.add(key); return n; });
   }, []);
@@ -666,11 +673,19 @@ function CreatePageInner() {
 
   const approveStoryScene = (id: string) => setGeneratedScript(prev => prev.map(s => s.id === id ? { ...s, approved: true } : s));
   const unapproveStoryScene = (id: string) => setGeneratedScript(prev => prev.map(s => s.id === id ? { ...s, approved: false } : s));
+  const removeStoryScene = (id: string) => {
+    const idx = generatedScript.findIndex(s => s.id === id);
+    const remaining = generatedScript.filter(s => s.id !== id);
+    setGeneratedScript(remaining.map((s, i) => ({ ...s, sceneNumber: i + 1 })));
+    if (id === selectedSceneId) {
+      const next = remaining[Math.min(idx, remaining.length - 1)];
+      setSelectedSceneId(next ? next.id : null);
+    }
+  };
 
   const selectedScene = generatedScript.find(s => s.id === selectedSceneId) || null;
   const selectedSceneIdx = generatedScript.findIndex(s => s.id === selectedSceneId);
   const storyHasApproved = generatedScript.some(s => s.approved || s.imageUrl);
-  const navigateScene = (d: number) => { const ni = selectedSceneIdx + d; if (ni >= 0 && ni < generatedScript.length) setSelectedSceneId(generatedScript[ni].id); };
 
   const downloadVideo = (url: string, filename: string) => {
     const a = document.createElement('a');
@@ -1038,65 +1053,59 @@ function CreatePageInner() {
                 )}
 
                 {/* TOP BAR */}
-                <div className="flex-shrink-0 h-[48px] border-b border-[rgba(255,255,255,0.08)] px-5 flex items-center justify-between bg-[#0a0a0a]">
-                  <div className="flex items-center gap-3">
-                    <button onClick={() => setStoryStep(2)} className="text-[11px] text-[rgba(255,255,255,0.3)] hover:text-white transition-colors">← Back</button>
-                    <span className="text-[10px] text-[rgba(255,255,255,0.35)] bg-[rgba(255,255,255,0.04)] px-2 py-0.5 rounded">{themeLabel}</span>
-                    <span className="text-[11px] text-[rgba(255,255,255,0.25)]">{generatedScript.length} scenes</span>
-                  </div>
-                  <button onClick={() => setShowExport(true)} disabled={!storyHasApproved}
-                    className="px-4 py-1.5 bg-white text-black text-[11px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-15 disabled:cursor-not-allowed transition-all">Export →</button>
+                <div className="flex-shrink-0 h-[48px] border-b border-[rgba(255,255,255,0.08)] px-5 flex items-center gap-3 bg-[#0a0a0a]">
+                  <button onClick={() => setStoryStep(2)} className="text-[11px] text-[rgba(255,255,255,0.3)] hover:text-white transition-colors">← Back</button>
+                  <span className="text-[10px] text-[rgba(255,255,255,0.35)] bg-[rgba(255,255,255,0.04)] px-2 py-0.5 rounded">{themeLabel}</span>
+                  <span className="text-[11px] text-[rgba(255,255,255,0.25)]">{generatedScript.length} scenes</span>
                 </div>
 
                 {/* MAIN: Preview + Editor */}
-                <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
-                  {/* LEFT — Video Preview */}
-                  <div className="md:w-[52%] flex flex-col bg-[#080808] relative">
-                    <div className="flex-1 flex items-center justify-center p-3 relative overflow-hidden">
-                      {selectedScene?.videoUrl ? (
-                        <video
-                          ref={storyVideoRef}
-                          src={selectedScene.videoUrl}
-                          loop
-                          playsInline
-                          onPlay={() => setStoryVideoPlaying(true)}
-                          onPause={() => setStoryVideoPlaying(false)}
-                          className="max-w-full max-h-full rounded-lg object-contain cursor-pointer"
-                          onClick={() => {
-                            const v = storyVideoRef.current;
-                            if (!v) return;
-                            storyVideoPlaying ? v.pause() : v.play();
-                          }}
-                        />
-                      ) : selectedScene?.imageUrl ? (
-                        <img src={selectedScene.imageUrl} alt="" className="max-w-full max-h-full rounded-lg object-contain" />
-                      ) : (
-                        <div className={`w-full ${storyAspectRatio === '9:16' ? 'aspect-[9/16] max-w-[280px]' : 'aspect-[16/9] max-w-[420px]'} bg-[#0a0a0a] rounded-lg border border-[rgba(255,255,255,0.05)] flex items-center justify-center`}>
-                          {selectedScene?.generating ? (<div className="flex flex-col items-center gap-2"><div className="w-6 h-6 rounded-full border-2 border-[rgba(255,255,255,0.06)] border-t-[rgba(255,255,255,0.3)] animate-spin" /><span className="text-[10px] text-[rgba(255,255,255,0.2)]">Generating...</span></div>
-                          ) : (<span className="text-[14px] text-[rgba(255,255,255,0.08)] font-medium">{selectedScene ? selectedScene.sceneNumber : ''}</span>)}
-                        </div>
+                <div className="flex-1 flex min-h-0 overflow-hidden">
+                  {/* PREVIEW */}
+                  <div className="flex-1 flex flex-col min-w-0 p-5 md:p-7">
+                    <div className="flex items-center justify-between mb-4 flex-shrink-0">
+                      <span className="text-[11px] font-medium text-[rgba(255,255,255,0.5)] bg-[rgba(255,255,255,0.05)] px-2.5 py-1 rounded-md uppercase tracking-wider">Scene {selectedSceneIdx + 1}</span>
+                      {selectedScene?.approved && (
+                        <span className="flex items-center gap-1 text-[11px] text-[rgba(74,222,128,0.8)] font-medium">
+                          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3,8 6.5,11.5 13,5"/></svg>
+                          Approved
+                        </span>
                       )}
-                      {selectedScene && <span className="absolute top-5 left-5 text-[9px] font-medium text-[rgba(255,255,255,0.3)] bg-[rgba(0,0,0,0.5)] px-2 py-0.5 rounded">Scene {selectedSceneIdx + 1} / {generatedScript.length}</span>}
                     </div>
-                    {/* Nav bar */}
-                    <div className="flex-shrink-0 h-[40px] bg-gradient-to-t from-black/80 to-transparent flex items-center justify-center gap-5 absolute bottom-0 left-0 right-0">
-                      <button onClick={() => navigateScene(-1)} disabled={selectedSceneIdx <= 0} className="text-[rgba(255,255,255,0.3)] hover:text-white disabled:opacity-20 transition-colors"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><polygon points="10,2 4,8 10,14"/></svg></button>
-                      {selectedScene?.videoUrl ? (
-                        <button onClick={() => { const v = storyVideoRef.current; if (!v) return; storyVideoPlaying ? v.pause() : v.play(); }} className="text-[rgba(255,255,255,0.5)] hover:text-white transition-colors">
-                          {storyVideoPlaying
-                            ? <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="2" width="4" height="12"/><rect x="9" y="2" width="4" height="12"/></svg>
-                            : <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><polygon points="3,1 14,8 3,15"/></svg>
-                          }
-                        </button>
-                      ) : (
-                        <span className="text-[10px] text-[rgba(255,255,255,0.35)] tabular-nums">{selectedSceneIdx + 1} of {generatedScript.length}</span>
-                      )}
-                      <button onClick={() => navigateScene(1)} disabled={selectedSceneIdx >= generatedScript.length - 1} className="text-[rgba(255,255,255,0.3)] hover:text-white disabled:opacity-20 transition-colors"><svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><polygon points="6,2 12,8 6,14"/></svg></button>
+                    <div className="flex-1 flex items-center justify-center min-h-0">
+                      <div className={`relative rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#0d0d0d] overflow-hidden flex items-center justify-center ${storyAspectRatio === '9:16' ? 'aspect-[9/16] h-full max-h-[58vh]' : 'aspect-video w-full max-w-[760px]'}`}>
+                        {selectedScene?.videoUrl ? (
+                          <video ref={storyVideoRef} src={selectedScene.videoUrl} loop playsInline
+                            onPlay={() => setStoryVideoPlaying(true)} onPause={() => setStoryVideoPlaying(false)}
+                            className="w-full h-full object-cover cursor-pointer"
+                            onClick={() => { const v = storyVideoRef.current; if (!v) return; storyVideoPlaying ? v.pause() : v.play(); }} />
+                        ) : selectedScene?.imageUrl ? (
+                          <img src={selectedScene.imageUrl} alt="" className="w-full h-full object-cover" />
+                        ) : selectedScene?.generating ? (
+                          <div className="flex flex-col items-center gap-3">
+                            <div className="w-8 h-8 rounded-full border-2 border-[rgba(255,255,255,0.08)] border-t-white animate-spin" />
+                            <span className="text-[12px] text-[rgba(255,255,255,0.4)]">Generating preview…</span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center gap-2.5 px-8 text-center">
+                            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1"><rect x="2" y="3" width="20" height="14" rx="2"/><polygon points="9,7 16,10.5 9,14" fill="rgba(255,255,255,0.08)" stroke="none"/></svg>
+                            <span className="text-[12px] text-[rgba(255,255,255,0.28)]">{selectedScene?.sceneDescription.trim() ? 'Ready to generate' : 'Describe the scene to start'}</span>
+                          </div>
+                        )}
+                        {selectedScene?.videoUrl && (
+                          <button onClick={() => { const v = storyVideoRef.current; if (!v) return; storyVideoPlaying ? v.pause() : v.play(); }}
+                            className="absolute bottom-3 left-1/2 -translate-x-1/2 w-9 h-9 rounded-full bg-black/55 backdrop-blur flex items-center justify-center text-white hover:bg-black/75 transition-all">
+                            {storyVideoPlaying
+                              ? <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="2" width="4" height="12"/><rect x="9" y="2" width="4" height="12"/></svg>
+                              : <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><polygon points="3,1 14,8 3,15"/></svg>}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  {/* RIGHT — Scene Editor */}
-                  <div className="md:w-[48%] border-t md:border-t-0 md:border-l border-[rgba(255,255,255,0.08)] overflow-y-auto bg-[#0f0f0f]">
+                  {/* INSPECTOR — Scene Editor */}
+                  <div className="w-[360px] flex-shrink-0 border-l border-[rgba(255,255,255,0.08)] overflow-y-auto bg-[#080808]">
                     {selectedScene ? (
                       <div className="p-5 flex flex-col gap-4">
                         <input value={selectedScene.title} onChange={e => updateScriptScene(selectedScene.id, { title: e.target.value })} className="bg-transparent text-[15px] font-medium text-white outline-none border-b border-transparent focus:border-[rgba(255,255,255,0.1)] pb-1 transition-colors" />
@@ -1147,22 +1156,38 @@ function CreatePageInner() {
                   </div>
                 </div>
 
-                {/* TIMELINE STRIP */}
-                <div className="flex-shrink-0 h-[100px] border-t border-[rgba(255,255,255,0.08)] bg-[#0a0a0a] flex items-center overflow-x-auto px-3 gap-2">
-                  {generatedScript.map((ss, idx) => (
-                    <div key={ss.id} draggable onDragStart={() => { storyDragI.current = idx; }} onDragEnter={() => { storyDragO.current = idx; }} onDragEnd={onStoryDragEnd} onDragOver={e => e.preventDefault()}
-                      onClick={() => setSelectedSceneId(ss.id)}
-                      className={`flex-shrink-0 w-[90px] h-[76px] rounded-lg border cursor-pointer transition-all flex flex-col overflow-hidden ${ss.id === selectedSceneId ? 'border-white border-[1.5px]' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.2)]'} ${ss.generating ? 'animate-pulse' : ''}`}>
-                      <div className="h-[52px] bg-[#111] flex items-center justify-center relative overflow-hidden">
-                        {ss.videoUrl ? <video src={ss.videoUrl} muted loop autoPlay playsInline className="w-full h-full object-cover" /> : ss.imageUrl ? <img src={ss.imageUrl} alt="" className="w-full h-full object-cover" /> : <span className="text-[12px] text-[rgba(255,255,255,0.12)] font-medium">{ss.sceneNumber}</span>}
-                        {ss.approved && <div className="absolute top-1 right-1 w-3 h-3 rounded-full bg-[rgba(74,222,128,0.2)] flex items-center justify-center"><div className="w-1.5 h-1.5 rounded-full bg-[rgba(74,222,128,0.7)]" /></div>}
-                      </div>
-                      <div className="h-[24px] bg-[#111] flex items-center justify-center px-1 border-t border-[rgba(255,255,255,0.04)]"><span className="text-[9px] text-[rgba(255,255,255,0.3)] truncate">{ss.title}</span></div>
-                    </div>
-                  ))}
-                  <button onClick={addStoryScene} className="flex-shrink-0 w-[90px] h-[76px] rounded-lg border border-dashed border-[rgba(255,255,255,0.08)] flex items-center justify-center hover:border-[rgba(255,255,255,0.18)] transition-all">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5"><path d="M12 5v14M5 12h14"/></svg>
-                  </button>
+                {/* FILM STRIP */}
+                <div className="flex-shrink-0 border-t border-[rgba(255,255,255,0.08)] bg-[#0a0a0a] px-5 md:px-7 py-3.5 flex items-center gap-4">
+                  <div className="flex-1 flex items-center gap-2.5 overflow-x-auto pb-1">
+                    {generatedScript.map((ss, idx) => {
+                      const isActive = ss.id === selectedSceneId;
+                      return (
+                        <div key={ss.id} className="relative group flex-shrink-0"
+                          draggable onDragStart={() => { storyDragI.current = idx; }} onDragEnter={() => { storyDragO.current = idx; }} onDragEnd={onStoryDragEnd} onDragOver={e => e.preventDefault()}>
+                          <button onClick={() => setSelectedSceneId(ss.id)}
+                            className={`relative ${storyAspectRatio === '9:16' ? 'w-[54px]' : 'w-[116px]'} rounded-lg border overflow-hidden transition-all ${isActive ? 'border-white' : 'border-[rgba(255,255,255,0.1)] hover:border-[rgba(255,255,255,0.25)]'} ${ss.generating ? 'animate-pulse' : ''}`}>
+                            <div className={`${storyAspectRatio === '9:16' ? 'aspect-[9/16]' : 'aspect-video'} bg-[#131313] flex items-center justify-center`}>
+                              {ss.videoUrl ? <video src={ss.videoUrl} muted loop autoPlay playsInline className="w-full h-full object-cover" /> : ss.imageUrl ? <img src={ss.imageUrl} alt="" className="w-full h-full object-cover" /> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1.2"><rect x="2" y="3" width="20" height="14" rx="2"/></svg>}
+                            </div>
+                            <span className="absolute top-1 left-1 text-[9px] font-medium text-white bg-black/60 px-1.5 py-0.5 rounded">{idx + 1}</span>
+                            {ss.approved && <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[rgba(74,222,128,0.85)] flex items-center justify-center"><svg width="8" height="8" viewBox="0 0 16 16" fill="none" stroke="black" strokeWidth="3"><polyline points="3,8 6.5,11.5 13,5"/></svg></span>}
+                          </button>
+                          {generatedScript.length > 1 && (
+                            <button onClick={() => removeStoryScene(ss.id)}
+                              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-black border border-[rgba(255,255,255,0.15)] items-center justify-center text-[rgba(255,255,255,0.5)] hover:text-white hover:border-[rgba(255,255,255,0.35)] text-[10px] hidden group-hover:flex">×</button>
+                          )}
+                        </div>
+                      );
+                    })}
+                    <button onClick={addStoryScene} className={`${storyAspectRatio === '9:16' ? 'w-[54px] aspect-[9/16]' : 'w-[116px] aspect-video'} flex-shrink-0 rounded-lg border border-dashed border-[rgba(255,255,255,0.12)] flex flex-col items-center justify-center gap-1 hover:border-[rgba(255,255,255,0.25)] transition-all`}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"><path d="M12 5v14M5 12h14"/></svg>
+                      <span className="text-[9px] text-[rgba(255,255,255,0.3)]">{storyAspectRatio === '9:16' ? 'Add' : 'Add Scene'}</span>
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <span className="text-[11px] text-[rgba(255,255,255,0.35)]">{generatedScript.filter(s => s.approved).length}/{generatedScript.length} approved</span>
+                    <button onClick={() => setShowExport(true)} disabled={!storyHasApproved} className="px-5 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-15 disabled:cursor-not-allowed transition-all">Export →</button>
+                  </div>
                 </div>
               </>)}
             </div>
