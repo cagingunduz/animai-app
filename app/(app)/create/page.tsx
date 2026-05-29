@@ -128,6 +128,7 @@ function CreatePageInner() {
   const [genDone, setGenDone] = useState(false);
   const [editingChar, setEditingChar] = useState<CharDef | null>(null);
   const [pendingChar, setPendingChar] = useState<CharDef | null>(null);
+  const [activeSceneId, setActiveSceneId] = useState<string | null>(null);
 
   const [jobId, setJobId] = useState<string | null>(null);
   const [genProgress, setGenProgress] = useState(0);
@@ -265,11 +266,18 @@ function CreatePageInner() {
       if (newChars.length === 0) return sc;
       const startSlot = sc.characterPlacements.length;
       const newPlacements: CharPlacement[] = newChars.map((c, i) => ({
-        slot: startSlot + i, characterId: c.id, role: 'speaking' as const, dialogue: ''
+        slot: startSlot + i, characterId: c.id, role: 'silent' as const, dialogue: ''
       }));
       return { ...sc, characterPlacements: [...sc.characterPlacements, ...newPlacements] };
     }));
   }, [chars]);
+
+  // ─── Keep an active scene selected while on the Scenes step ───
+  useEffect(() => {
+    if (step === 2 && scenes.length > 0 && !scenes.some(s => s.id === activeSceneId)) {
+      setActiveSceneId(scenes[0].id);
+    }
+  }, [step, scenes, activeSceneId]);
 
   const toggleFilter = useCallback((key: string) => {
     setActiveFilters(prev => { const n = new Set(prev); if (n.has(key)) n.delete(key); else n.add(key); return n; });
@@ -342,19 +350,22 @@ function CreatePageInner() {
   };
 
   const addScene = () => {
+    const newId = uid();
     const firstBgId = uid();
+    const inheritAspect: AspectRatio = scenes[scenes.length - 1]?.aspectRatio ?? '16:9';
     const slots: CharPlacement[] = chars.map((c, i) => ({
-      slot: i, characterId: c.id, role: 'speaking' as const, dialogue: '',
+      slot: i, characterId: c.id, role: 'silent' as const, dialogue: '',
     }));
     setScenes(prev => [...prev, {
-      id: uid(), description: '', aspectRatio: '16:9',
-      characters: chars.map(c => ({ characterId: c.id, role: 'speaking' as const, dialogue: '' })),
+      id: newId, description: '', aspectRatio: inheritAspect,
+      characters: chars.map(c => ({ characterId: c.id, role: 'silent' as const, dialogue: '' })),
       generating: false, approved: false, imageUrl: null, error: null,
       backgrounds: [{ id: firstBgId, description: '', photoUrl: null }],
       selectedBackgroundId: firstBgId,
       expandedBgId: firstBgId,
       characterPlacements: slots,
     }]);
+    setActiveSceneId(newId);
   };
 
   const upScene = (id: string, u: Partial<SceneDef>) => setScenes(p => p.map(s => s.id === id ? { ...s, ...u } : s));
@@ -373,26 +384,25 @@ function CreatePageInner() {
     }));
   };
 
-  const addBg = (sid: string) => {
-    const newId = uid();
-    setScenes(p => p.map(s => s.id !== sid ? s : {
-      ...s,
-      backgrounds: [...s.backgrounds, { id: newId, description: '', photoUrl: null }],
-      expandedBgId: newId,
+  // Add / remove a character from a scene's cast (no speaking/silent role — derived from dialogue)
+  const toggleCast = (sid: string, charId: string) => {
+    setScenes(p => p.map(s => {
+      if (s.id !== sid) return s;
+      const existing = s.characterPlacements.find(cp => cp.characterId === charId);
+      if (existing) {
+        return { ...s, characterPlacements: s.characterPlacements.map(cp => cp.characterId === charId ? { ...cp, characterId: null, dialogue: '', role: 'silent' as const } : cp) };
+      }
+      const empty = s.characterPlacements.find(cp => cp.characterId === null);
+      if (empty) {
+        return { ...s, characterPlacements: s.characterPlacements.map(cp => cp.slot === empty.slot ? { ...cp, characterId: charId, dialogue: '', role: 'silent' as const } : cp) };
+      }
+      return { ...s, characterPlacements: [...s.characterPlacements, { slot: s.characterPlacements.length, characterId: charId, role: 'silent' as const, dialogue: '' }] };
     }));
   };
 
   const upBg = (sid: string, bgId: string, u: Partial<SceneBg>) => {
     setScenes(p => p.map(s => s.id !== sid ? s : {
       ...s, backgrounds: s.backgrounds.map(b => b.id === bgId ? { ...b, ...u } : b),
-    }));
-  };
-
-  const removeBg = (sid: string, bgId: string) => {
-    setScenes(p => p.map(s => {
-      if (s.id !== sid) return s;
-      const filtered = s.backgrounds.filter(b => b.id !== bgId);
-      return { ...s, backgrounds: filtered, selectedBackgroundId: s.selectedBackgroundId === bgId ? (filtered[0]?.id || null) : s.selectedBackgroundId, expandedBgId: s.expandedBgId === bgId ? null : s.expandedBgId };
     }));
   };
 
@@ -512,9 +522,10 @@ function CreatePageInner() {
         characters: chars.map(c => ({ id: c.id, description: c.prompt, style: c.style, photo_url: null })),
         scenes: approvedScenes.map(sc => ({
           scene_text: sc.description, aspect_ratio: sc.aspectRatio,
-          characters: sc.characters.map(scr => ({
-            character_id: scr.characterId, role: scr.role, dialogue: scr.dialogue || null,
-            voice_id: chars.find(c => c.id === scr.characterId)?.voiceId || null, framing: 'full_body'
+          characters: sc.characterPlacements.filter(cp => cp.characterId).map(cp => ({
+            character_id: cp.characterId, role: cp.dialogue.trim() ? 'speaking' : 'silent',
+            dialogue: cp.dialogue.trim() || null,
+            voice_id: chars.find(c => c.id === cp.characterId)?.voiceId || null, framing: 'full_body'
           }))
         })),
         resolution: res, lipsync: false
@@ -1342,210 +1353,210 @@ function CreatePageInner() {
         )}
 
         {/* STEP 2 */}
-        {step === 2 && (
-          <div className="flex-1 overflow-y-auto">
-            <div className="max-w-[820px] mx-auto px-5 md:px-7 py-7 animate-[fadeIn_0.3s_ease]">
-              {scenes.map((sc, idx) => {
-                const selBg = sc.backgrounds.find(b => b.id === sc.selectedBackgroundId);
-                const placedChars = sc.characterPlacements.filter(cp => cp.characterId);
-                const canGenerate = !!selBg?.description?.trim() && placedChars.length > 0;
+        {step === 2 && (() => {
+          const sc = scenes.find(s => s.id === activeSceneId) ?? scenes[0];
+          if (!sc) {
+            return (
+              <div className="flex-1 flex flex-col items-center justify-center gap-4 animate-[fadeIn_0.3s_ease]">
+                <p className="text-[13px] text-[rgba(255,255,255,0.4)]">No scenes yet.</p>
+                <button onClick={addScene} className="px-4 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 transition-all">+ Create your first scene</button>
+              </div>
+            );
+          }
+          const idx = scenes.findIndex(s => s.id === sc.id);
+          const bg = sc.backgrounds[0];
+          const placed = sc.characterPlacements.filter(cp => cp.characterId);
+          const canGenerate = !!bg?.description?.trim() && placed.length > 0;
+          const aspectBox = sc.aspectRatio === '9:16'
+            ? 'aspect-[9/16] h-full max-h-[58vh]'
+            : sc.aspectRatio === '1:1'
+            ? 'aspect-square max-h-[58vh]'
+            : 'aspect-video w-full max-w-[760px]';
 
-                return (
-                  <div key={sc.id} className={`mb-6 border rounded-xl transition-all ${sc.approved ? 'border-[rgba(74,222,128,0.2)] bg-[rgba(74,222,128,0.02)]' : 'border-[rgba(255,255,255,0.08)] bg-[#0f0f0f]'}`}>
-                    <div className="flex items-center gap-2.5 p-5 pb-0">
-                      <span className="text-[10px] font-medium text-[rgba(255,255,255,0.35)] bg-[rgba(255,255,255,0.04)] px-2 py-0.5 rounded uppercase tracking-wider">Scene {idx + 1}</span>
-                      {sc.approved && <span className="flex items-center gap-1 text-[10px] text-[rgba(74,222,128,0.7)] font-medium"><svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3,8 6.5,11.5 13,5"/></svg>Approved</span>}
-                      {sc.approved ? (
-                        <button onClick={() => editScene(sc.id)} className="text-[10px] text-[rgba(255,255,255,0.35)] hover:text-white ml-auto">Edit</button>
-                      ) : scenes.length > 1 ? (
-                        <button onClick={() => setScenes(p => p.filter(s => s.id !== sc.id))} className="text-[10px] text-[rgba(248,113,113,0.4)] hover:text-[rgba(248,113,113,0.7)] ml-auto">Remove</button>
-                      ) : null}
+          return (
+            <div className="flex-1 flex flex-col min-h-0 animate-[fadeIn_0.3s_ease]">
+
+              {/* ── MAIN: preview (left) + inspector (right) ── */}
+              <div className="flex-1 flex min-h-0 overflow-hidden">
+
+                {/* PREVIEW */}
+                <div className="flex-1 flex flex-col min-w-0 p-5 md:p-7">
+                  <div className="flex items-center justify-between mb-4 flex-shrink-0">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-[11px] font-medium text-[rgba(255,255,255,0.5)] bg-[rgba(255,255,255,0.05)] px-2.5 py-1 rounded-md uppercase tracking-wider">Scene {idx + 1}</span>
+                      {sc.approved && (
+                        <span className="flex items-center gap-1 text-[11px] text-[rgba(74,222,128,0.8)] font-medium">
+                          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3,8 6.5,11.5 13,5"/></svg>
+                          Approved
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      {(['16:9', '9:16', '1:1'] as AspectRatio[]).map(r => (
+                        <button key={r} onClick={() => upScene(sc.id, { aspectRatio: r })} disabled={sc.approved}
+                          className={`px-2.5 py-1 text-[10px] rounded-md border transition-all disabled:opacity-40 disabled:cursor-not-allowed ${sc.aspectRatio === r ? 'border-white bg-[rgba(255,255,255,0.06)] text-white' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.35)] hover:text-[rgba(255,255,255,0.6)]'}`}>
+                          {r}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex-1 flex items-center justify-center min-h-0">
+                    <div className={`relative rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#0d0d0d] overflow-hidden flex items-center justify-center ${aspectBox}`}>
+                      {sc.generating ? (
+                        <div className="flex flex-col items-center gap-3">
+                          <div className="w-8 h-8 rounded-full border-2 border-[rgba(255,255,255,0.08)] border-t-white animate-spin" />
+                          <span className="text-[12px] text-[rgba(255,255,255,0.4)]">Generating preview…</span>
+                        </div>
+                      ) : sc.imageUrl ? (
+                        <img src={sc.imageUrl} alt={`Scene ${idx + 1}`} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="flex flex-col items-center gap-2.5 px-8 text-center">
+                          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1"><rect x="2" y="3" width="20" height="14" rx="2"/><polygon points="9,7 16,10.5 9,14" fill="rgba(255,255,255,0.08)" stroke="none"/></svg>
+                          <span className="text-[12px] text-[rgba(255,255,255,0.28)]">{canGenerate ? 'Ready to generate' : 'Add a background and cast to start'}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-center gap-2.5 mt-4 flex-shrink-0 min-h-[40px]">
+                    {sc.error && !sc.generating && <span className="text-[12px] text-[rgba(248,113,113,0.7)] mr-1">{sc.error}</span>}
+                    {sc.generating ? null : sc.approved ? (
+                      <button onClick={() => editScene(sc.id)} className="px-4 py-2 border border-[rgba(255,255,255,0.12)] rounded-lg text-[12px] text-[rgba(255,255,255,0.6)] hover:text-white hover:border-[rgba(255,255,255,0.2)] transition-all">Edit scene</button>
+                    ) : sc.imageUrl ? (
+                      <>
+                        <button onClick={() => generateScenePreview(sc.id)} className="px-4 py-2 border border-[rgba(255,255,255,0.1)] rounded-lg text-[12px] text-[rgba(255,255,255,0.55)] hover:text-white hover:border-[rgba(255,255,255,0.18)] transition-all">Regenerate</button>
+                        <button onClick={() => approveScene(sc.id)} className="px-5 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 transition-all">Approve ✓</button>
+                      </>
+                    ) : (
+                      <button onClick={() => generateScenePreview(sc.id)} disabled={!canGenerate} className="px-5 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-15 disabled:cursor-not-allowed transition-all">Generate Preview</button>
+                    )}
+                  </div>
+                </div>
+
+                {/* INSPECTOR */}
+                <div className="w-[340px] flex-shrink-0 border-l border-[rgba(255,255,255,0.08)] flex flex-col min-h-0 overflow-y-auto bg-[#080808]">
+                  <div className="p-5 flex flex-col gap-6">
+
+                    {/* BACKGROUND */}
+                    <div>
+                      <h3 className="text-[11px] font-medium text-[rgba(255,255,255,0.5)] uppercase tracking-[1.5px] mb-2.5">Background</h3>
+                      <textarea value={bg?.description ?? ''} onChange={e => bg && upBg(sc.id, bg.id, { description: e.target.value })} disabled={sc.approved}
+                        className="w-full bg-[#111] border border-[rgba(255,255,255,0.08)] rounded-lg p-3 text-[13px] text-white placeholder:text-[rgba(255,255,255,0.2)] outline-none resize-none h-24 focus:border-[rgba(255,255,255,0.15)] transition-colors disabled:opacity-50 leading-relaxed"
+                        placeholder="A sunny park with tall trees and a wooden bench…" />
+                      {bg?.photoUrl ? (
+                        <div className="relative border border-[rgba(255,255,255,0.08)] rounded-lg overflow-hidden h-20 mt-2">
+                          <img src={bg.photoUrl} alt="" className="w-full h-full object-cover" />
+                          <button onClick={() => upBg(sc.id, bg.id, { photoUrl: null })} className="absolute top-2 right-2 w-5 h-5 rounded-full bg-black/70 flex items-center justify-center text-[rgba(255,255,255,0.6)] hover:text-white text-[10px]">×</button>
+                        </div>
+                      ) : !sc.approved && (
+                        <label className="w-full border-[1.5px] border-dashed border-[rgba(255,255,255,0.1)] rounded-lg py-2.5 flex items-center justify-center gap-2 hover:border-[rgba(255,255,255,0.18)] transition-colors cursor-pointer mt-2">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                          <span className="text-[10px] text-[rgba(255,255,255,0.3)]">Reference photo (optional)</span>
+                          <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f && bg) upBg(sc.id, bg.id, { photoUrl: URL.createObjectURL(f) }); }} />
+                        </label>
+                      )}
                     </div>
 
-                    {sc.approved ? (
-                      <div className="p-5 pt-4">
-                        <div className="aspect-video bg-[#131313] rounded-lg border border-[rgba(255,255,255,0.06)] overflow-hidden flex items-center justify-center">
-                          {sc.imageUrl ? <img src={sc.imageUrl} alt={`Scene ${idx+1}`} className="w-full h-full object-cover" /> : <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1"><rect x="2" y="3" width="20" height="14" rx="2"/></svg>}
-                        </div>
-                        <p className="text-[11px] text-[rgba(255,255,255,0.3)] mt-3 leading-relaxed">{sc.description}</p>
+                    {/* CAST */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2.5">
+                        <h3 className="text-[11px] font-medium text-[rgba(255,255,255,0.5)] uppercase tracking-[1.5px]">Cast</h3>
+                        <span className="text-[10px] text-[rgba(255,255,255,0.25)]">{placed.length} in scene</span>
                       </div>
-                    ) : (
-                      <div className="p-5 pt-4 flex flex-col gap-5">
 
-                        {/* BACKGROUNDS */}
-                        <div>
-                          <div className="flex items-center gap-2 mb-3">
-                            <h3 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px]">Background</h3>
-                            {selBg?.description && <span className="text-[10px] text-[rgba(255,255,255,0.35)] bg-[rgba(255,255,255,0.04)] px-2 py-0.5 rounded-full truncate max-w-[200px]">{selBg.description.slice(0, 30)}{selBg.description.length > 30 ? '...' : ''}</span>}
-                          </div>
-                          <div className="flex gap-2.5 flex-wrap mb-3">
-                            {sc.backgrounds.map((bg, bi) => {
-                              const isSelected = sc.selectedBackgroundId === bg.id;
-                              const isExpanded = sc.expandedBgId === bg.id;
-                              const hasContent = bg.description.trim() || bg.photoUrl;
+                      {chars.length === 0 ? (
+                        <p className="text-[12px] text-[rgba(255,255,255,0.3)]">No characters yet — go back to add some.</p>
+                      ) : (
+                        <>
+                          <div className="flex flex-wrap gap-1.5 mb-3">
+                            {chars.map(c => {
+                              const inScene = placed.some(p => p.characterId === c.id);
                               return (
-                                <div key={bg.id} className="flex flex-col gap-1.5">
-                                  <button onClick={() => upScene(sc.id, { selectedBackgroundId: bg.id, expandedBgId: isExpanded ? null : bg.id })}
-                                    className={`w-[90px] aspect-square rounded-[10px] border flex flex-col items-center justify-center gap-1 transition-all overflow-hidden ${isSelected ? 'border-white bg-[rgba(255,255,255,0.05)]' : 'border-[rgba(255,255,255,0.08)] bg-[#111] hover:border-[rgba(255,255,255,0.15)]'}`}>
-                                    {bg.photoUrl ? <img src={bg.photoUrl} alt="" className="w-full h-full object-cover" /> : hasContent ? <span className="text-[9px] text-[rgba(255,255,255,0.35)] px-2 text-center leading-tight">{bg.description.slice(0, 20)}{bg.description.length > 20 ? '…' : ''}</span> : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={isSelected ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.15)'} strokeWidth="1.5"><path d="M12 5v14M5 12h14"/></svg>}
-                                  </button>
-                                  <span className={`text-[9px] text-center ${isSelected ? 'text-[rgba(255,255,255,0.5)]' : 'text-[rgba(255,255,255,0.25)]'}`}>Bg {bi + 1}</span>
-                                </div>
-                              );
-                            })}
-                            <div className="flex flex-col gap-1.5">
-                              <button onClick={() => addBg(sc.id)} className="w-[90px] aspect-square rounded-[10px] border border-dashed border-[rgba(255,255,255,0.08)] flex items-center justify-center hover:border-[rgba(255,255,255,0.18)] transition-all">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5"><path d="M12 5v14M5 12h14"/></svg>
-                              </button>
-                              <span className="text-[9px] text-center text-[rgba(255,255,255,0.15)]">Add</span>
-                            </div>
-                          </div>
-
-                          {sc.expandedBgId && (() => {
-                            const ebg = sc.backgrounds.find(b => b.id === sc.expandedBgId);
-                            if (!ebg) return null;
-                            return (
-                              <div className="border border-[rgba(255,255,255,0.08)] rounded-lg p-4 bg-[rgba(255,255,255,0.01)] flex flex-col gap-3">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-[10px] text-[rgba(255,255,255,0.4)]">Background {sc.backgrounds.findIndex(b => b.id === ebg.id) + 1}</span>
-                                  {sc.backgrounds.length > 1 && <button onClick={() => removeBg(sc.id, ebg.id)} className="text-[10px] text-[rgba(248,113,113,0.4)] hover:text-[rgba(248,113,113,0.7)]">Remove</button>}
-                                </div>
-                                <textarea value={ebg.description} onChange={e => upBg(sc.id, ebg.id, { description: e.target.value })}
-                                  className="w-full bg-[#111] border border-[rgba(255,255,255,0.08)] rounded-lg p-3 text-[13px] text-white placeholder:text-[rgba(255,255,255,0.18)] outline-none resize-none h-20 focus:border-[rgba(255,255,255,0.15)] transition-colors"
-                                  placeholder="Describe this background..." />
-                                {ebg.photoUrl ? (
-                                  <div className="relative border border-[rgba(255,255,255,0.08)] rounded-lg overflow-hidden h-24">
-                                    <img src={ebg.photoUrl} alt="" className="w-full h-full object-cover" />
-                                    <button onClick={() => upBg(sc.id, ebg.id, { photoUrl: null })} className="absolute top-2 right-2 w-5 h-5 rounded-full bg-black/70 flex items-center justify-center text-[rgba(255,255,255,0.6)] hover:text-white text-[10px]">×</button>
-                                  </div>
-                                ) : (
-                                  <label className="w-full border-[1.5px] border-dashed border-[rgba(255,255,255,0.1)] rounded-lg py-3 flex flex-col items-center gap-1.5 hover:border-[rgba(255,255,255,0.18)] transition-colors cursor-pointer">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-                                    <span className="text-[10px] text-[rgba(255,255,255,0.25)]">Upload reference photo</span>
-                                    <span className="text-[8px] text-[rgba(255,255,255,0.15)] border border-[rgba(255,255,255,0.06)] rounded-full px-1.5 py-0.5">Optional</span>
-                                    <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) upBg(sc.id, ebg.id, { photoUrl: URL.createObjectURL(f) }); }} />
-                                  </label>
-                                )}
-                              </div>
-                            );
-                          })()}
-                        </div>
-
-                        {/* ASPECT RATIO */}
-                        <div>
-                          <div className="text-[10px] text-[rgba(255,255,255,0.35)] uppercase tracking-wider mb-2.5">Aspect Ratio</div>
-                          <div className="flex gap-2">
-                            {([{ r: '16:9' as AspectRatio, w: 40, h: 22 }, { r: '9:16' as AspectRatio, w: 22, h: 40 }, { r: '1:1' as AspectRatio, w: 30, h: 30 }]).map(({ r, w, h }) => (
-                              <button key={r} onClick={() => upScene(sc.id, { aspectRatio: r })}
-                                className={`flex flex-col items-center gap-2 px-4 py-3 rounded-lg border transition-all ${sc.aspectRatio === r ? 'border-white bg-[rgba(255,255,255,0.05)] text-white' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.3)] hover:border-[rgba(255,255,255,0.15)]'}`}>
-                                <div style={{ width: w, height: h }} className={`rounded-[3px] ${sc.aspectRatio === r ? 'bg-[rgba(255,255,255,0.25)]' : 'bg-[rgba(255,255,255,0.1)]'}`} />
-                                <span className="text-[11px]">{r}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* CHARACTER PLACEMENT */}
-                        <div>
-                          <h3 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px] mb-3">Place your characters</h3>
-                          <div className="w-full h-[88px] bg-[#111] border border-[rgba(255,255,255,0.08)] rounded-[10px] flex items-center justify-evenly px-4 gap-2 mb-3">
-                            {sc.characterPlacements.map((cp, si) => {
-                              const ch = cp.characterId ? chars.find(c => c.id === cp.characterId) : null;
-                              return (
-                                <div key={si}
-                                  draggable={!!ch}
-                                  onDragStart={() => { dragSlotI.current = { sceneId: sc.id, slot: si }; }}
-                                  onDragEnter={() => { if (dragSlotI.current?.sceneId === sc.id && dragSlotI.current.slot !== si) { reorderPlacements(sc.id, dragSlotI.current.slot, si); dragSlotI.current = { sceneId: sc.id, slot: si }; } }}
-                                  onDragEnd={() => { dragSlotI.current = null; }}
-                                  onDragOver={e => e.preventDefault()}
-                                  className={`flex flex-col items-center gap-1 ${ch ? 'cursor-grab active:cursor-grabbing' : ''}`}>
-                                  {ch ? (
-                                    <>
-                                      <div className="w-[48px] h-[52px] rounded-lg border border-[rgba(255,255,255,0.12)] bg-[#161616] flex items-center justify-center overflow-hidden relative select-none">
-                                        {ch.imageUrl ? <img src={ch.imageUrl} alt={ch.name} className="w-full h-full object-cover object-top" draggable={false} /> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>}
-                                        <span className={`absolute top-0.5 right-0.5 text-[7px] font-bold px-1 rounded ${cp.role === 'speaking' ? 'bg-white text-black' : 'bg-[rgba(255,255,255,0.12)] text-[rgba(255,255,255,0.4)]'}`}>{cp.role === 'speaking' ? 'S' : 'Si'}</span>
-                                      </div>
-                                      <span className="text-[8px] text-[rgba(255,255,255,0.35)] truncate max-w-[52px]">{ch.name}</span>
-                                    </>
-                                  ) : (
-                                    <button onClick={() => { const placedIds = sc.characterPlacements.filter(p => p.characterId).map(p => p.characterId); const unplaced = chars.find(c => !placedIds.includes(c.id)); if (unplaced) upPlacement(sc.id, si, { characterId: unplaced.id }); }}
-                                      className="w-[48px] h-[52px] rounded-lg border border-dashed border-[rgba(255,255,255,0.1)] flex items-center justify-center hover:border-[rgba(255,255,255,0.2)] transition-all">
-                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5"><path d="M12 5v14M5 12h14"/></svg>
-                                    </button>
-                                  )}
-                                </div>
+                                <button key={c.id} onClick={() => !sc.approved && toggleCast(sc.id, c.id)} disabled={sc.approved}
+                                  className={`flex items-center gap-1.5 pl-1 pr-2.5 py-1 rounded-full border text-[11px] transition-all disabled:opacity-50 disabled:cursor-not-allowed ${inScene ? 'border-white bg-[rgba(255,255,255,0.06)] text-white' : 'border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.4)] hover:border-[rgba(255,255,255,0.2)]'}`}>
+                                  <span className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center bg-[#161616] flex-shrink-0">
+                                    {c.imageUrl ? <img src={c.imageUrl} alt="" className="w-full h-full object-cover object-top" /> : <span className="text-[8px]">{c.name.charAt(0)}</span>}
+                                  </span>
+                                  {c.name}
+                                  {inScene && <svg width="9" height="9" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3,8 6.5,11.5 13,5"/></svg>}
+                                </button>
                               );
                             })}
                           </div>
 
                           <div className="flex flex-col gap-2">
-                            {sc.characterPlacements.map((cp, si) => {
-                              if (!cp.characterId) return null;
+                            {placed.map((cp, pi) => {
                               const ch = chars.find(c => c.id === cp.characterId);
                               if (!ch) return null;
-                              const posLabel = slotPositionLabel(si, placedChars.length);
+                              const posLabel = slotPositionLabel(pi, placed.length);
                               return (
-                                <div key={si} className="border border-[rgba(255,255,255,0.06)] rounded-lg p-3 bg-[rgba(255,255,255,0.01)]">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-7 h-7 rounded-md bg-[#151515] border border-[rgba(255,255,255,0.06)] flex items-center justify-center flex-shrink-0 overflow-hidden">
-                                      {ch.imageUrl ? <img src={ch.imageUrl} alt="" className="w-full h-full object-cover object-top" /> : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1.5"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>}
+                                <div key={cp.slot}
+                                  draggable={!sc.approved}
+                                  onDragStart={() => { dragSlotI.current = { sceneId: sc.id, slot: cp.slot }; }}
+                                  onDragEnter={() => { if (dragSlotI.current?.sceneId === sc.id && dragSlotI.current.slot !== cp.slot) { reorderPlacements(sc.id, dragSlotI.current.slot, cp.slot); dragSlotI.current = { sceneId: sc.id, slot: cp.slot }; } }}
+                                  onDragEnd={() => { dragSlotI.current = null; }}
+                                  onDragOver={e => e.preventDefault()}
+                                  className="border border-[rgba(255,255,255,0.06)] rounded-lg p-2.5 bg-[rgba(255,255,255,0.01)]">
+                                  <div className="flex items-center gap-2">
+                                    {!sc.approved && <svg width="10" height="14" viewBox="0 0 10 16" fill="rgba(255,255,255,0.18)" className="flex-shrink-0 cursor-grab active:cursor-grabbing"><circle cx="3" cy="3" r="1.3"/><circle cx="7" cy="3" r="1.3"/><circle cx="3" cy="8" r="1.3"/><circle cx="7" cy="8" r="1.3"/><circle cx="3" cy="13" r="1.3"/><circle cx="7" cy="13" r="1.3"/></svg>}
+                                    <div className="w-6 h-6 rounded-md bg-[#151515] border border-[rgba(255,255,255,0.06)] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                      {ch.imageUrl ? <img src={ch.imageUrl} alt="" className="w-full h-full object-cover object-top" /> : <span className="text-[9px] text-[rgba(255,255,255,0.4)]">{ch.name.charAt(0)}</span>}
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                      <span className="text-[12px] font-medium">{ch.name}</span>
-                                      <span className="text-[9px] text-[rgba(255,255,255,0.25)] ml-2 capitalize">{posLabel}</span>
-                                    </div>
-                                    <div className="flex border border-[rgba(255,255,255,0.07)] rounded-md overflow-hidden">
-                                      {(['speaking', 'silent'] as const).map(role => (
-                                        <button key={role} onClick={() => upPlacement(sc.id, si, { role })}
-                                          className={`px-2.5 py-1 text-[10px] capitalize transition-all ${cp.role === role ? 'bg-[rgba(255,255,255,0.08)] text-white' : 'text-[rgba(255,255,255,0.3)]'}`}>{role}</button>
-                                      ))}
-                                    </div>
-                                    <button onClick={() => upPlacement(sc.id, si, { characterId: null })} className="text-[10px] text-[rgba(255,255,255,0.2)] hover:text-[rgba(248,113,113,0.6)] transition-colors">✕</button>
+                                    <span className="text-[12px] font-medium flex-1 min-w-0 truncate">{ch.name}</span>
+                                    <span className="text-[9px] text-[rgba(255,255,255,0.25)] capitalize flex-shrink-0">{posLabel}</span>
+                                    {!sc.approved && <button onClick={() => toggleCast(sc.id, ch.id)} className="text-[11px] text-[rgba(255,255,255,0.25)] hover:text-[rgba(248,113,113,0.7)] transition-colors flex-shrink-0">✕</button>}
                                   </div>
-                                  {cp.role === 'speaking' && (
-                                    <textarea value={cp.dialogue} onChange={e => upPlacement(sc.id, si, { dialogue: e.target.value })}
-                                      className="w-full mt-2 bg-[#131313] border border-[rgba(255,255,255,0.06)] rounded-lg p-2.5 text-[11px] outline-none resize-none h-14 placeholder:text-[rgba(255,255,255,0.18)] focus:border-[rgba(255,255,255,0.12)] transition-colors"
-                                      placeholder={`${ch.name}'s dialogue...`} />
-                                  )}
+                                  <textarea value={cp.dialogue} disabled={sc.approved}
+                                    onChange={e => upPlacement(sc.id, cp.slot, { dialogue: e.target.value, role: e.target.value.trim() ? 'speaking' : 'silent' })}
+                                    className="w-full mt-2 bg-[#131313] border border-[rgba(255,255,255,0.06)] rounded-lg p-2.5 text-[11px] outline-none resize-none h-12 placeholder:text-[rgba(255,255,255,0.18)] focus:border-[rgba(255,255,255,0.12)] transition-colors disabled:opacity-50"
+                                    placeholder={`${ch.name}'s line — leave empty for silent`} />
                                 </div>
                               );
                             })}
                           </div>
-                        </div>
-
-                        {/* PREVIEW */}
-                        <div>
-                          {sc.generating && <div className="flex items-center gap-3 py-4"><div className="w-5 h-5 rounded-full border-2 border-[rgba(255,255,255,0.06)] border-t-white animate-spin" /><span className="text-[13px] text-[rgba(255,255,255,0.45)]">Generating scene preview...</span></div>}
-                          {sc.error && !sc.generating && <div className="flex items-center gap-2 py-2 mb-3"><span className="text-[12px] text-[rgba(248,113,113,0.7)]">{sc.error}</span><button onClick={() => generateScenePreview(sc.id)} className="text-[12px] text-[rgba(255,255,255,0.5)] hover:text-white underline">Retry</button></div>}
-                          {sc.imageUrl !== null && !sc.generating && (
-                            <div className="mb-2">
-                              <div className="aspect-video bg-[#131313] rounded-lg border border-[rgba(255,255,255,0.06)] overflow-hidden mb-3"><img src={sc.imageUrl} alt={`Scene ${idx+1}`} className="w-full h-full object-cover" /></div>
-                              <div className="flex gap-2.5">
-                                <button onClick={() => generateScenePreview(sc.id)} className="px-3.5 py-2 border border-[rgba(255,255,255,0.1)] rounded-lg text-[12px] text-[rgba(255,255,255,0.55)] hover:text-white hover:border-[rgba(255,255,255,0.18)] transition-all">Regenerate</button>
-                                <button onClick={() => approveScene(sc.id)} className="px-3.5 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 transition-all">Looks good ✓</button>
-                              </div>
-                            </div>
-                          )}
-                          {sc.imageUrl === null && !sc.generating && !sc.error && (
-                            <button onClick={() => generateScenePreview(sc.id)} disabled={!canGenerate}
-                              className="px-4 py-2 bg-[#0f0f0f] border border-[rgba(255,255,255,0.12)] text-[12px] text-[rgba(255,255,255,0.6)] rounded-lg hover:text-white hover:border-[rgba(255,255,255,0.2)] disabled:opacity-20 disabled:cursor-not-allowed transition-all">
-                              Generate Scene Preview
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )}
+                        </>
+                      )}
+                    </div>
                   </div>
-                );
-              })}
+                </div>
+              </div>
 
-              <div className="flex items-center justify-between mt-2">
-                <button onClick={addScene} className="text-[11px] px-3 py-1.5 border border-[rgba(255,255,255,0.1)] rounded-lg text-[rgba(255,255,255,0.45)] hover:text-white hover:border-[rgba(255,255,255,0.18)] transition-all">+ Add Scene</button>
-                <button onClick={() => setStep(3)} disabled={approvedCount === 0} className="px-5 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-15 disabled:cursor-not-allowed transition-all">Next: Review →</button>
+              {/* ── FILM STRIP ── */}
+              <div className="flex-shrink-0 border-t border-[rgba(255,255,255,0.08)] bg-[#0a0a0a] px-5 md:px-7 py-3.5 flex items-center gap-4">
+                <div className="flex-1 flex items-center gap-2.5 overflow-x-auto pb-1">
+                  {scenes.map((s, i) => {
+                    const isActive = s.id === sc.id;
+                    return (
+                      <div key={s.id} className="relative group flex-shrink-0">
+                        <button onClick={() => setActiveSceneId(s.id)}
+                          className={`relative w-[116px] rounded-lg border overflow-hidden transition-all ${isActive ? 'border-white' : 'border-[rgba(255,255,255,0.1)] hover:border-[rgba(255,255,255,0.25)]'}`}>
+                          <div className="aspect-video bg-[#131313] flex items-center justify-center">
+                            {s.imageUrl ? <img src={s.imageUrl} alt="" className="w-full h-full object-cover" /> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1.2"><rect x="2" y="3" width="20" height="14" rx="2"/></svg>}
+                          </div>
+                          <span className="absolute top-1 left-1 text-[9px] font-medium text-white bg-black/60 px-1.5 py-0.5 rounded">{i + 1}</span>
+                          {s.approved && <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[rgba(74,222,128,0.85)] flex items-center justify-center"><svg width="8" height="8" viewBox="0 0 16 16" fill="none" stroke="black" strokeWidth="3"><polyline points="3,8 6.5,11.5 13,5"/></svg></span>}
+                        </button>
+                        {scenes.length > 1 && (
+                          <button onClick={() => setScenes(p => p.filter(x => x.id !== s.id))}
+                            className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-black border border-[rgba(255,255,255,0.15)] items-center justify-center text-[rgba(255,255,255,0.5)] hover:text-white hover:border-[rgba(255,255,255,0.35)] text-[10px] hidden group-hover:flex">×</button>
+                        )}
+                      </div>
+                    );
+                  })}
+                  <button onClick={addScene} className="w-[116px] flex-shrink-0 aspect-video rounded-lg border border-dashed border-[rgba(255,255,255,0.12)] flex flex-col items-center justify-center gap-1 hover:border-[rgba(255,255,255,0.25)] transition-all">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"><path d="M12 5v14M5 12h14"/></svg>
+                    <span className="text-[9px] text-[rgba(255,255,255,0.3)]">Add Scene</span>
+                  </button>
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <span className="text-[11px] text-[rgba(255,255,255,0.35)]">{approvedCount}/{scenes.length} approved</span>
+                  <button onClick={() => setStep(3)} disabled={approvedCount === 0} className="px-5 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-15 disabled:cursor-not-allowed transition-all">Next: Review →</button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* STEP 3 */}
         {step === 3 && (
