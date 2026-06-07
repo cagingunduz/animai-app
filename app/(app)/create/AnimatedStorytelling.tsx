@@ -52,7 +52,7 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    fetch('/api/voices').then(r => r.json()).then(d => setVoices(d.voices || [])).catch(() => {});
+    fetch('/api/voices').then(r => r.json()).then(d => setVoices(Array.isArray(d) ? d : (d?.voices || []))).catch(() => {});
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []);
 
