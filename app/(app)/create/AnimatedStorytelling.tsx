@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 type Step = 'setup' | 'character' | 'generating' | 'done';
 type Aspect = '16:9' | '9:16' | '1:1';
 
-interface Voice { voice_id: string; name: string; }
+interface Voice { voice_id: string; name: string; labels?: { gender?: string; descriptive?: string; accent?: string } }
 interface SceneStatus { scene_index: number; status: string; image_url: string | null; video_url: string | null; }
 
 const STYLES = [
@@ -19,11 +19,7 @@ const ASPECTS: { id: Aspect; label: string; sub: string }[] = [
   { id: '16:9', label: '16:9', sub: 'YouTube' },
   { id: '1:1', label: '1:1', sub: 'Instagram' },
 ];
-const LENGTHS = [
-  { id: 3, label: 'Short', sub: '~3 scenes' },
-  { id: 5, label: 'Medium', sub: '~5 scenes' },
-  { id: 8, label: 'Long', sub: '~8 scenes' },
-];
+const DURATIONS = [1, 2, 3, 5, 10];
 
 export default function AnimatedStorytelling({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState<Step>('setup');
@@ -33,12 +29,11 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
   const [style, setStyle] = useState('western_cartoon');
   const [aspect, setAspect] = useState<Aspect>('9:16');
   const [resolution, setResolution] = useState<'720p' | '1080p'>('1080p');
-  const [sceneCount, setSceneCount] = useState(5);
+  const [durationMinutes, setDurationMinutes] = useState(1);
   const [includeNarrator, setIncludeNarrator] = useState(true);
   const [includeSubtitles, setIncludeSubtitles] = useState(true);
   const [voices, setVoices] = useState<Voice[]>([]);
   const [voiceId, setVoiceId] = useState<string | null>(null);
-  const [voiceSearch, setVoiceSearch] = useState('');
 
   // character
   const [charDesc, setCharDesc] = useState('');
@@ -98,7 +93,7 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
       const r = await fetch('/api/animated-story', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title, theme: '', style, aspect_ratio: aspect, resolution, scene_count: sceneCount,
+          title, theme: '', style, aspect_ratio: aspect, resolution, duration_minutes: durationMinutes,
           include_narrator: includeNarrator && !!voiceId,
           narrator_voice_id: voiceId,
           include_subtitles: includeSubtitles && includeNarrator && !!voiceId,
@@ -112,9 +107,6 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
       } else { setGenStatus('failed'); setGenErr(d.error || 'Failed to start'); }
     } catch { setGenStatus('failed'); setGenErr('Failed to start generation'); }
   };
-
-  const filteredVoices = voices.filter(v => (v.name || '').toLowerCase().includes(voiceSearch.toLowerCase()));
-  const selectedVoiceName = voices.find(v => v.voice_id === voiceId)?.name;
 
   return (
     <div className="flex flex-col min-h-screen bg-black text-white">
@@ -180,9 +172,9 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
                   <div>
                     <label className="text-[11px] text-[rgba(255,255,255,0.4)] uppercase tracking-wider block mb-2">Length</label>
                     <div className="flex gap-2">
-                      {LENGTHS.map(l => (
-                        <button key={l.id} onClick={() => setSceneCount(l.id)} title={l.sub}
-                          className={`flex-1 py-2 rounded-lg border text-[11px] transition-all ${sceneCount === l.id ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)]'}`}>{l.label}</button>
+                      {DURATIONS.map(d => (
+                        <button key={d} onClick={() => setDurationMinutes(d)}
+                          className={`flex-1 py-2 rounded-lg border text-[11px] transition-all ${durationMinutes === d ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)]'}`}>{d} min</button>
                       ))}
                     </div>
                   </div>
@@ -203,12 +195,17 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
                 </div>
                 {includeNarrator && (
                   <div className="mt-3 border-t border-[rgba(255,255,255,0.05)] pt-3">
-                    <input value={voiceSearch} onChange={e => setVoiceSearch(e.target.value)} placeholder={selectedVoiceName ? `Voice: ${selectedVoiceName}` : 'Search voices...'}
-                      className="w-full bg-[#111] border border-[rgba(255,255,255,0.08)] rounded-lg px-3 py-2 text-[12px] outline-none mb-2 placeholder:text-[rgba(255,255,255,0.25)]" />
-                    <div className="max-h-[160px] overflow-y-auto flex flex-col gap-1">
-                      {filteredVoices.slice(0, 30).map(v => (
+                    <div className="text-[11px] text-[rgba(255,255,255,0.4)] mb-2">Choose a voice</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {voices.map(v => (
                         <button key={v.voice_id} onClick={() => setVoiceId(v.voice_id === voiceId ? null : v.voice_id)}
-                          className={`text-left px-3 py-2 rounded-lg text-[12px] transition-all ${voiceId === v.voice_id ? 'bg-[rgba(255,255,255,0.08)] border border-[rgba(255,255,255,0.15)]' : 'border border-transparent hover:bg-[rgba(255,255,255,0.04)]'}`}>{v.name}</button>
+                          className={`text-left px-3 py-2 rounded-lg border transition-all ${voiceId === v.voice_id ? 'border-white bg-[rgba(255,255,255,0.08)]' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.18)]'}`}>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[12px] font-medium">{v.name}</span>
+                            {v.labels?.gender && <span className="text-[10px] text-[rgba(255,255,255,0.3)]">{v.labels.gender === 'male' ? '♂' : '♀'}</span>}
+                          </div>
+                          {v.labels?.descriptive && <div className="text-[10px] text-[rgba(255,255,255,0.35)] truncate">{v.labels.descriptive}</div>}
+                        </button>
                       ))}
                     </div>
                     <div className="flex items-center justify-between mt-3">
