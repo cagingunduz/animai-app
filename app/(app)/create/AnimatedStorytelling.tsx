@@ -145,6 +145,7 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
         }),
       });
       const d = await r.json();
+      console.log('[animated-story] start response:', d);
       if (r.status === 402) {
         setGenStatus('failed');
         setGenErr(d.error || 'Yetersiz kredi.');
