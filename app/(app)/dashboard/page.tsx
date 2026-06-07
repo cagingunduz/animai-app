@@ -45,8 +45,8 @@ export default function DashboardPage() {
         supabase.from('users').select('credits, plan').eq('id', user.id).single(),
         supabase.from('projects').select('id, title, genre, style, scenes_count, has_videos, thumbnail_url, final_video_url, updated_at, created_at')
           .eq('user_id', user.id).order('updated_at', { ascending: false }).limit(20),
-        supabase.from('animations').select('id, title, final_video_url, resolution, created_at')
-          .eq('user_id', user.id).not('final_video_url', 'is', null).gte('created_at', since)
+        supabase.from('animations').select('id, title, job_id, status, final_video_url, resolution, created_at')
+          .eq('user_id', user.id).gte('created_at', since)
           .order('created_at', { ascending: false }),
       ]);
 
@@ -54,11 +54,30 @@ export default function DashboardPage() {
       const projectRows = (projectsRes.data || []) as ProjectRow[];
       if (projectsRes.data) setProjects(projectRows);
 
-      // "Last 24 Hours": completed animations + projects finished in the last 24h
-      const fromAnimations: RecentItem[] = (animationsRes.data || []).map((a: any) => ({
-        id: `a-${a.id}`, title: a.title, video_url: a.final_video_url,
-        created_at: a.created_at, resolution: a.resolution,
+      // Backfill: any animation still missing its final video (e.g. the user left the
+      // page before it finished) — re-check the backend job and persist the result.
+      const animRows: any[] = animationsRes.data || [];
+      const resolved = await Promise.all(animRows.map(async (a) => {
+        if (a.final_video_url || !a.job_id || a.status === 'failed') return a;
+        try {
+          const sr = await fetch(`/api/status/${a.job_id}`);
+          const s = await sr.json();
+          if (s.status === 'completed' && s.final_video_url) {
+            await supabase.from('animations')
+              .update({ status: 'completed', final_video_url: s.final_video_url }).eq('id', a.id);
+            return { ...a, status: 'completed', final_video_url: s.final_video_url };
+          }
+        } catch { /* ignore */ }
+        return a;
       }));
+
+      // "Last 24 Hours": completed animations + projects finished in the last 24h
+      const fromAnimations: RecentItem[] = resolved
+        .filter(a => a.final_video_url)
+        .map((a: any) => ({
+          id: `a-${a.id}`, title: a.title, video_url: a.final_video_url,
+          created_at: a.created_at, resolution: a.resolution,
+        }));
       const fromProjects: RecentItem[] = projectRows
         .filter(p => p.final_video_url && new Date(p.updated_at).getTime() >= Date.now() - 24 * 3600 * 1000)
         .map(p => ({
