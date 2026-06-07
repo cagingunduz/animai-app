@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { animatedStoryCost } from '@/lib/types';
 
 type Step = 'setup' | 'character' | 'generating' | 'done';
 type Aspect = '16:9' | '9:16' | '1:1';
@@ -112,9 +114,18 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
       if (d.status === 'completed') {
         setGenStatus('completed'); setFinalVideo(d.final_video_url); setStep('done');
         if (pollRef.current) clearInterval(pollRef.current);
+        // Mark the dashboard record completed so it shows in "Last 24 Hours"
+        try {
+          await createClient().from('animations')
+            .update({ status: 'completed', final_video_url: d.final_video_url })
+            .eq('job_id', jid);
+        } catch { /* non-fatal */ }
       } else if (d.status === 'failed') {
         setGenStatus('failed'); setGenErr(d.error || 'Generation failed');
         if (pollRef.current) clearInterval(pollRef.current);
+        try {
+          await createClient().from('animations').update({ status: 'failed' }).eq('job_id', jid);
+        } catch { /* non-fatal */ }
       } else setGenStatus('processing');
     } catch { /* keep polling */ }
   };
@@ -134,6 +145,11 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
         }),
       });
       const d = await r.json();
+      if (r.status === 402) {
+        setGenStatus('failed');
+        setGenErr(d.error || 'Yetersiz kredi.');
+        return;
+      }
       if (d.job_id) {
         pollRef.current = setInterval(() => pollStatus(d.job_id), 3000);
         pollStatus(d.job_id);
@@ -308,12 +324,17 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
                 )}
               </div>
 
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <button onClick={() => setStep('setup')} className="px-4 py-2 text-[12px] text-[rgba(255,255,255,0.5)] hover:text-white transition-colors">← Back</button>
-                <button onClick={startGeneration} disabled={!charUrl}
-                  className="px-6 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all">
-                  Generate Story →
-                </button>
+                <div className="flex items-center gap-3">
+                  <span className="text-[11px] text-[rgba(255,255,255,0.4)]">
+                    ~{animatedStoryCost(durationMinutes, resolution).toLocaleString()} credits
+                  </span>
+                  <button onClick={startGeneration} disabled={!charUrl}
+                    className="px-6 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all">
+                    Generate Story →
+                  </button>
+                </div>
               </div>
             </div>
           )}

@@ -9,6 +9,11 @@ interface ProjectRow {
   final_video_url: string | null; updated_at: string; created_at: string;
 }
 
+interface RecentItem {
+  id: string; title: string; video_url: string; created_at: string;
+  resolution?: string | null; thumbnail_url?: string | null;
+}
+
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
@@ -24,6 +29,7 @@ function timeAgo(dateStr: string) {
 export default function DashboardPage() {
   const supabase = createClient();
   const [projects, setProjects] = useState<ProjectRow[]>([]);
+  const [recent, setRecent] = useState<RecentItem[]>([]);
   const [credits, setCredits] = useState(0);
   const [plan, setPlan] = useState('free');
   const [loading, setLoading] = useState(true);
@@ -34,14 +40,34 @@ export default function DashboardPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [profileRes, projectsRes] = await Promise.all([
+      const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+      const [profileRes, projectsRes, animationsRes] = await Promise.all([
         supabase.from('users').select('credits, plan').eq('id', user.id).single(),
         supabase.from('projects').select('id, title, genre, style, scenes_count, has_videos, thumbnail_url, final_video_url, updated_at, created_at')
           .eq('user_id', user.id).order('updated_at', { ascending: false }).limit(20),
+        supabase.from('animations').select('id, title, final_video_url, resolution, created_at')
+          .eq('user_id', user.id).not('final_video_url', 'is', null).gte('created_at', since)
+          .order('created_at', { ascending: false }),
       ]);
 
       if (profileRes.data) { setCredits(profileRes.data.credits); setPlan(profileRes.data.plan); }
-      if (projectsRes.data) setProjects(projectsRes.data as ProjectRow[]);
+      const projectRows = (projectsRes.data || []) as ProjectRow[];
+      if (projectsRes.data) setProjects(projectRows);
+
+      // "Last 24 Hours": completed animations + projects finished in the last 24h
+      const fromAnimations: RecentItem[] = (animationsRes.data || []).map((a: any) => ({
+        id: `a-${a.id}`, title: a.title, video_url: a.final_video_url,
+        created_at: a.created_at, resolution: a.resolution,
+      }));
+      const fromProjects: RecentItem[] = projectRows
+        .filter(p => p.final_video_url && new Date(p.updated_at).getTime() >= Date.now() - 24 * 3600 * 1000)
+        .map(p => ({
+          id: `p-${p.id}`, title: p.title, video_url: p.final_video_url as string,
+          created_at: p.updated_at, thumbnail_url: p.thumbnail_url,
+        }));
+      const merged = [...fromAnimations, ...fromProjects]
+        .sort((x, y) => new Date(y.created_at).getTime() - new Date(x.created_at).getTime());
+      setRecent(merged);
       setLoading(false);
     })();
   }, []);
@@ -95,6 +121,47 @@ export default function DashboardPage() {
         </div>
       ) : (
         <>
+          {/* ── Last 24 Hours ── */}
+          {recent.length > 0 && (
+            <div className="mb-8">
+              <h2 className="text-[11px] font-medium text-[rgba(255,255,255,0.35)] uppercase tracking-[1.5px] mb-3">
+                Last 24 Hours · {recent.length}
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {recent.map(item => (
+                  <div key={item.id} className="relative border border-[rgba(255,255,255,0.08)] rounded-xl overflow-hidden bg-[#0a0a0a] group">
+                    <div className="aspect-video bg-black relative flex items-center justify-center overflow-hidden">
+                      {item.thumbnail_url
+                        ? <img src={item.thumbnail_url} alt="" className="w-full h-full object-cover" />
+                        : <video src={item.video_url} className="w-full h-full object-cover" muted playsInline preload="metadata"
+                            onMouseEnter={e => { (e.currentTarget as HTMLVideoElement).play().catch(() => {}); }}
+                            onMouseLeave={e => { const v = e.currentTarget as HTMLVideoElement; v.pause(); v.currentTime = 0; }} />
+                      }
+                      <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none">
+                        <a href={`/api/download?url=${encodeURIComponent(item.video_url)}&filename=${encodeURIComponent(item.title + '.mp4')}`}
+                          download className="pointer-events-auto px-3 py-1.5 bg-white text-black text-[11px] font-medium rounded-lg flex items-center gap-1.5">
+                          <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 1v8M3 6l4 4 4-4"/><path d="M1 11h12"/></svg>
+                          Download
+                        </a>
+                      </div>
+                      <div className="absolute top-2 left-2">
+                        <span className="text-[9px] font-medium bg-[rgba(74,222,128,0.15)] text-[rgba(74,222,128,0.8)] px-1.5 py-0.5 rounded-full">New</span>
+                      </div>
+                    </div>
+                    <div className="px-3 py-2.5">
+                      <h3 className="text-[12px] font-medium truncate mb-1 text-[rgba(255,255,255,0.8)]">{item.title}</h3>
+                      <div className="flex items-center gap-1.5 text-[10px] text-[rgba(255,255,255,0.25)]">
+                        {item.resolution && <span>{item.resolution}</span>}
+                        {item.resolution && <span className="w-0.5 h-0.5 rounded-full bg-[rgba(255,255,255,0.12)]" />}
+                        <span>{timeAgo(item.created_at)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* ── Draft Projects ── */}
           {projects.filter(p => !p.final_video_url).length > 0 && (
             <div className="mb-8">

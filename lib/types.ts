@@ -9,6 +9,20 @@ export type Resolution = '480p' | '720p' | '1080p';
 export const RESOLUTION_CREDITS: Record<Resolution, number> = { '480p': 50, '720p': 100, '1080p': 200 };
 export const STORYBOOK_CREDITS_PER_SCENE = 50; // 500 credits = 10 scenes ≈ 2 short videos
 
+// ─── Animated Storytelling pricing ───
+// Billing basis: 1 credit ≈ $0.0032 (2,500-credit pack = $8). We charge 2× our cost.
+// Per-scene cost (Grok image + prunaai/p-video + ElevenLabs + Whisper):
+//   720p ≈ $0.16 → 2× = $0.32 ≈ 100 credits | 1080p ≈ $0.26 → 2× = $0.52 ≈ 160 credits
+export const ANIMATED_STORY_CREDITS_PER_SCENE: Record<'720p' | '1080p', number> = { '720p': 100, '1080p': 160 };
+// Mirror of the backend DURATION_SCENE_MAP (prompt_generator.py)
+export const DURATION_SCENE_MAP: Record<number, number> = { 1: 10, 2: 18, 3: 26, 5: 40, 10: 80 };
+
+export function animatedStoryCost(durationMinutes: number, resolution: string, sceneCount?: number): number {
+  const scenes = sceneCount && sceneCount > 0 ? sceneCount : (DURATION_SCENE_MAP[durationMinutes] ?? 10);
+  const tier: '720p' | '1080p' = resolution === '1080p' || resolution === '2k' ? '1080p' : '720p';
+  return scenes * ANIMATED_STORY_CREDITS_PER_SCENE[tier];
+}
+
 export type CharacterRole = 'silent' | 'speaking';
 export type Framing = 'full-body' | 'half-body' | 'close-up';
 export type AnimationStatus = 'completed' | 'processing' | 'failed' | 'queued';
