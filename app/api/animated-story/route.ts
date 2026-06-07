@@ -71,12 +71,13 @@ export async function POST(request: Request) {
     }
 
     // Record the generation so it shows up in the dashboard (24h section)
-    await supabase.from('animations').insert({
+    const { error: recError } = await supabase.from('animations').insert({
       user_id: user.id, job_id: data.job_id, title: body.title || 'Untitled Animation',
       status: 'processing', scenes_count: scenesCount, resolution, lipsync: false,
     });
+    if (recError) console.error('[animated-story] animations insert failed:', recError);
 
-    return NextResponse.json({ ...data, cost }, { status: upstreamStatus });
+    return NextResponse.json({ ...data, cost, recorded: !recError, rec_error: recError?.message ?? null }, { status: upstreamStatus });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to start animated story' }, { status: 500 });
   }
