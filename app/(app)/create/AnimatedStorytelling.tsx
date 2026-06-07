@@ -32,6 +32,7 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
   const [durationMinutes, setDurationMinutes] = useState(1);
   const [includeNarrator, setIncludeNarrator] = useState(true);
   const [includeSubtitles, setIncludeSubtitles] = useState(true);
+  const [narratorSpeed, setNarratorSpeed] = useState(1);
   const [voices, setVoices] = useState<Voice[]>([]);
   const [voiceId, setVoiceId] = useState<string | null>(null);
   const [previewVoice, setPreviewVoice] = useState<string | null>(null); // voice_id currently loading/playing
@@ -127,6 +128,7 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
           title, theme: '', style, aspect_ratio: aspect, resolution, duration_minutes: durationMinutes,
           include_narrator: includeNarrator && !!voiceId,
           narrator_voice_id: voiceId,
+          narrator_speed: narratorSpeed,
           include_subtitles: includeSubtitles && includeNarrator && !!voiceId,
           characters: [{ id: 'char-1', description: charDesc, char_url: charUrl, style }],
         }),
@@ -247,6 +249,17 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
                           </button>
                         </div>
                       ))}
+                    </div>
+                    <div className="flex items-center justify-between mt-3">
+                      <span className="text-[12px] text-[rgba(255,255,255,0.5)]">Narration speed</span>
+                      <div className="flex gap-1.5">
+                        {[1, 1.5, 2].map(sp => (
+                          <button key={sp} onClick={() => setNarratorSpeed(sp)}
+                            className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all ${narratorSpeed === sp ? 'border-white bg-white text-black' : 'border-[rgba(255,255,255,0.12)] text-[rgba(255,255,255,0.6)] hover:border-[rgba(255,255,255,0.25)]'}`}>
+                            {sp}x
+                          </button>
+                        ))}
+                      </div>
                     </div>
                     <div className="flex items-center justify-between mt-3">
                       <span className="text-[12px] text-[rgba(255,255,255,0.5)]">Captions (subtitles)</span>
