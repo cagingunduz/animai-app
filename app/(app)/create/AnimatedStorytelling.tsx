@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 type Step = 'setup' | 'character' | 'generating' | 'done';
 type Aspect = '16:9' | '9:16' | '1:1';
 
-interface Voice { voice_id: string; name: string; labels?: { gender?: string; descriptive?: string; accent?: string } }
+interface Voice { voice_id: string; name: string; preview_url?: string; labels?: { gender?: string; descriptive?: string; accent?: string } }
 interface SceneStatus { scene_index: number; status: string; image_url: string | null; video_url: string | null; }
 
 const STYLES = [
@@ -58,18 +58,23 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []);
 
-  const playVoicePreview = async (vid: string) => {
+  const playVoicePreview = async (v: Voice) => {
     try {
       if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
-      setPreviewVoice(vid);
-      const res = await fetch('/api/tts-test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: 'Once upon a time, an unforgettable adventure was about to begin.', voice_id: vid }),
-      });
-      const data = await res.json();
-      if (data?.audio_url) {
-        const a = new Audio(data.audio_url);
+      setPreviewVoice(v.voice_id);
+      // Prefer the ElevenLabs preview_url (instant + free); fall back to live TTS.
+      let url = v.preview_url || '';
+      if (!url) {
+        const res = await fetch('/api/tts-test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: 'Once upon a time, an unforgettable adventure was about to begin.', voice_id: v.voice_id }),
+        });
+        const data = await res.json();
+        url = data?.audio_url || '';
+      }
+      if (url) {
+        const a = new Audio(url);
         audioRef.current = a;
         a.onended = () => setPreviewVoice(null);
         a.onerror = () => setPreviewVoice(null);
@@ -222,7 +227,7 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
                 {includeNarrator && (
                   <div className="mt-3 border-t border-[rgba(255,255,255,0.05)] pt-3">
                     <div className="text-[11px] text-[rgba(255,255,255,0.4)] mb-2">Choose a voice</div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-2 max-h-[280px] overflow-y-auto pr-1">
                       {voices.map(v => (
                         <div key={v.voice_id} onClick={() => setVoiceId(v.voice_id === voiceId ? null : v.voice_id)}
                           className={`flex items-center justify-between gap-1.5 text-left pl-3 pr-1.5 py-2 rounded-lg border transition-all cursor-pointer ${voiceId === v.voice_id ? 'border-white bg-[rgba(255,255,255,0.08)]' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.18)]'}`}>
@@ -234,7 +239,7 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
                             {v.labels?.descriptive && <div className="text-[10px] text-[rgba(255,255,255,0.35)] truncate">{v.labels.descriptive}</div>}
                           </div>
                           <button type="button" title="Preview voice"
-                            onClick={(e) => { e.stopPropagation(); playVoicePreview(v.voice_id); }}
+                            onClick={(e) => { e.stopPropagation(); playVoicePreview(v); }}
                             className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center bg-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.18)] transition-colors">
                             {previewVoice === v.voice_id
                               ? <span className="block w-2 h-2 rounded-full bg-white animate-pulse" />
