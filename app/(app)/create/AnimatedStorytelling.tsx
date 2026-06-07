@@ -34,6 +34,8 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
   const [includeSubtitles, setIncludeSubtitles] = useState(true);
   const [voices, setVoices] = useState<Voice[]>([]);
   const [voiceId, setVoiceId] = useState<string | null>(null);
+  const [previewVoice, setPreviewVoice] = useState<string | null>(null); // voice_id currently loading/playing
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // character
   const [charDesc, setCharDesc] = useState('');
@@ -55,6 +57,30 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
     fetch('/api/voices').then(r => r.json()).then(d => setVoices(Array.isArray(d) ? d : (d?.voices || []))).catch(() => {});
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []);
+
+  const playVoicePreview = async (vid: string) => {
+    try {
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+      setPreviewVoice(vid);
+      const res = await fetch('/api/tts-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: 'Once upon a time, an unforgettable adventure was about to begin.', voice_id: vid }),
+      });
+      const data = await res.json();
+      if (data?.audio_url) {
+        const a = new Audio(data.audio_url);
+        audioRef.current = a;
+        a.onended = () => setPreviewVoice(null);
+        a.onerror = () => setPreviewVoice(null);
+        await a.play();
+      } else {
+        setPreviewVoice(null);
+      }
+    } catch {
+      setPreviewVoice(null);
+    }
+  };
 
   const generateCharacter = async () => {
     if (!charDesc.trim()) return;
@@ -198,14 +224,23 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
                     <div className="text-[11px] text-[rgba(255,255,255,0.4)] mb-2">Choose a voice</div>
                     <div className="grid grid-cols-2 gap-2">
                       {voices.map(v => (
-                        <button key={v.voice_id} onClick={() => setVoiceId(v.voice_id === voiceId ? null : v.voice_id)}
-                          className={`text-left px-3 py-2 rounded-lg border transition-all ${voiceId === v.voice_id ? 'border-white bg-[rgba(255,255,255,0.08)]' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.18)]'}`}>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[12px] font-medium">{v.name}</span>
-                            {v.labels?.gender && <span className="text-[10px] text-[rgba(255,255,255,0.3)]">{v.labels.gender === 'male' ? '♂' : '♀'}</span>}
+                        <div key={v.voice_id} onClick={() => setVoiceId(v.voice_id === voiceId ? null : v.voice_id)}
+                          className={`flex items-center justify-between gap-1.5 text-left pl-3 pr-1.5 py-2 rounded-lg border transition-all cursor-pointer ${voiceId === v.voice_id ? 'border-white bg-[rgba(255,255,255,0.08)]' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.18)]'}`}>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[12px] font-medium">{v.name}</span>
+                              {v.labels?.gender && <span className="text-[10px] text-[rgba(255,255,255,0.4)]">({v.labels.gender === 'male' ? 'Male' : 'Female'})</span>}
+                            </div>
+                            {v.labels?.descriptive && <div className="text-[10px] text-[rgba(255,255,255,0.35)] truncate">{v.labels.descriptive}</div>}
                           </div>
-                          {v.labels?.descriptive && <div className="text-[10px] text-[rgba(255,255,255,0.35)] truncate">{v.labels.descriptive}</div>}
-                        </button>
+                          <button type="button" title="Preview voice"
+                            onClick={(e) => { e.stopPropagation(); playVoicePreview(v.voice_id); }}
+                            className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center bg-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.18)] transition-colors">
+                            {previewVoice === v.voice_id
+                              ? <span className="block w-2 h-2 rounded-full bg-white animate-pulse" />
+                              : <svg width="11" height="11" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z" /></svg>}
+                          </button>
+                        </div>
                       ))}
                     </div>
                     <div className="flex items-center justify-between mt-3">
