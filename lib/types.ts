@@ -11,9 +11,9 @@ export const STORYBOOK_CREDITS_PER_SCENE = 50; // 500 credits = 10 scenes ≈ 2 
 
 // ─── Animated Storytelling pricing ───
 // Billing basis: 1 credit ≈ $0.0032 (2,500-credit pack = $8). We charge 1.8× our cost.
-// Per-scene cost (Grok image + prunaai/p-video + ElevenLabs + Whisper):
-//   720p ≈ $0.16 → 1.8× = $0.29 ≈ 90 credits | 1080p ≈ $0.26 → 1.8× = $0.47 ≈ 144 credits
-export const ANIMATED_STORY_CREDITS_PER_SCENE: Record<'720p' | '1080p', number> = { '720p': 90, '1080p': 144 };
+// Real per-scene cost (image + prunaai/p-video + ElevenLabs + Whisper):
+//   720p = $0.10 → 1.8× = $0.18 ≈ 56 credits | 1080p = $0.20 → 1.8× = $0.36 ≈ 113 credits
+export const ANIMATED_STORY_CREDITS_PER_SCENE: Record<'720p' | '1080p', number> = { '720p': 56, '1080p': 113 };
 // Mirror of the backend DURATION_SCENE_MAP (prompt_generator.py)
 export const DURATION_SCENE_MAP: Record<number, number> = { 1: 10, 2: 18, 3: 26, 5: 40, 10: 80 };
 
