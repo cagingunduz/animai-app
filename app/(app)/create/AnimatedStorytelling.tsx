@@ -215,7 +215,10 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
                     <div className="flex gap-2">
                       {(['720p', '1080p'] as const).map(r => (
                         <button key={r} onClick={() => setResolution(r)}
-                          className={`flex-1 py-2 rounded-lg border text-[12px] transition-all ${resolution === r ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)]'}`}>{r}</button>
+                          className={`flex-1 py-2 rounded-lg border text-[12px] transition-all flex flex-col items-center leading-tight ${resolution === r ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)]'}`}>
+                          <span>{r}</span>
+                          <span className="text-[9px] text-[rgba(255,255,255,0.35)]">{animatedStoryCost(durationMinutes, r).toLocaleString()} cr</span>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -224,7 +227,10 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
                     <div className="flex gap-2">
                       {DURATIONS.map(d => (
                         <button key={d} onClick={() => setDurationMinutes(d)}
-                          className={`flex-1 py-2 rounded-lg border text-[11px] transition-all ${durationMinutes === d ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)]'}`}>{d} min</button>
+                          className={`flex-1 py-2 rounded-lg border text-[11px] transition-all flex flex-col items-center leading-tight ${durationMinutes === d ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)]'}`}>
+                          <span>{d} min</span>
+                          <span className="text-[9px] text-[rgba(255,255,255,0.35)]">{animatedStoryCost(d, resolution).toLocaleString()} cr</span>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -329,7 +335,7 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
                 <button onClick={() => setStep('setup')} className="px-4 py-2 text-[12px] text-[rgba(255,255,255,0.5)] hover:text-white transition-colors">← Back</button>
                 <div className="flex items-center gap-3">
                   <span className="text-[11px] text-[rgba(255,255,255,0.4)]">
-                    ~{animatedStoryCost(durationMinutes, resolution).toLocaleString()} credits
+                    <span className="text-white font-medium">{animatedStoryCost(durationMinutes, resolution).toLocaleString()}</span> credits · deducted now
                   </span>
                   <button onClick={startGeneration} disabled={!charUrl}
                     className="px-6 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all">
