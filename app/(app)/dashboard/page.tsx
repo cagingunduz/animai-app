@@ -100,6 +100,15 @@ export default function DashboardPage() {
     setDeletingId(null);
   };
 
+  // Download via the backend streaming endpoint (attachment disposition).
+  // No Vercel size limit, no R2 CORS needed.
+  const downloadVideo = (e: React.MouseEvent, url: string, title: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const name = `${(title || 'video').replace(/[^\w .-]/g, '').trim() || 'video'}.mp4`;
+    window.location.href = `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(name)}`;
+  };
+
   return (
     <div className="px-5 md:px-8 py-6">
       {/* Header */}
@@ -152,16 +161,16 @@ export default function DashboardPage() {
                     <div className="aspect-video bg-black relative flex items-center justify-center overflow-hidden">
                       {item.thumbnail_url
                         ? <img src={item.thumbnail_url} alt="" className="w-full h-full object-cover" />
-                        : <video src={item.video_url} className="w-full h-full object-cover" muted playsInline preload="metadata"
+                        : <video src={`${item.video_url}#t=0.1`} className="w-full h-full object-cover" muted playsInline preload="metadata"
                             onMouseEnter={e => { (e.currentTarget as HTMLVideoElement).play().catch(() => {}); }}
-                            onMouseLeave={e => { const v = e.currentTarget as HTMLVideoElement; v.pause(); v.currentTime = 0; }} />
+                            onMouseLeave={e => { const v = e.currentTarget as HTMLVideoElement; v.pause(); v.currentTime = 0.1; }} />
                       }
                       <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none">
-                        <a href={`/api/download?url=${encodeURIComponent(item.video_url)}&filename=${encodeURIComponent(item.title + '.mp4')}`}
-                          download className="pointer-events-auto px-3 py-1.5 bg-white text-black text-[11px] font-medium rounded-lg flex items-center gap-1.5">
+                        <button onClick={e => downloadVideo(e, item.video_url, item.title)}
+                          className="pointer-events-auto px-3 py-1.5 bg-white text-black text-[11px] font-medium rounded-lg flex items-center gap-1.5">
                           <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 1v8M3 6l4 4 4-4"/><path d="M1 11h12"/></svg>
                           Download
-                        </a>
+                        </button>
                       </div>
                       <div className="absolute top-2 left-2">
                         <span className="text-[9px] font-medium bg-[rgba(74,222,128,0.15)] text-[rgba(74,222,128,0.8)] px-1.5 py-0.5 rounded-full">New</span>
@@ -238,11 +247,11 @@ export default function DashboardPage() {
                         : <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1"><rect x="2" y="3" width="20" height="14" rx="2"/><polygon points="9,7 16,10 9,13" fill="rgba(255,255,255,0.04)" stroke="none"/></svg>
                       }
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                        <a href={`/api/download?url=${encodeURIComponent(p.final_video_url!)}&filename=${encodeURIComponent(p.title + '.mp4')}`}
-                          download className="px-3 py-1.5 bg-white text-black text-[11px] font-medium rounded-lg flex items-center gap-1.5">
+                        <button onClick={e => downloadVideo(e, p.final_video_url!, p.title)}
+                          className="px-3 py-1.5 bg-white text-black text-[11px] font-medium rounded-lg flex items-center gap-1.5">
                           <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 1v8M3 6l4 4 4-4"/><path d="M1 11h12"/></svg>
                           Download
-                        </a>
+                        </button>
                       </div>
                       <div className="absolute top-2 left-2">
                         <span className="text-[9px] font-medium bg-[rgba(74,222,128,0.15)] text-[rgba(74,222,128,0.8)] px-1.5 py-0.5 rounded-full">✓ Exported</span>
@@ -266,7 +275,7 @@ export default function DashboardPage() {
           )}
 
           {/* Empty state */}
-          {projects.length === 0 && (
+          {projects.length === 0 && recent.length === 0 && (
             <div className="border border-[rgba(255,255,255,0.06)] rounded-xl py-16 flex flex-col items-center">
               <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1"><rect x="2" y="3" width="20" height="14" rx="2"/><polygon points="10,7 16,10 10,13" fill="rgba(255,255,255,0.05)" stroke="none"/></svg>
               <p className="text-[13px] text-[rgba(255,255,255,0.3)] mt-3 mb-3">No projects yet</p>
