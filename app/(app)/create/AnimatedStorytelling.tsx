@@ -235,7 +235,16 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
                   <div className="flex gap-1.5">
                     {ASPECTS.map(a => (
                       <button key={a.id} onClick={() => setAspect(a.id)} title={a.sub}
-                        className={`px-3 py-2 rounded-lg border text-[12px] transition-all ${aspect === a.id ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>{a.label}</button>
+                        className={`px-3 py-2 rounded-lg border text-[12px] transition-all flex items-center gap-1.5 ${aspect === a.id ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>
+                        <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+                          {a.id === '9:16'
+                            ? <rect x="6.5" y="2.5" width="7" height="15" rx="1.5" />
+                            : a.id === '16:9'
+                            ? <rect x="2.5" y="6.5" width="15" height="7" rx="1.5" />
+                            : <rect x="4.5" y="4.5" width="11" height="11" rx="1.5" />}
+                        </svg>
+                        {a.label}
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -257,7 +266,10 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
                     {DURATIONS.map(d => (
                       <button key={d} onClick={() => setDurationMinutes(d)}
                         className={`flex-1 py-1.5 rounded-lg border text-[11px] transition-all flex flex-col items-center leading-tight ${durationMinutes === d ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>
-                        <span>{d} min</span>
+                        <span className="flex items-center gap-1">
+                          <svg width="11" height="11" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="10" cy="10" r="7.5" /><path d="M10 5.5V10l3 1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                          {d} min
+                        </span>
                         <span className="text-[9px] text-[rgba(255,255,255,0.35)]">{animatedStoryCost(d, resolution).toLocaleString()} cr</span>
                       </button>
                     ))}
