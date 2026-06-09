@@ -162,23 +162,22 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
     <div className="flex flex-col min-h-screen bg-black text-white">
       {/* Header */}
       <div className="flex-shrink-0 border-b border-[rgba(255,255,255,0.08)] sticky top-0 z-30 bg-black">
-        <div className="max-w-[900px] mx-auto px-6 py-4 flex items-center gap-3">
-          <button onClick={onBack} className="text-[11px] text-[rgba(255,255,255,0.3)] hover:text-white transition-colors">←</button>
-          <span className="text-[13px] font-medium">Animated Storytelling</span>
-          <div className="ml-auto flex items-center gap-3 text-[11px]">
-            {([['setup', 'Create'], ['character', 'Character'], ['generating', 'Generate']] as [Step, string][]).map(([s, lbl], i) => {
-              const active = step === s || (step === 'done' && s === 'generating');
+        <div className="max-w-[900px] mx-auto px-6 py-4 flex items-center">
+          <button onClick={onBack} className="text-[13px] text-[rgba(255,255,255,0.3)] hover:text-white transition-colors mr-3">←</button>
+          <span className="text-[15px] font-semibold tracking-[-0.3px]">Animated Storytelling</span>
+          <div className="flex-1 flex justify-center items-center">
+            {[0, 1, 2].map(i => {
+              const stepIndex = step === 'setup' ? 0 : step === 'character' ? 1 : 2;
+              const reached = i <= stepIndex;
               return (
-                <div key={s} className="flex items-center gap-3">
-                  <div className={`flex items-center gap-1.5 ${active ? 'text-white' : 'text-[rgba(255,255,255,0.3)]'}`}>
-                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] border ${step === s ? 'bg-white text-black border-white' : 'border-[rgba(255,255,255,0.15)]'}`}>{i + 1}</span>
-                    <span className="hidden sm:inline">{lbl}</span>
-                  </div>
-                  {i < 2 && <span className="w-6 h-px bg-[rgba(255,255,255,0.1)]" />}
+                <div key={i} className="flex items-center">
+                  <span className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-medium transition-colors ${reached ? 'bg-[#3b5bfd] text-white' : 'bg-[#242428] text-[rgba(255,255,255,0.4)]'}`}>{i + 1}</span>
+                  {i < 2 && <span className={`h-[2px] w-14 transition-colors ${i <= stepIndex ? 'bg-[#3b5bfd]' : 'bg-[rgba(255,255,255,0.1)]'}`} />}
                 </div>
               );
             })}
           </div>
+          <span className="w-6" />
         </div>
       </div>
 
