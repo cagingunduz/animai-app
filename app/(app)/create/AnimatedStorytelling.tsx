@@ -168,11 +168,23 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
           <div className="flex-1 flex justify-center items-center">
             {[0, 1, 2].map(i => {
               const stepIndex = step === 'setup' ? 0 : step === 'character' ? 1 : 2;
+              const done = i < stepIndex;
+              const current = i === stepIndex;
               const reached = i <= stepIndex;
               return (
                 <div key={i} className="flex items-center">
-                  <span className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-medium transition-colors ${reached ? 'bg-[#3b5bfd] text-white' : 'bg-[#242428] text-[rgba(255,255,255,0.4)]'}`}>{i + 1}</span>
-                  {i < 2 && <span className={`h-[2px] w-14 transition-colors ${i <= stepIndex ? 'bg-[#3b5bfd]' : 'bg-[rgba(255,255,255,0.1)]'}`} />}
+                  <span className={`relative w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-semibold transition-all duration-300
+                    ${reached ? 'bg-white text-black' : 'bg-[rgba(255,255,255,0.06)] text-[rgba(255,255,255,0.35)] border border-[rgba(255,255,255,0.1)]'}
+                    ${current ? 'ring-2 ring-[rgba(255,255,255,0.18)] ring-offset-2 ring-offset-black' : ''}`}>
+                    {done
+                      ? <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="black" strokeWidth="2.5"><path d="M2 7.5l3.2 3.2L12 4" /></svg>
+                      : i + 1}
+                  </span>
+                  {i < 2 && (
+                    <span className="relative h-[2px] w-16 mx-1 rounded-full bg-[rgba(255,255,255,0.1)] overflow-hidden">
+                      <span className={`absolute inset-y-0 left-0 bg-white rounded-full transition-all duration-500 ${i < stepIndex ? 'w-full' : current ? 'w-1/2' : 'w-0'}`} />
+                    </span>
+                  )}
                 </div>
               );
             })}
