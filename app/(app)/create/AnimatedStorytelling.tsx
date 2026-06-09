@@ -39,6 +39,7 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
   const [voiceId, setVoiceId] = useState<string | null>(null);
   const [previewVoice, setPreviewVoice] = useState<string | null>(null); // voice_id currently loading/playing
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const reqRef = useRef<string | null>(null); // latest requested voice (guards async races)
 
   // character
   const [charDesc, setCharDesc] = useState('');
@@ -61,33 +62,53 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []);
 
-  const playVoicePreview = async (v: Voice) => {
-    try {
-      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
-      setPreviewVoice(v.voice_id);
-      // Prefer the ElevenLabs preview_url (instant + free); fall back to live TTS.
-      let url = v.preview_url || '';
-      if (!url) {
+  const stopPreview = () => {
+    reqRef.current = null;
+    if (audioRef.current) { try { audioRef.current.pause(); } catch { /* noop */ } audioRef.current = null; }
+    setPreviewVoice(null);
+  };
+
+  const playVoicePreview = (v: Voice) => {
+    // Second click on the playing voice → stop it.
+    if (previewVoice === v.voice_id) { stopPreview(); return; }
+    stopPreview();
+    reqRef.current = v.voice_id;
+    setPreviewVoice(v.voice_id);
+
+    const startUrl = (url: string) => {
+      if (reqRef.current !== v.voice_id || !url) { stopPreview(); return; }
+      let failed = false;
+      const onFail = () => {
+        if (failed || reqRef.current !== v.voice_id) return;
+        failed = true;
+        // preview_url is broken for this voice → fall back to live TTS once.
+        if (url === v.preview_url) fallbackTTS();
+        else stopPreview();
+      };
+      const a = new Audio(url);
+      audioRef.current = a;
+      a.onended = () => { if (reqRef.current === v.voice_id) stopPreview(); };
+      a.onerror = onFail;
+      a.play().catch(onFail);
+    };
+
+    const fallbackTTS = async () => {
+      try {
         const res = await fetch('/api/tts-test', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text: 'Once upon a time, an unforgettable adventure was about to begin.', voice_id: v.voice_id }),
         });
         const data = await res.json();
-        url = data?.audio_url || '';
+        if (reqRef.current !== v.voice_id) return;
+        startUrl(data?.audio_url || '');
+      } catch {
+        if (reqRef.current === v.voice_id) stopPreview();
       }
-      if (url) {
-        const a = new Audio(url);
-        audioRef.current = a;
-        a.onended = () => setPreviewVoice(null);
-        a.onerror = () => setPreviewVoice(null);
-        await a.play();
-      } else {
-        setPreviewVoice(null);
-      }
-    } catch {
-      setPreviewVoice(null);
-    }
+    };
+
+    if (v.preview_url) startUrl(v.preview_url);
+    else fallbackTTS();
   };
 
   const generateCharacter = async () => {
@@ -296,13 +317,11 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
                             style={{
                               background: v.labels?.gender === 'female'
                                 ? 'radial-gradient(circle at 28% 26%, #ffffff 0%, transparent 52%), radial-gradient(circle at 74% 70%, #ff7fb5 0%, transparent 56%), radial-gradient(circle at 68% 22%, #ffd4e6 0%, transparent 48%), linear-gradient(135deg, #ffd2e2, #ff9ec6)'
-                                : 'radial-gradient(circle at 28% 26%, #ffffff 0%, transparent 52%), radial-gradient(circle at 74% 70%, #b4b4b8 0%, transparent 56%), radial-gradient(circle at 68% 22%, #f4f4f6 0%, transparent 48%), linear-gradient(135deg, #f2f2f4, #c6c6cc)',
+                                : 'radial-gradient(circle at 28% 26%, #ffffff 0%, transparent 52%), radial-gradient(circle at 74% 70%, #5b8cff 0%, transparent 56%), radial-gradient(circle at 68% 22%, #d3e2ff 0%, transparent 48%), linear-gradient(135deg, #dbe7ff, #6f9bff)',
                               boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.5), inset 0 -2px 5px rgba(0,0,0,0.18)',
                             }} />
                           <div className="min-w-0 flex-1">
-                            <div className="text-[12px] font-medium truncate">
-                              {v.name}{v.labels?.gender && <span className="text-[10px] text-[rgba(255,255,255,0.4)] font-normal"> ({v.labels.gender === 'male' ? 'Male' : 'Female'})</span>}
-                            </div>
+                            <div className="text-[12px] font-medium truncate">{v.name}</div>
                             {v.labels?.descriptive && <div className="text-[10px] text-[rgba(255,255,255,0.35)] truncate">{v.labels.descriptive}</div>}
                           </div>
                           <button type="button" title="Preview voice"
