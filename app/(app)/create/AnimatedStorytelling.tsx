@@ -11,10 +11,10 @@ interface Voice { voice_id: string; name: string; preview_url?: string; labels?:
 interface SceneStatus { scene_index: number; status: string; image_url: string | null; video_url: string | null; }
 
 const STYLES = [
-  { id: 'western_cartoon', label: 'Western Cartoon' },
-  { id: 'anime', label: 'Anime' },
-  { id: 'pixar', label: 'Pixar 3D' },
-  { id: 'comic', label: 'Comic' },
+  { id: 'western_cartoon', label: 'Western Cartoon', grad: 'from-[#3a2a17] to-[#14100a]' },
+  { id: 'anime', label: 'Anime', grad: 'from-[#2a1d33] to-[#0f0d18]' },
+  { id: 'pixar', label: 'Pixar 3D', grad: 'from-[#33231d] to-[#141014]' },
+  { id: 'comic', label: 'Comic', grad: 'from-[#3a1a1a] to-[#1a1206]' },
 ];
 const ASPECTS: { id: Aspect; label: string; sub: string }[] = [
   { id: '9:16', label: '9:16', sub: 'TikTok / Reels' },
@@ -162,104 +162,117 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
     <div className="flex flex-col min-h-screen bg-black text-white">
       {/* Header */}
       <div className="flex-shrink-0 border-b border-[rgba(255,255,255,0.08)] sticky top-0 z-30 bg-black">
-        <div className="max-w-[640px] mx-auto px-6 py-4 flex items-center gap-3">
+        <div className="max-w-[900px] mx-auto px-6 py-4 flex items-center gap-3">
           <button onClick={onBack} className="text-[11px] text-[rgba(255,255,255,0.3)] hover:text-white transition-colors">←</button>
           <span className="text-[13px] font-medium">Animated Storytelling</span>
-          <div className="ml-auto flex items-center gap-2 text-[10px] text-[rgba(255,255,255,0.3)]">
-            {(['setup', 'character', 'generating'] as Step[]).map((s, i) => (
-              <div key={s} className={`flex items-center gap-2 ${step === s || (step === 'done' && s === 'generating') ? 'text-white' : ''}`}>
-                <span className={`w-5 h-5 rounded-full flex items-center justify-center border ${step === s ? 'bg-white text-black border-white' : 'border-[rgba(255,255,255,0.15)]'}`}>{i + 1}</span>
-                {i < 2 && <span className="w-4 h-px bg-[rgba(255,255,255,0.1)]" />}
-              </div>
-            ))}
+          <div className="ml-auto flex items-center gap-3 text-[11px]">
+            {([['setup', 'Create'], ['character', 'Character'], ['generating', 'Generate']] as [Step, string][]).map(([s, lbl], i) => {
+              const active = step === s || (step === 'done' && s === 'generating');
+              return (
+                <div key={s} className="flex items-center gap-3">
+                  <div className={`flex items-center gap-1.5 ${active ? 'text-white' : 'text-[rgba(255,255,255,0.3)]'}`}>
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] border ${step === s ? 'bg-white text-black border-white' : 'border-[rgba(255,255,255,0.15)]'}`}>{i + 1}</span>
+                    <span className="hidden sm:inline">{lbl}</span>
+                  </div>
+                  {i < 2 && <span className="w-6 h-px bg-[rgba(255,255,255,0.1)]" />}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-[640px] mx-auto px-6 py-8 animate-[fadeIn_0.3s_ease]">
+        <div className="max-w-[900px] mx-auto px-6 py-8 animate-[fadeIn_0.3s_ease]">
 
           {/* ── SETUP ── */}
           {step === 'setup' && (
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-7">
+              {/* Story Title / Prompt */}
               <div>
-                <label className="text-[11px] text-[rgba(255,255,255,0.4)] uppercase tracking-wider block mb-2">Story title</label>
-                <input value={title} onChange={e => setTitle(e.target.value)} placeholder="A detective uncovers a midnight conspiracy"
-                  className="w-full bg-[#111] border border-[rgba(255,255,255,0.08)] rounded-lg px-3.5 py-2.5 text-[14px] outline-none focus:border-[rgba(255,255,255,0.18)] transition-colors placeholder:text-[rgba(255,255,255,0.2)]" />
+                <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Story Title / Prompt</label>
+                <textarea value={title} onChange={e => setTitle(e.target.value)} rows={3}
+                  placeholder="A detective uncovers a midnight conspiracy…"
+                  className="w-full bg-[#0e0e0e] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 py-3.5 text-[14px] outline-none resize-none focus:border-[rgba(255,255,255,0.2)] transition-colors placeholder:text-[rgba(255,255,255,0.22)] leading-relaxed" />
               </div>
 
+              {/* Visual Style */}
               <div>
-                <label className="text-[11px] text-[rgba(255,255,255,0.4)] uppercase tracking-wider block mb-2">Style</label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Visual Style</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {STYLES.map(s => (
                     <button key={s.id} onClick={() => setStyle(s.id)}
-                      className={`py-2.5 rounded-lg border text-[12px] transition-all ${style === s.id ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>{s.label}</button>
+                      className={`relative aspect-[4/3] rounded-xl overflow-hidden border transition-all ${style === s.id ? 'border-white' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.22)]'}`}>
+                      <div className={`absolute inset-0 bg-gradient-to-br ${s.grad}`} />
+                      <div className="absolute inset-0 flex items-end p-3">
+                        <span className="text-[13px] font-semibold tracking-[-0.2px] drop-shadow-[0_1px_3px_rgba(0,0,0,0.7)]">{s.label}</span>
+                      </div>
+                      {style === s.id && (
+                        <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-white flex items-center justify-center">
+                          <svg width="9" height="9" viewBox="0 0 14 14" fill="none" stroke="black" strokeWidth="2.5"><path d="M2 7l3.5 3.5L12 4" /></svg>
+                        </span>
+                      )}
+                    </button>
                   ))}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Format · Quality · Length */}
+              <div className="flex flex-col sm:flex-row gap-5">
                 <div>
-                  <label className="text-[11px] text-[rgba(255,255,255,0.4)] uppercase tracking-wider block mb-2">Format</label>
-                  <div className="flex flex-col gap-2">
+                  <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Format</label>
+                  <div className="flex gap-1.5">
                     {ASPECTS.map(a => (
-                      <button key={a.id} onClick={() => setAspect(a.id)}
-                        className={`flex items-center justify-between px-3 py-2 rounded-lg border text-[12px] transition-all ${aspect === a.id ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>
-                        <span>{a.label}</span><span className="text-[10px] text-[rgba(255,255,255,0.3)]">{a.sub}</span></button>
+                      <button key={a.id} onClick={() => setAspect(a.id)} title={a.sub}
+                        className={`px-3 py-2 rounded-lg border text-[12px] transition-all ${aspect === a.id ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>{a.label}</button>
                     ))}
                   </div>
                 </div>
-                <div className="flex flex-col gap-4">
-                  <div>
-                    <label className="text-[11px] text-[rgba(255,255,255,0.4)] uppercase tracking-wider block mb-2">Quality</label>
-                    <div className="flex gap-2">
-                      {(['720p', '1080p'] as const).map(r => (
-                        <button key={r} onClick={() => setResolution(r)}
-                          className={`flex-1 py-2 rounded-lg border text-[12px] transition-all flex flex-col items-center leading-tight ${resolution === r ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)]'}`}>
-                          <span>{r}</span>
-                          <span className="text-[9px] text-[rgba(255,255,255,0.35)]">{animatedStoryCost(durationMinutes, r).toLocaleString()} cr</span>
-                        </button>
-                      ))}
-                    </div>
+                <div>
+                  <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Quality</label>
+                  <div className="flex gap-1.5">
+                    {(['720p', '1080p'] as const).map(r => (
+                      <button key={r} onClick={() => setResolution(r)}
+                        className={`px-3.5 py-1.5 rounded-lg border text-[12px] transition-all flex flex-col items-center leading-tight ${resolution === r ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>
+                        <span>{r}</span>
+                        <span className="text-[9px] text-[rgba(255,255,255,0.35)]">{animatedStoryCost(durationMinutes, r).toLocaleString()} cr</span>
+                      </button>
+                    ))}
                   </div>
-                  <div>
-                    <label className="text-[11px] text-[rgba(255,255,255,0.4)] uppercase tracking-wider block mb-2">Length</label>
-                    <div className="flex gap-2">
-                      {DURATIONS.map(d => (
-                        <button key={d} onClick={() => setDurationMinutes(d)}
-                          className={`flex-1 py-2 rounded-lg border text-[11px] transition-all flex flex-col items-center leading-tight ${durationMinutes === d ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)]'}`}>
-                          <span>{d} min</span>
-                          <span className="text-[9px] text-[rgba(255,255,255,0.35)]">{animatedStoryCost(d, resolution).toLocaleString()} cr</span>
-                        </button>
-                      ))}
-                    </div>
+                </div>
+                <div className="flex-1">
+                  <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Length</label>
+                  <div className="flex gap-1.5">
+                    {DURATIONS.map(d => (
+                      <button key={d} onClick={() => setDurationMinutes(d)}
+                        className={`flex-1 py-1.5 rounded-lg border text-[11px] transition-all flex flex-col items-center leading-tight ${durationMinutes === d ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>
+                        <span>{d} min</span>
+                        <span className="text-[9px] text-[rgba(255,255,255,0.35)]">{animatedStoryCost(d, resolution).toLocaleString()} cr</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
 
               {/* Narrator */}
-              <div className="border border-[rgba(255,255,255,0.08)] rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-[13px] font-medium">Narrator</div>
-                    <div className="text-[11px] text-[rgba(255,255,255,0.35)]">AI voice-over for each scene</div>
-                  </div>
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)]">Narrator</label>
                   <button onClick={() => setIncludeNarrator(v => !v)}
-                    className={`w-10 h-6 rounded-full transition-colors relative ${includeNarrator ? 'bg-white' : 'bg-[rgba(255,255,255,0.1)]'}`}>
-                    <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-black transition-all ${includeNarrator ? 'left-[18px]' : 'left-0.5'} ${includeNarrator ? '' : 'bg-[rgba(255,255,255,0.5)]'}`} />
+                    className={`w-9 h-5 rounded-full transition-colors relative ${includeNarrator ? 'bg-white' : 'bg-[rgba(255,255,255,0.12)]'}`}>
+                    <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-all ${includeNarrator ? 'left-[18px] bg-black' : 'left-0.5 bg-[rgba(255,255,255,0.5)]'}`} />
                   </button>
                 </div>
                 {includeNarrator && (
-                  <div className="mt-3 border-t border-[rgba(255,255,255,0.05)] pt-3">
-                    <div className="text-[11px] text-[rgba(255,255,255,0.4)] mb-2">Choose a voice</div>
-                    <div className="grid grid-cols-2 gap-2 max-h-[280px] overflow-y-auto pr-1">
+                  <>
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 max-h-[230px] overflow-y-auto pr-1">
                       {voices.map(v => (
                         <div key={v.voice_id} onClick={() => setVoiceId(v.voice_id === voiceId ? null : v.voice_id)}
-                          className={`flex items-center justify-between gap-1.5 text-left pl-3 pr-1.5 py-2 rounded-lg border transition-all cursor-pointer ${voiceId === v.voice_id ? 'border-white bg-[rgba(255,255,255,0.08)]' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.18)]'}`}>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[12px] font-medium">{v.name}</span>
-                              {v.labels?.gender && <span className="text-[10px] text-[rgba(255,255,255,0.4)]">({v.labels.gender === 'male' ? 'Male' : 'Female'})</span>}
+                          className={`flex items-center gap-2.5 pl-2 pr-1.5 py-2 rounded-xl border transition-all cursor-pointer ${voiceId === v.voice_id ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.18)]'}`}>
+                          <div className="w-8 h-8 rounded-full bg-[rgba(255,255,255,0.08)] flex items-center justify-center text-[12px] font-semibold shrink-0">{v.name.charAt(0)}</div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[12px] font-medium truncate">
+                              {v.name}{v.labels?.gender && <span className="text-[10px] text-[rgba(255,255,255,0.4)] font-normal"> ({v.labels.gender === 'male' ? 'Male' : 'Female'})</span>}
                             </div>
                             {v.labels?.descriptive && <div className="text-[10px] text-[rgba(255,255,255,0.35)] truncate">{v.labels.descriptive}</div>}
                           </div>
@@ -273,33 +286,39 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
                         </div>
                       ))}
                     </div>
-                    <div className="flex items-center justify-between mt-3">
-                      <span className="text-[12px] text-[rgba(255,255,255,0.5)]">Narration speed</span>
-                      <div className="flex gap-1.5">
-                        {[1, 1.5, 2].map(sp => (
-                          <button key={sp} onClick={() => setNarratorSpeed(sp)}
-                            className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all ${narratorSpeed === sp ? 'border-white bg-white text-black' : 'border-[rgba(255,255,255,0.12)] text-[rgba(255,255,255,0.6)] hover:border-[rgba(255,255,255,0.25)]'}`}>
-                            {sp}x
-                          </button>
-                        ))}
+                    <div className="flex flex-wrap items-center gap-x-6 gap-y-3 mt-4">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-[12px] text-[rgba(255,255,255,0.5)]">Speed</span>
+                        <div className="flex gap-1.5">
+                          {[1, 1.5, 2].map(sp => (
+                            <button key={sp} onClick={() => setNarratorSpeed(sp)}
+                              className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all ${narratorSpeed === sp ? 'border-white bg-white text-black' : 'border-[rgba(255,255,255,0.12)] text-[rgba(255,255,255,0.6)] hover:border-[rgba(255,255,255,0.25)]'}`}>
+                              {sp}x
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-[12px] text-[rgba(255,255,255,0.5)]">Captions</span>
+                        <button onClick={() => setIncludeSubtitles(v => !v)}
+                          className={`w-9 h-5 rounded-full transition-colors relative ${includeSubtitles ? 'bg-white' : 'bg-[rgba(255,255,255,0.12)]'}`}>
+                          <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-all ${includeSubtitles ? 'left-[18px] bg-black' : 'left-0.5 bg-[rgba(255,255,255,0.5)]'}`} />
+                        </button>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between mt-3">
-                      <span className="text-[12px] text-[rgba(255,255,255,0.5)]">Captions (subtitles)</span>
-                      <button onClick={() => setIncludeSubtitles(v => !v)}
-                        className={`w-9 h-5 rounded-full transition-colors relative ${includeSubtitles ? 'bg-white' : 'bg-[rgba(255,255,255,0.1)]'}`}>
-                        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-black transition-all ${includeSubtitles ? 'left-[18px]' : 'left-0.5'}`} />
-                      </button>
-                    </div>
-                  </div>
+                  </>
                 )}
               </div>
 
-              <button onClick={() => setStep('character')} disabled={!title.trim() || (includeNarrator && !voiceId)}
-                className="self-end px-6 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all">
-                Next: Character →
-              </button>
-              {includeNarrator && !voiceId && <p className="text-[11px] text-[rgba(255,255,255,0.3)] self-end -mt-3">Pick a narrator voice to continue</p>}
+              {/* Footer */}
+              <div className="flex items-center justify-end gap-4 border-t border-[rgba(255,255,255,0.06)] pt-5">
+                {includeNarrator && !voiceId && <span className="text-[11px] text-[rgba(255,255,255,0.3)]">Pick a narrator voice to continue</span>}
+                <button onClick={() => setStep('character')} disabled={!title.trim() || (includeNarrator && !voiceId)}
+                  className="px-6 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all flex items-center gap-1.5">
+                  Next Step
+                  <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 7h12M8 2l5 5-5 5" /></svg>
+                </button>
+              </div>
             </div>
           )}
 
