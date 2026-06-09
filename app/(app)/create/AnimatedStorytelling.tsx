@@ -292,7 +292,13 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
                       {voices.map(v => (
                         <div key={v.voice_id} onClick={() => setVoiceId(v.voice_id === voiceId ? null : v.voice_id)}
                           className={`flex items-center gap-2.5 pl-2 pr-1.5 py-2 rounded-xl border transition-all cursor-pointer ${voiceId === v.voice_id ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.18)]'}`}>
-                          <div className="w-8 h-8 rounded-full bg-[rgba(255,255,255,0.08)] flex items-center justify-center text-[12px] font-semibold shrink-0">{v.name.charAt(0)}</div>
+                          <div className="w-8 h-8 rounded-full shrink-0"
+                            style={{
+                              background: v.labels?.gender === 'female'
+                                ? 'radial-gradient(circle at 28% 26%, #ffffff 0%, transparent 52%), radial-gradient(circle at 74% 70%, #ff7fb5 0%, transparent 56%), radial-gradient(circle at 68% 22%, #ffd4e6 0%, transparent 48%), linear-gradient(135deg, #ffd2e2, #ff9ec6)'
+                                : 'radial-gradient(circle at 28% 26%, #ffffff 0%, transparent 52%), radial-gradient(circle at 74% 70%, #b4b4b8 0%, transparent 56%), radial-gradient(circle at 68% 22%, #f4f4f6 0%, transparent 48%), linear-gradient(135deg, #f2f2f4, #c6c6cc)',
+                              boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.5), inset 0 -2px 5px rgba(0,0,0,0.18)',
+                            }} />
                           <div className="min-w-0 flex-1">
                             <div className="text-[12px] font-medium truncate">
                               {v.name}{v.labels?.gender && <span className="text-[10px] text-[rgba(255,255,255,0.4)] font-normal"> ({v.labels.gender === 'male' ? 'Male' : 'Female'})</span>}
