@@ -7,7 +7,7 @@ import { animatedStoryCost } from '@/lib/types';
 type Step = 'setup' | 'character' | 'generating' | 'done';
 type Aspect = '16:9' | '9:16' | '1:1';
 
-interface Voice { voice_id: string; name: string; preview_url?: string; labels?: { gender?: string; descriptive?: string; accent?: string } }
+interface Voice { voice_id: string; name: string; preview_url?: string; labels?: { gender?: string; descriptive?: string; accent?: string; age?: string; use_case?: string; [k: string]: string | undefined } }
 interface SceneStatus { scene_index: number; status: string; image_url: string | null; video_url: string | null; }
 
 const STYLES = [
@@ -22,6 +22,15 @@ const ASPECTS: { id: Aspect; label: string; sub: string }[] = [
   { id: '1:1', label: '1:1', sub: 'Instagram' },
 ];
 const DURATIONS = [1, 2, 3, 5, 10];
+
+// Voice filter dimensions (driven by ElevenLabs labels)
+const FILTER_DIMS: { key: string; label: string }[] = [
+  { key: 'accent', label: 'Accent' },
+  { key: 'gender', label: 'Gender' },
+  { key: 'age', label: 'Age' },
+  { key: 'use_case', label: 'Use case' },
+];
+const prettyLabel = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 export default function AnimatedStorytelling({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState<Step>('setup');
@@ -38,6 +47,8 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
   const [voices, setVoices] = useState<Voice[]>([]);
   const [voiceId, setVoiceId] = useState<string | null>(null);
   const [previewVoice, setPreviewVoice] = useState<string | null>(null); // voice_id currently loading/playing
+  const [voiceFilters, setVoiceFilters] = useState<Record<string, string>>({}); // dim key -> selected value
+  const [openFilter, setOpenFilter] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const reqRef = useRef<string | null>(null); // latest requested voice (guards async races)
 
@@ -179,6 +190,16 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
     } catch { setGenStatus('failed'); setGenErr('Failed to start generation'); }
   };
 
+  // ── Voice filtering ──
+  const filterOptions = (key: string) =>
+    Array.from(new Set(voices.map(v => v.labels?.[key]).filter(Boolean) as string[])).sort();
+  const filteredVoices = voices.filter(v =>
+    FILTER_DIMS.every(d => !voiceFilters[d.key] || v.labels?.[d.key] === voiceFilters[d.key])
+  );
+  const setVoiceFilter = (key: string, val: string) =>
+    setVoiceFilters(f => { const n = { ...f }; if (val) n[key] = val; else delete n[key]; return n; });
+  const activeFilterCount = Object.keys(voiceFilters).length;
+
   return (
     <div className="flex flex-col min-h-screen bg-black text-white">
       {/* Header */}
@@ -300,17 +321,56 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
 
               {/* Narrator */}
               <div>
-                <div className="flex items-center gap-3 mb-3">
+                <div className="flex items-center gap-2.5 mb-3 flex-wrap">
                   <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)]">Narrator</label>
                   <button onClick={() => setIncludeNarrator(v => !v)}
                     className={`w-9 h-5 rounded-full transition-colors relative ${includeNarrator ? 'bg-white' : 'bg-[rgba(255,255,255,0.12)]'}`}>
                     <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-all ${includeNarrator ? 'left-[18px] bg-black' : 'left-0.5 bg-[rgba(255,255,255,0.5)]'}`} />
                   </button>
+                  {includeNarrator && (
+                    <div className="flex items-center gap-1.5 flex-wrap ml-1">
+                      {FILTER_DIMS.map(d => {
+                        const opts = filterOptions(d.key);
+                        if (opts.length < 2) return null;
+                        const sel = voiceFilters[d.key];
+                        const open = openFilter === d.key;
+                        return (
+                          <div key={d.key} className="relative">
+                            <button type="button" onClick={() => setOpenFilter(open ? null : d.key)}
+                              className={`flex items-center gap-1 px-2 py-1 rounded-md border text-[10.5px] transition-all ${sel ? 'border-[rgba(255,255,255,0.4)] text-white bg-[rgba(255,255,255,0.07)]' : 'border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.2)]'}`}>
+                              {sel ? prettyLabel(sel) : d.label}
+                              <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" className={open ? 'rotate-180' : ''}><path d="M2 3.5L5 6.5 8 3.5" /></svg>
+                            </button>
+                            {open && (
+                              <>
+                                <div className="fixed inset-0 z-10" onClick={() => setOpenFilter(null)} />
+                                <div className="absolute z-20 mt-1 left-0 min-w-[140px] max-h-[210px] overflow-y-auto bg-[#161616] border border-[rgba(255,255,255,0.12)] rounded-lg p-1 shadow-[0_8px_24px_rgba(0,0,0,0.5)]">
+                                  <button type="button" onClick={() => { setVoiceFilter(d.key, ''); setOpenFilter(null); }}
+                                    className={`w-full text-left px-2 py-1.5 rounded text-[11px] ${!sel ? 'bg-[rgba(255,255,255,0.1)] text-white' : 'text-[rgba(255,255,255,0.55)] hover:bg-[rgba(255,255,255,0.05)]'}`}>All</button>
+                                  {opts.map(o => (
+                                    <button key={o} type="button" onClick={() => { setVoiceFilter(d.key, o); setOpenFilter(null); }}
+                                      className={`w-full text-left px-2 py-1.5 rounded text-[11px] ${sel === o ? 'bg-[rgba(255,255,255,0.1)] text-white' : 'text-[rgba(255,255,255,0.6)] hover:bg-[rgba(255,255,255,0.05)]'}`}>{prettyLabel(o)}</button>
+                                  ))}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {activeFilterCount > 0 && (
+                        <button type="button" onClick={() => setVoiceFilters({})}
+                          className="text-[10.5px] text-[rgba(255,255,255,0.4)] hover:text-white px-1 transition-colors">Clear</button>
+                      )}
+                    </div>
+                  )}
                 </div>
                 {includeNarrator && (
                   <>
+                    {filteredVoices.length === 0 && (
+                      <div className="text-[11px] text-[rgba(255,255,255,0.35)] py-3">No voices match these filters.</div>
+                    )}
                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 max-h-[230px] overflow-y-auto pr-1">
-                      {voices.map(v => (
+                      {filteredVoices.map(v => (
                         <div key={v.voice_id} onClick={() => setVoiceId(v.voice_id === voiceId ? null : v.voice_id)}
                           className={`flex items-center gap-2.5 pl-2 pr-1.5 py-2 rounded-xl border transition-all cursor-pointer ${voiceId === v.voice_id ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.18)]'}`}>
                           <div className="w-8 h-8 rounded-full shrink-0"
