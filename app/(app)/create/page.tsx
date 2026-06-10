@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { type Resolution, RESOLUTION_CREDITS, STORYBOOK_CREDITS_PER_SCENE } from '@/lib/types';
 import AnimatedStorytelling from './AnimatedStorytelling';
+import WhiteboardAnimation from './WhiteboardAnimation';
 
 type AnimStyle = 'western-cartoon' | 'anime' | 'pixar' | 'comic' | 'retro' | 'custom';
 type AspectRatio = '16:9' | '9:16' | '1:1';
@@ -32,7 +33,7 @@ interface SceneDef {
 type SceneRenderStatus = { scene_number: number; status: 'queued' | 'processing' | 'completed' | 'failed'; current_step?: string; video_url?: string; };
 
 // ─── Story Mode types ───
-type CreateMode = 'selecting' | 'theme_select' | 'story' | 'cartoon' | 'animated';
+type CreateMode = 'selecting' | 'theme_select' | 'story' | 'cartoon' | 'animated' | 'whiteboard';
 type StoryTheme = 'true_crime' | 'history' | 'drama' | 'fairy_tale' | 'custom';
 type StoryGenre = 'drama' | 'fairy-tale' | 'horror' | 'action' | 'motivation' | 'comedy' | 'mystery';
 interface ScriptScene { id: string; sceneNumber: number; title: string; narratorText: string; sceneDescription: string; imageUrl: string | null; videoUrl: string | null; generating: boolean; error: string | null; approved: boolean; kenBurns: boolean; includeNarrator: boolean; includeSubtitles: boolean; }
@@ -773,7 +774,7 @@ function CreatePageInner() {
     {mode === 'selecting' && (
       <div className="flex flex-col h-screen bg-black items-center justify-center px-6 animate-[fadeIn_0.3s_ease]">
         <h1 className="text-[18px] font-medium text-white mb-8">What do you want to create?</h1>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-[900px] w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-[1180px] w-full">
           <button onClick={() => setMode('theme_select')}
             className="bg-[#0f0f0f] border-[1.5px] border-[rgba(255,255,255,0.12)] rounded-xl p-7 text-left hover:border-[rgba(255,255,255,0.3)] transition-all group">
             <div className="flex items-start justify-between mb-4">
@@ -803,6 +804,16 @@ function CreatePageInner() {
             <p className="text-[11px] text-[rgba(255,255,255,0.3)] mb-2">Character-driven animated stories</p>
             <p className="text-[12px] text-[rgba(255,255,255,0.4)] leading-relaxed">Create a character, then auto-generate an animated story with narration and captions</p>
           </button>
+          <button onClick={() => setMode('whiteboard')}
+            className="bg-[#0f0f0f] border border-[rgba(255,255,255,0.08)] rounded-xl p-7 text-left hover:border-[rgba(255,255,255,0.18)] transition-all group">
+            <div className="flex items-start justify-between mb-4">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" className="group-hover:stroke-white transition-colors"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M6 8l3 3 3-4 3 3 3-3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <span className="text-[9px] font-medium bg-white text-black px-2 py-0.5 rounded-full">New</span>
+            </div>
+            <h3 className="text-[15px] font-medium text-white mb-0.5">Whiteboard Animation</h3>
+            <p className="text-[11px] text-[rgba(255,255,255,0.3)] mb-2">Doodle explainer videos</p>
+            <p className="text-[12px] text-[rgba(255,255,255,0.4)] leading-relaxed">Turn any topic into a hand-drawn whiteboard explainer with narration and captions</p>
+          </button>
         </div>
         <p className="text-[11px] text-[rgba(255,255,255,0.2)] mt-6">Both modes support vertical and horizontal export</p>
         <style jsx global>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
@@ -811,6 +822,9 @@ function CreatePageInner() {
 
     {/* ═══ ANIMATED STORYTELLING ═══ */}
     {mode === 'animated' && <AnimatedStorytelling onBack={() => setMode('selecting')} />}
+
+    {/* ═══ WHITEBOARD ANIMATION ═══ */}
+    {mode === 'whiteboard' && <WhiteboardAnimation onBack={() => setMode('selecting')} />}
 
     {/* ═══ THEME SELECTION ═══ */}
     {mode === 'theme_select' && (

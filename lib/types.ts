@@ -23,6 +23,16 @@ export function animatedStoryCost(durationMinutes: number, resolution: string, s
   return scenes * ANIMATED_STORY_CREDITS_PER_SCENE[tier];
 }
 
+// ─── Whiteboard Animation pricing ───
+// No video model (just a line-art image + ffmpeg reveal + narration), so much cheaper.
+// Real per-scene cost ≈ $0.065 → 1.8× = $0.117 ≈ 36 credits. Flat across resolutions.
+export const WHITEBOARD_SCENE_MAP: Record<number, number> = { 1: 5, 2: 9, 3: 13, 5: 20, 10: 38 };
+export const WHITEBOARD_CREDITS_PER_SCENE = 36;
+export function whiteboardCost(durationMinutes: number, sceneCount?: number): number {
+  const scenes = sceneCount && sceneCount > 0 ? sceneCount : (WHITEBOARD_SCENE_MAP[durationMinutes] ?? 5);
+  return scenes * WHITEBOARD_CREDITS_PER_SCENE;
+}
+
 export type CharacterRole = 'silent' | 'speaking';
 export type Framing = 'full-body' | 'half-body' | 'close-up';
 export type AnimationStatus = 'completed' | 'processing' | 'failed' | 'queued';
