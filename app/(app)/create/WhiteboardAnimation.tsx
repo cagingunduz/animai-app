@@ -32,6 +32,7 @@ export default function WhiteboardAnimation({ onBack }: { onBack: () => void }) 
   const [aspect, setAspect] = useState<Aspect>('16:9');
   const [resolution, setResolution] = useState<'720p' | '1080p'>('1080p');
   const [durationMinutes, setDurationMinutes] = useState(1);
+  const [colored, setColored] = useState(false);
   const [includeNarrator, setIncludeNarrator] = useState(true);
   const [includeSubtitles, setIncludeSubtitles] = useState(true);
   const [narratorSpeed, setNarratorSpeed] = useState(1);
@@ -120,7 +121,7 @@ export default function WhiteboardAnimation({ onBack }: { onBack: () => void }) 
       const r = await fetch('/api/whiteboard', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title, aspect_ratio: aspect, resolution, duration_minutes: durationMinutes,
+          title, aspect_ratio: aspect, resolution, duration_minutes: durationMinutes, colored,
           include_narrator: includeNarrator && !!voiceId,
           narrator_voice_id: voiceId,
           narrator_speed: narratorSpeed,
@@ -226,6 +227,19 @@ export default function WhiteboardAnimation({ onBack }: { onBack: () => void }) 
                       </button>
                     ))}
                   </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Style</label>
+                <div className="flex gap-1.5">
+                  {[{ v: false, label: 'Black & White', sub: 'Classic line draw' }, { v: true, label: 'Color', sub: 'Outline drawn, colour fills in' }].map(o => (
+                    <button key={String(o.v)} onClick={() => setColored(o.v)}
+                      className={`px-4 py-2 rounded-lg border text-[12px] transition-all flex flex-col items-start leading-tight ${colored === o.v ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>
+                      <span>{o.label}</span>
+                      <span className="text-[9px] text-[rgba(255,255,255,0.35)]">{o.sub}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
 
