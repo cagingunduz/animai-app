@@ -33,6 +33,17 @@ export function whiteboardCost(durationMinutes: number, sceneCount?: number): nu
   return scenes * WHITEBOARD_CREDITS_PER_SCENE;
 }
 
+// ─── Fruit Drama pricing ───
+// Veo 3.1 Lite is billed per video second; character/scene images add a small fixed cost.
+export const FRUIT_DRAMA_CREDITS_PER_SCENE: Record<'720p' | '1080p', number> = { '720p': 260, '1080p': 410 };
+export const FRUIT_DRAMA_SETUP_CREDITS = 100;
+export function fruitDramaCost(sceneCount: number, resolution: string, durationSeconds: number = 8): number {
+  const scenes = Math.max(1, Math.min(10, sceneCount || 5));
+  const tier: '720p' | '1080p' = resolution === '1080p' ? '1080p' : '720p';
+  const seconds = tier === '1080p' ? 8 : Math.max(4, Math.min(8, durationSeconds || 8));
+  return FRUIT_DRAMA_SETUP_CREDITS + Math.ceil(scenes * FRUIT_DRAMA_CREDITS_PER_SCENE[tier] * (seconds / 8));
+}
+
 export type CharacterRole = 'silent' | 'speaking';
 export type Framing = 'full-body' | 'half-body' | 'close-up';
 export type AnimationStatus = 'completed' | 'processing' | 'failed' | 'queued';

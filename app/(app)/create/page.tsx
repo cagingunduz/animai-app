@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { type Resolution, RESOLUTION_CREDITS, STORYBOOK_CREDITS_PER_SCENE } from '@/lib/types';
 import AnimatedStorytelling from './AnimatedStorytelling';
 import WhiteboardAnimation from './WhiteboardAnimation';
+import FruitDrama from './FruitDrama';
 
 type AnimStyle = 'western-cartoon' | 'anime' | 'pixar' | 'comic' | 'retro' | 'custom';
 type AspectRatio = '16:9' | '9:16' | '1:1';
@@ -33,7 +34,7 @@ interface SceneDef {
 type SceneRenderStatus = { scene_number: number; status: 'queued' | 'processing' | 'completed' | 'failed'; current_step?: string; video_url?: string; };
 
 // ─── Story Mode types ───
-type CreateMode = 'selecting' | 'theme_select' | 'story' | 'cartoon' | 'animated' | 'whiteboard';
+type CreateMode = 'selecting' | 'theme_select' | 'story' | 'cartoon' | 'animated' | 'whiteboard' | 'fruit_drama';
 type StoryTheme = 'true_crime' | 'history' | 'drama' | 'fairy_tale' | 'custom';
 type StoryGenre = 'drama' | 'fairy-tale' | 'horror' | 'action' | 'motivation' | 'comedy' | 'mystery';
 interface ScriptScene { id: string; sceneNumber: number; title: string; narratorText: string; sceneDescription: string; imageUrl: string | null; videoUrl: string | null; generating: boolean; error: string | null; approved: boolean; kenBurns: boolean; includeNarrator: boolean; includeSubtitles: boolean; }
@@ -774,7 +775,7 @@ function CreatePageInner() {
     {mode === 'selecting' && (
       <div className="flex flex-col h-screen bg-black items-center justify-center px-6 animate-[fadeIn_0.3s_ease]">
         <h1 className="text-[18px] font-medium text-white mb-8">What do you want to create?</h1>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-[1180px] w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 max-w-[1360px] w-full">
           <button onClick={() => setMode('theme_select')}
             className="bg-[#0f0f0f] border-[1.5px] border-[rgba(255,255,255,0.12)] rounded-xl p-7 text-left hover:border-[rgba(255,255,255,0.3)] transition-all group">
             <div className="flex items-start justify-between mb-4">
@@ -814,6 +815,16 @@ function CreatePageInner() {
             <p className="text-[11px] text-[rgba(255,255,255,0.3)] mb-2">Doodle explainer videos</p>
             <p className="text-[12px] text-[rgba(255,255,255,0.4)] leading-relaxed">Turn any topic into a hand-drawn whiteboard explainer with narration and captions</p>
           </button>
+          <button onClick={() => setMode('fruit_drama')}
+            className="bg-[#0f0f0f] border border-[rgba(255,255,255,0.08)] rounded-xl p-7 text-left hover:border-[rgba(255,255,255,0.18)] transition-all group">
+            <div className="flex items-start justify-between mb-4">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" className="group-hover:stroke-white transition-colors"><path d="M12 3c4 2 7 5 7 10a7 7 0 0 1-14 0c0-5 3-8 7-10Z"/><path d="M12 3c0 3-1 4-3 5"/><path d="M13 4c2-2 4-2 6-1"/></svg>
+              <span className="text-[9px] font-medium bg-white text-black px-2 py-0.5 rounded-full">New</span>
+            </div>
+            <h3 className="text-[15px] font-medium text-white mb-0.5">Fruit Drama</h3>
+            <p className="text-[11px] text-[rgba(255,255,255,0.3)] mb-2">Viral character shorts</p>
+            <p className="text-[12px] text-[rgba(255,255,255,0.4)] leading-relaxed">Create fruit characters, cinematic scenes and Veo 3.1 Lite videos with dialogue</p>
+          </button>
         </div>
         <p className="text-[11px] text-[rgba(255,255,255,0.2)] mt-6">Both modes support vertical and horizontal export</p>
         <style jsx global>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
@@ -825,6 +836,9 @@ function CreatePageInner() {
 
     {/* ═══ WHITEBOARD ANIMATION ═══ */}
     {mode === 'whiteboard' && <WhiteboardAnimation onBack={() => setMode('selecting')} />}
+
+    {/* ═══ FRUIT DRAMA ═══ */}
+    {mode === 'fruit_drama' && <FruitDrama onBack={() => setMode('selecting')} />}
 
     {/* ═══ THEME SELECTION ═══ */}
     {mode === 'theme_select' && (
