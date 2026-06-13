@@ -324,7 +324,7 @@ function CreatePageInner() {
 
   const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (f) setPhotoUrl(URL.createObjectURL(f)); };
   const clearPhoto = () => { setPhotoUrl(null); if (fileRef.current) fileRef.current.value = ''; };
-  const resetForm = () => { setPrompt(''); setStyle('anime'); setSelVoice(null); clearPhoto(); };
+  const resetForm = () => { setPrompt(''); setSelVoice(null); clearPhoto(); };  // keep global style across characters
 
   const handleGenChar = async () => {
     if (!prompt.trim()) return;
