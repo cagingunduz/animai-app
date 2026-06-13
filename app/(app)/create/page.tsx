@@ -114,6 +114,13 @@ function CreatePageInner() {
   const [scenes, setScenes] = useState<SceneDef[]>([]);
   const [res, setRes] = useState<Resolution>('720p');
 
+  // ─── 2D Animation setup (Animated-Storytelling-style first stage) ───
+  const [cartoonSetupDone, setCartoonSetupDone] = useState(false);
+  const [cTitle, setCTitle] = useState('');
+  const [cAspect, setCAspect] = useState<AspectRatio>('16:9');
+  const [cSceneDur, setCSceneDur] = useState<4 | 6 | 8>(8);   // Veo 3.1 lite: 4/6/8s
+  const [cSceneCount, setCSceneCount] = useState<3 | 5 | 8>(5);
+
   const [prompt, setPrompt] = useState('');
   const [style, setStyle] = useState<AnimStyle>('anime');
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -358,7 +365,7 @@ function CreatePageInner() {
   const addScene = () => {
     const newId = uid();
     const firstBgId = uid();
-    const inheritAspect: AspectRatio = scenes[scenes.length - 1]?.aspectRatio ?? '16:9';
+    const inheritAspect: AspectRatio = scenes[scenes.length - 1]?.aspectRatio ?? cAspect;
     const slots: CharPlacement[] = chars.map((c, i) => ({
       slot: i, characterId: c.id, role: 'silent' as const, dialogue: '',
     }));
@@ -527,7 +534,7 @@ function CreatePageInner() {
       const payload = {
         characters: chars.map(c => ({ id: c.id, description: c.prompt, style: c.style, photo_url: null })),
         scenes: approvedScenes.map(sc => ({
-          scene_text: sc.description, aspect_ratio: sc.aspectRatio,
+          scene_text: sc.description, aspect_ratio: sc.aspectRatio, scene_duration: cSceneDur,
           characters: sc.characterPlacements.filter(cp => cp.characterId).map(cp => ({
             character_id: cp.characterId, role: cp.dialogue.trim() ? 'speaking' : 'silent',
             dialogue: cp.dialogue.trim() || null,
@@ -548,6 +555,7 @@ function CreatePageInner() {
 
   const resetAll = () => {
     setStep(1); setChars([]); setScenes([]); setRes('720p');
+    setCartoonSetupDone(false); setCTitle('');
     resetForm(); setJobId(null); setGenProgress(0); setGenStatus('idle'); setGenScenes([]); setFinalVideoUrl(null);
     setMode('selecting'); setStoryTheme(null); setStoryStep(1); setStoryTitle(''); setStoryAspectRatio('9:16'); setProjectId(null);
     setStoryStyle('anime'); setStoryNarratorVoiceId(null); setStoryDuration(3);
@@ -782,7 +790,7 @@ function CreatePageInner() {
             <p className="text-[11px] text-[rgba(255,255,255,0.3)] mb-2">YouTube Story Videos</p>
             <p className="text-[12px] text-[rgba(255,255,255,0.4)] leading-relaxed">AI-generated cinematic scenes with camera movement, narrator voice and sound effects</p>
           </button>
-          <button onClick={() => setMode('cartoon')}
+          <button onClick={() => { setCartoonSetupDone(false); setMode('cartoon'); }}
             className="bg-[#0f0f0f] border border-[rgba(255,255,255,0.08)] rounded-xl p-7 text-left hover:border-[rgba(255,255,255,0.18)] transition-all group">
             <div className="mb-4">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" className="group-hover:stroke-white transition-colors"><rect x="2" y="4" width="6" height="16" rx="1"/><rect x="9" y="4" width="6" height="16" rx="1"/><rect x="16" y="4" width="6" height="16" rx="1"/><circle cx="5" cy="10" r="1" fill="rgba(255,255,255,0.2)" stroke="none"/><circle cx="12" cy="10" r="1" fill="rgba(255,255,255,0.2)" stroke="none"/><circle cx="19" cy="10" r="1" fill="rgba(255,255,255,0.2)" stroke="none"/></svg>
@@ -1222,8 +1230,109 @@ function CreatePageInner() {
       </div>
     )}
 
+    {/* ═══ 2D ANIMATION — SETUP (Animated-Storytelling style) ═══ */}
+    {mode === 'cartoon' && !cartoonSetupDone && (
+    <div className="flex flex-col h-screen bg-black text-white">
+      <div className="flex-shrink-0 border-b border-[rgba(255,255,255,0.1)] sticky top-0 z-30 bg-black">
+        <div className="max-w-[900px] mx-auto px-6 py-4 flex items-center">
+          <button onClick={() => setMode('selecting')} className="text-[13px] text-[rgba(255,255,255,0.3)] hover:text-white transition-colors mr-3">←</button>
+          <span className="text-[15px] font-semibold tracking-[-0.3px]">2D Animation</span>
+          <div className="flex-1 flex justify-center items-center">
+            {[0, 1].map(i => (
+              <div key={i} className="flex items-center">
+                <span className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-semibold ${i === 0 ? 'bg-white text-black' : 'bg-[rgba(255,255,255,0.06)] text-[rgba(255,255,255,0.35)] border border-[rgba(255,255,255,0.1)]'}`}>{i + 1}</span>
+                {i < 1 && <span className="h-[2px] w-16 mx-1 rounded-full bg-[rgba(255,255,255,0.1)]" />}
+              </div>
+            ))}
+          </div>
+          <span className="w-6" />
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-[900px] mx-auto px-6 py-8 flex flex-col gap-7 animate-[fadeIn_0.3s_ease]">
+          <div>
+            <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Story Title / Prompt</label>
+            <textarea value={cTitle} onChange={e => setCTitle(e.target.value)} rows={3}
+              placeholder="A detective uncovers a midnight conspiracy…"
+              className="w-full bg-[#0e0e0e] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 py-3.5 text-[14px] outline-none resize-none focus:border-[rgba(255,255,255,0.2)] transition-colors placeholder:text-[rgba(255,255,255,0.22)] leading-relaxed" />
+          </div>
+
+          <div>
+            <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Visual Style</label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {STYLES.map(s => (
+                <button key={s.value} onClick={() => setStyle(s.value)}
+                  className={`relative aspect-[5/3] rounded-xl overflow-hidden border transition-all ${style === s.value ? 'border-white' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.22)]'}`}>
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#2a2a31] to-[#121214]" />
+                  <div className="absolute inset-0 flex items-end p-3"><span className="text-[13px] font-semibold tracking-[-0.2px]">{s.label}</span></div>
+                  {style === s.value && <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-white flex items-center justify-center"><svg width="9" height="9" viewBox="0 0 14 14" fill="none" stroke="black" strokeWidth="2.5"><path d="M2 7l3.5 3.5L12 4" /></svg></span>}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-5 flex-wrap">
+            <div>
+              <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Format</label>
+              <div className="flex gap-1.5">
+                {(['16:9', '9:16', '1:1'] as AspectRatio[]).map(a => (
+                  <button key={a} onClick={() => setCAspect(a)}
+                    className={`px-3 py-2 rounded-lg border text-[12px] transition-all flex items-center gap-1.5 ${cAspect === a ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>
+                    <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      {a === '9:16' ? <rect x="6.5" y="2.5" width="7" height="15" rx="1.5" /> : a === '16:9' ? <rect x="2.5" y="6.5" width="15" height="7" rx="1.5" /> : <rect x="4.5" y="4.5" width="11" height="11" rx="1.5" />}
+                    </svg>
+                    {a}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Quality</label>
+              <div className="flex gap-1.5">
+                {(['720p', '1080p'] as Resolution[]).map(r => (
+                  <button key={r} onClick={() => setRes(r)}
+                    className={`px-3.5 py-2 rounded-lg border text-[12px] transition-all ${res === r ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>{r}</button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Scene duration</label>
+              <div className="flex gap-1.5">
+                {([4, 6, 8] as const).map(d => (
+                  <button key={d} onClick={() => setCSceneDur(d)}
+                    className={`px-3 py-2 rounded-lg border text-[12px] transition-all flex items-center gap-1 ${cSceneDur === d ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'} ${res === '1080p' && d !== 8 ? 'opacity-40' : ''}`}>
+                    <svg width="11" height="11" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="10" cy="10" r="7.5" /><path d="M10 5.5V10l3 1.8" strokeLinecap="round" /></svg>
+                    {d}s
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Scene count</label>
+              <div className="flex gap-1.5">
+                {([3, 5, 8] as const).map(n => (
+                  <button key={n} onClick={() => setCSceneCount(n)}
+                    className={`px-3.5 py-2 rounded-lg border text-[12px] transition-all ${cSceneCount === n ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>{n}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-4 border-t border-[rgba(255,255,255,0.06)] pt-5">
+            {res === '1080p' && <span className="text-[11px] text-[rgba(255,255,255,0.3)]">1080p forces 8s scenes</span>}
+            <button onClick={() => setCartoonSetupDone(true)} disabled={!cTitle.trim()}
+              className="px-6 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all flex items-center gap-1.5">
+              Next: Characters
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 7h12M8 2l5 5-5 5" /></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    )}
+
     {/* ═══ 2D ANIMATION FLOW ═══ */}
-    {mode === 'cartoon' && (
+    {mode === 'cartoon' && cartoonSetupDone && (
     <div className="flex flex-col h-screen bg-black">
       <div className="flex-shrink-0 border-b border-[rgba(255,255,255,0.1)] sticky top-0 z-30 bg-black">
         <div className="max-w-[680px] mx-auto px-6 py-4 flex items-center">
@@ -1305,17 +1414,6 @@ function CreatePageInner() {
                     </button>
                   )}
                 </div>
-                <div>
-                  <div className="text-[10px] text-[rgba(255,255,255,0.35)] uppercase tracking-wider mb-2">Animation Style</div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {STYLES.map(s => (
-                      <button key={s.value} onClick={() => setStyle(s.value)}
-                        className={`px-3 py-1.5 rounded-full text-[11px] transition-all ${style === s.value ? 'bg-white text-black font-medium' : 'border border-[rgba(255,255,255,0.12)] text-[rgba(255,255,255,0.45)] hover:border-[rgba(255,255,255,0.2)] hover:text-[rgba(255,255,255,0.7)]'}`}>
-                        {s.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
               </div>
 
             </div>
@@ -1349,7 +1447,7 @@ function CreatePageInner() {
                 <button onClick={handleGenChar} disabled={!prompt.trim() || genLoading}
                   className="px-4 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-15 disabled:cursor-not-allowed transition-all">Generate Character →</button>
                 {chars.length > 0 && (
-                  <button onClick={() => { if (scenes.length === 0) addScene(); setStep(2); }}
+                  <button onClick={() => { if (scenes.length === 0) { for (let k = 0; k < cSceneCount; k++) addScene(); } setStep(2); }}
                     className="px-4 py-2 border border-[rgba(255,255,255,0.12)] text-[12px] text-[rgba(255,255,255,0.6)] rounded-lg hover:text-white hover:border-[rgba(255,255,255,0.2)] transition-all">Next: Scenes →</button>
                 )}
               </div>
