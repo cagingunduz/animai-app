@@ -582,7 +582,10 @@ function CreatePageInner() {
       setJobId(d.job_id);
       pollRef.current = setInterval(() => pollStatus(d.job_id), 3000);
       pollStatus(d.job_id);
-    } catch { setGenStatus('failed'); setGenMessage('Failed to start generation.'); }
+    } catch (error: any) {
+      setGenStatus('failed');
+      setGenMessage(error?.message || 'Failed to start generation.');
+    }
   };
 
   const handleAutoGenerate = () => {

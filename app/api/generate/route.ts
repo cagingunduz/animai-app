@@ -18,7 +18,10 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const resolution: Resolution = body.resolution === '1080p' ? '1080p' : body.resolution === '480p' ? '480p' : '720p';
-    const scenesCount = Array.isArray(body.scenes) ? body.scenes.length : 0;
+    const requestedSceneCount = Number(body.scene_count || 0);
+    const scenesCount = body.auto_plan
+      ? Math.max(1, Math.min(8, requestedSceneCount || (Array.isArray(body.scenes) ? body.scenes.length : 1)))
+      : Math.max(1, Array.isArray(body.scenes) ? body.scenes.length : 1);
     const cost = Math.max(1, scenesCount) * RESOLUTION_CREDITS[resolution];
 
     if (!profile.is_admin) {
@@ -50,9 +53,14 @@ export async function POST(request: Request) {
         body: JSON.stringify({ ...body, resolution }),
       });
       upstreamStatus = res.status;
-      data = await res.json();
-    } catch {
-      data = {};
+      const raw = await res.text();
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch {
+        data = { error: raw || `Backend returned ${res.status}` };
+      }
+    } catch (error: any) {
+      data = { error: error?.message || 'Backend request failed' };
     }
 
     if (!data?.job_id) {
@@ -70,7 +78,7 @@ export async function POST(request: Request) {
     await supabase.from('animations').insert({
       user_id: user.id,
       job_id: data.job_id,
-      title: body.scenes?.[0]?.scene_text?.slice(0, 80) || 'Untitled 2D Animation',
+      title: body.project_prompt?.slice(0, 80) || body.scenes?.[0]?.scene_text?.slice(0, 80) || 'Untitled 2D Animation',
       status: 'processing',
       scenes_count: scenesCount,
       resolution,
@@ -78,7 +86,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ ...data, cost }, { status: upstreamStatus });
-  } catch {
-    return NextResponse.json({ error: 'Failed to start 2D animation' }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error?.message || 'Failed to start 2D animation' }, { status: 500 });
   }
 }
