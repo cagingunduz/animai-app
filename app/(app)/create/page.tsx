@@ -110,6 +110,19 @@ const FILTER_OPTIONS = [
 let _u = 0;
 function uid() { return `u${++_u}-${Date.now()}`; }
 
+function extractQuotedDialogue(text: string): string {
+  const match = text.match(/["“]([^"”]{2,160})["”]/);
+  return match ? match[1].trim() : '';
+}
+
+function sceneBeat(index: number, total: number): string {
+  if (total <= 1) return 'complete story moment';
+  if (index === 0) return 'opening hook and character setup';
+  if (index === total - 1) return 'final payoff and clear ending';
+  if (index === total - 2) return 'climax with the strongest action';
+  return 'rising action that advances the same story';
+}
+
 function CreatePageInner() {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [chars, setChars] = useState<CharDef[]>([]);
@@ -141,7 +154,6 @@ function CreatePageInner() {
   const [pendingChar, setPendingChar] = useState<CharDef | null>(null);
   const [activeSceneId, setActiveSceneId] = useState<string | null>(null);
   const [videoBrief, setVideoBrief] = useState('');
-  const [autoAspect, setAutoAspect] = useState<AspectRatio>('16:9');
 
   const [jobId, setJobId] = useState<string | null>(null);
   const [genProgress, setGenProgress] = useState(0);
@@ -532,7 +544,7 @@ function CreatePageInner() {
       const payload = {
         characters: chars.map(c => ({ id: c.id, description: c.prompt, style: c.style, photo_url: null, char_url: c.imageUrl })),
         scenes: approvedScenes.map(sc => ({
-          scene_text: sc.description, aspect_ratio: sc.aspectRatio, scene_duration: cSceneDur,
+          scene_text: sc.description, aspect_ratio: sc.aspectRatio, scene_duration: res === '1080p' ? 8 : cSceneDur,
           characters: sc.characterPlacements.filter(cp => cp.characterId).map(cp => ({
             character_id: cp.characterId, role: cp.dialogue.trim() ? 'speaking' : 'silent',
             dialogue: cp.dialogue.trim() || null,
@@ -554,39 +566,51 @@ function CreatePageInner() {
 
   const handleAutoGenerate = () => {
     if (chars.length === 0) return;
-    const newId = uid();
-    const firstBgId = uid();
-    const brief = videoBrief.trim() || `A short animated scene featuring ${chars.map(c => c.name).join(', ')} in a clear story moment with expressive cartoon motion.`;
-    const placements: CharPlacement[] = chars.map((c, i) => ({
-      slot: i,
-      characterId: c.id,
-      role: 'silent',
-      dialogue: '',
-    }));
-    const autoScene: SceneDef = {
-      id: newId,
-      description: brief,
-      aspectRatio: autoAspect,
-      characters: chars.map(c => ({ characterId: c.id, role: 'silent', dialogue: '' })),
-      generating: false,
-      approved: true,
-      imageUrl: null,
-      error: null,
-      backgrounds: [{ id: firstBgId, description: brief, photoUrl: null }],
-      selectedBackgroundId: firstBgId,
-      expandedBgId: firstBgId,
-      characterPlacements: placements,
-    };
-    setScenes([autoScene]);
-    setActiveSceneId(newId);
-    handleFinalGenerate([autoScene]);
+    const projectPrompt = cTitle.trim();
+    const direction = videoBrief.trim() || projectPrompt;
+    const quotedDialogue = extractQuotedDialogue(`${projectPrompt} ${direction}`);
+    const generatedScenes: SceneDef[] = Array.from({ length: cSceneCount }, (_, index) => {
+      const newId = uid();
+      const firstBgId = uid();
+      const beat = sceneBeat(index, cSceneCount);
+      const description = [
+        `Project: ${projectPrompt}.`,
+        `User direction: ${direction}.`,
+        `Scene ${index + 1} of ${cSceneCount}: ${beat}.`,
+        `Use the approved characters consistently: ${chars.map(c => `${c.name} (${c.prompt})`).join('; ')}.`,
+        `Keep one continuous story, no unrelated characters, no on-screen text, no subtitles, no logos, no watermark.`,
+      ].join(' ');
+      const placements: CharPlacement[] = chars.map((c, i) => ({
+        slot: i,
+        characterId: c.id,
+        role: quotedDialogue && i === 0 ? 'speaking' : 'silent',
+        dialogue: quotedDialogue && i === 0 ? quotedDialogue : '',
+      }));
+      return {
+        id: newId,
+        description,
+        aspectRatio: cAspect,
+        characters: placements.map(cp => ({ characterId: cp.characterId || '', role: cp.role, dialogue: cp.dialogue })),
+        generating: false,
+        approved: true,
+        imageUrl: null,
+        error: null,
+        backgrounds: [{ id: firstBgId, description, photoUrl: null }],
+        selectedBackgroundId: firstBgId,
+        expandedBgId: firstBgId,
+        characterPlacements: placements,
+      };
+    });
+    setScenes(generatedScenes);
+    setActiveSceneId(generatedScenes[0]?.id || null);
+    handleFinalGenerate(generatedScenes);
   };
 
   useEffect(() => { return () => { if (pollRef.current) clearInterval(pollRef.current); }; }, []);
 
   const resetAll = () => {
     setStep(1); setChars([]); setScenes([]); setRes('720p');
-    setCartoonSetupDone(false); setCTitle('');
+    setCartoonSetupDone(false); setCTitle(''); setVideoBrief(''); setCAspect('16:9'); setCSceneDur(8); setCSceneCount(5);
     resetForm(); setJobId(null); setGenProgress(0); setGenStatus('idle'); setGenScenes([]); setFinalVideoUrl(null);
     setMode('selecting'); setStoryTheme(null); setStoryStep(1); setStoryTitle(''); setStoryAspectRatio('9:16'); setProjectId(null);
     setStoryStyle('anime'); setStoryNarratorVoiceId(null); setStoryDuration(3);
@@ -1483,14 +1507,11 @@ function CreatePageInner() {
                 <div className="mt-4 grid grid-cols-1 lg:grid-cols-[1fr_220px] gap-3">
                   <textarea value={videoBrief} onChange={e => setVideoBrief(e.target.value)}
                     className="h-20 bg-[#111] border border-[rgba(255,255,255,0.1)] rounded-lg p-3 text-[13px] text-white placeholder:text-[rgba(255,255,255,0.22)] outline-none resize-none focus:border-[rgba(255,255,255,0.2)]"
-                    placeholder="Tell Mave what should happen in the video. If empty, Mave will create a simple scene from the approved characters." />
-                  <div className="flex lg:flex-col gap-2">
-                    {(['16:9', '9:16', '1:1'] as AspectRatio[]).map(r => (
-                      <button key={r} onClick={() => setAutoAspect(r)}
-                        className={`flex-1 px-3 py-2 rounded-lg border text-[11px] ${autoAspect === r ? 'bg-white text-black border-white' : 'border-[rgba(255,255,255,0.12)] text-[rgba(255,255,255,0.5)] hover:text-white'}`}>
-                        {r}
-                      </button>
-                    ))}
+                    placeholder="Optional: tell Mave the exact action, mood, camera move, or dialogue. Put exact spoken lines in quotes." />
+                  <div className="rounded-lg border border-[rgba(255,255,255,0.1)] bg-[#0d0d0d] p-3 flex flex-col justify-center gap-1">
+                    <div className="text-[10px] uppercase tracking-[1.4px] text-[rgba(255,255,255,0.35)]">Production</div>
+                <div className="text-[12px] text-white">{cSceneCount} scenes · {res === '1080p' ? 8 : cSceneDur}s · {cAspect}</div>
+                    <div className="text-[11px] text-[rgba(255,255,255,0.36)] truncate">{cTitle}</div>
                   </div>
                 </div>
               </div>
@@ -1510,8 +1531,8 @@ function CreatePageInner() {
           </div>
         )}
 
-        {/* STEP 2 */}
-        {step === 2 && (() => {
+        {/* Legacy manual scene builder is disabled for the cleaned 2D flow. */}
+        {false && step === 2 && (() => {
           const sc = scenes.find(s => s.id === activeSceneId) ?? scenes[0];
           if (!sc) {
             return (
@@ -1567,7 +1588,7 @@ function CreatePageInner() {
                           <span className="text-[12px] text-[rgba(255,255,255,0.4)]">Generating preview…</span>
                         </div>
                       ) : sc.imageUrl ? (
-                        <img src={sc.imageUrl} alt={`Scene ${idx + 1}`} className="w-full h-full object-cover" />
+                        <img src={sc.imageUrl || undefined} alt={`Scene ${idx + 1}`} className="w-full h-full object-cover" />
                       ) : (
                         <div className="flex flex-col items-center gap-2.5 px-8 text-center">
                           <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1"><rect x="2" y="3" width="20" height="14" rx="2"/><polygon points="9,7 16,10.5 9,14" fill="rgba(255,255,255,0.08)" stroke="none"/></svg>
@@ -1604,7 +1625,7 @@ function CreatePageInner() {
                         placeholder="A sunny park with tall trees and a wooden bench…" />
                       {bg?.photoUrl ? (
                         <div className="relative border border-[rgba(255,255,255,0.08)] rounded-lg overflow-hidden h-20 mt-2">
-                          <img src={bg.photoUrl} alt="" className="w-full h-full object-cover" />
+                          <img src={bg.photoUrl || undefined} alt="" className="w-full h-full object-cover" />
                           <button onClick={() => upBg(sc.id, bg.id, { photoUrl: null })} className="absolute top-2 right-2 w-5 h-5 rounded-full bg-black/70 flex items-center justify-center text-[rgba(255,255,255,0.6)] hover:text-white text-[10px]">×</button>
                         </div>
                       ) : !sc.approved && (
@@ -1716,8 +1737,8 @@ function CreatePageInner() {
           );
         })()}
 
-        {/* STEP 3 */}
-        {step === 3 && (
+        {/* Legacy review step is disabled for the cleaned 2D flow. */}
+        {false && step === 3 && (
           <div className="flex-1 overflow-y-auto">
             <div className="max-w-[820px] mx-auto px-5 md:px-7 py-7 animate-[fadeIn_0.3s_ease]">
               <h2 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px] mb-5">Review your scenes</h2>
