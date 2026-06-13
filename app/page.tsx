@@ -20,7 +20,7 @@ export default function LandingPage() {
   const go = () => router.push(idea.trim() ? `/create?idea=${encodeURIComponent(idea.trim())}` : '/create');
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#eceef1] text-[#15171c]"
+    <div className="relative min-h-screen flex flex-col overflow-hidden bg-[#eceef1] text-[#15171c]"
       style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif' }}>
 
       {/* ── soft pastel claymorphism background ── */}
@@ -32,7 +32,7 @@ export default function LandingPage() {
       </div>
 
       {/* ── header ── */}
-      <header className="relative max-w-[1240px] mx-auto px-6 md:px-10 py-7 flex items-center justify-between">
+      <header className="relative w-full max-w-[1240px] mx-auto px-6 md:px-10 py-4 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2">
           <span className="w-9 h-9 rounded-xl bg-[#15171c] text-white flex items-center justify-center">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="4" width="18" height="16" rx="4" /><path d="M10 9.5v5l4-2.5z" fill="currentColor" stroke="none" /></svg>
@@ -53,27 +53,27 @@ export default function LandingPage() {
       </header>
 
       {/* ── hero ── */}
-      <main className="relative max-w-[1000px] mx-auto px-6 pt-10 md:pt-16 pb-20 flex flex-col items-center text-center">
-        <div className="inline-flex items-center gap-2 bg-white rounded-full pl-3 pr-4 py-2 text-[14px] font-medium shadow-[0_8px_30px_rgba(0,0,0,0.07)]">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="4" width="18" height="16" rx="4" /><path d="M10 9.5v5l4-2.5z" fill="currentColor" stroke="none" /></svg>
+      <main className="relative w-full max-w-[940px] mx-auto px-6 flex-1 flex flex-col items-center justify-center text-center py-4">
+        <div className="inline-flex items-center gap-2 bg-white rounded-full pl-2.5 pr-3.5 py-1.5 text-[13px] font-medium shadow-[0_8px_30px_rgba(0,0,0,0.07)]">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="4" width="18" height="16" rx="4" /><path d="M10 9.5v5l4-2.5z" fill="currentColor" stroke="none" /></svg>
           Your AI Video Starts Here
         </div>
 
-        <h1 className="mt-7 text-[44px] md:text-[64px] leading-[1.05] font-semibold tracking-[-1.5px] text-[#6b7280]">
+        <h1 className="mt-4 text-[34px] md:text-[48px] leading-[1.06] font-semibold tracking-[-1.2px] text-[#6b7280]">
           Create Videos Instantly<br />with a <span className="text-[#15171c]">Single Prompt</span>
         </h1>
 
-        <p className="mt-6 max-w-[640px] text-[15.5px] md:text-[16px] leading-relaxed text-[#5b616e]">
+        <p className="mt-3.5 max-w-[600px] text-[14px] md:text-[15px] leading-relaxed text-[#5b616e]">
           Type your idea, and our AI instantly turns it into a realistic video. Preview in real-time, customize styles, and export with a single click—perfect for creators, marketers, and teams.
         </p>
 
         {/* prompt box */}
-        <div className="mt-9 w-full max-w-[920px] bg-white rounded-[26px] p-5 md:p-6 shadow-[0_24px_70px_rgba(20,30,60,0.10)] border border-white text-left">
-          <textarea value={idea} onChange={e => setIdea(e.target.value)} rows={2}
+        <div className="mt-6 w-full max-w-[840px] bg-white rounded-[22px] p-4 md:p-5 shadow-[0_24px_70px_rgba(20,30,60,0.10)] border border-white text-left">
+          <textarea value={idea} onChange={e => setIdea(e.target.value)} rows={1}
             onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) go(); }}
             placeholder="Type your video idea here..."
-            className="w-full bg-transparent text-[16px] outline-none resize-none placeholder:text-[#9aa0ab] leading-relaxed" />
-          <div className="mt-4 flex items-center justify-between gap-3">
+            className="w-full bg-transparent text-[15px] outline-none resize-none placeholder:text-[#9aa0ab] leading-relaxed pt-1" />
+          <div className="mt-3 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <button className="w-10 h-10 rounded-full border border-[#e6e8ec] flex items-center justify-center text-[#5b616e] hover:bg-[#f5f6f8] transition-colors">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
@@ -99,12 +99,12 @@ export default function LandingPage() {
         </div>
 
         {/* suggestion cards */}
-        <div className="mt-7 w-full max-w-[920px] grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <div className="mt-5 w-full max-w-[840px] grid grid-cols-2 lg:grid-cols-4 gap-3">
           {SUGGESTIONS.map(s => (
             <button key={s.t} onClick={() => router.push(`/create?idea=${encodeURIComponent(s.t)}`)}
-              className="bg-white/70 hover:bg-white border border-white rounded-2xl p-4 text-left flex flex-col justify-between h-[112px] shadow-[0_8px_30px_rgba(0,0,0,0.05)] transition-colors">
-              <span className="text-[13.5px] leading-snug text-[#3a4150]">{s.t}</span>
-              <span className="text-[#7a818d]"><s.icon width="20" height="20" /></span>
+              className="bg-white/70 hover:bg-white border border-white rounded-2xl p-3.5 text-left flex flex-col justify-between h-[88px] shadow-[0_8px_30px_rgba(0,0,0,0.05)] transition-colors">
+              <span className="text-[12.5px] leading-snug text-[#3a4150]">{s.t}</span>
+              <span className="text-[#7a818d]"><s.icon width="18" height="18" /></span>
             </button>
           ))}
         </div>
