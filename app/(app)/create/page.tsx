@@ -535,7 +535,7 @@ function CreatePageInner() {
     } catch {}
   };
 
-  const handleFinalGenerate = async (sceneOverride?: SceneDef[]) => {
+  const handleFinalGenerate = async (sceneOverride?: SceneDef[], autoPlan = false) => {
     setStep(4); setGenStatus('processing'); setGenProgress(0); setGenMessage('Starting generation...');
     const sceneSource = sceneOverride || scenes;
     const approvedScenes = sceneSource.filter(s => s.approved);
@@ -551,6 +551,13 @@ function CreatePageInner() {
             voice_id: null, framing: 'full_body'  // Veo 3.1 adds its own audio — no per-character voice
           }))
         })),
+        auto_plan: autoPlan,
+        project_prompt: cTitle.trim(),
+        user_direction: videoBrief.trim(),
+        scene_count: cSceneCount,
+        aspect_ratio: cAspect,
+        scene_duration: res === '1080p' ? 8 : cSceneDur,
+        style,
         resolution: res, lipsync: false
       };
       const r = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -603,7 +610,7 @@ function CreatePageInner() {
     });
     setScenes(generatedScenes);
     setActiveSceneId(generatedScenes[0]?.id || null);
-    handleFinalGenerate(generatedScenes);
+    handleFinalGenerate(generatedScenes, true);
   };
 
   useEffect(() => { return () => { if (pollRef.current) clearInterval(pollRef.current); }; }, []);
