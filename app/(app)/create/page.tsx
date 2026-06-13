@@ -14,7 +14,7 @@ type AspectRatio = '16:9' | '9:16' | '1:1';
 
 interface VoiceLabels { gender?: string; accent?: string; age?: string; use_case?: string; descriptive?: string; }
 interface Voice { voice_id: string; name: string; preview_url: string; labels: VoiceLabels; }
-interface CharDef { id: string; name: string; prompt: string; style: AnimStyle; voiceId?: string; voiceName?: string; imageUrl?: string; }
+interface CharDef { id: string; name: string; prompt: string; style: AnimStyle; voiceId?: string; voiceName?: string; imageUrl?: string; characterText?: string; }
 interface SceneCharRef { characterId: string; role: 'speaking' | 'silent'; dialogue: string; }
 
 interface CharPlacement {
@@ -334,7 +334,13 @@ function CreatePageInner() {
 
   useEffect(() => { return () => { audioRef.current?.pause(); }; }, []);
 
-  const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (f) setPhotoUrl(URL.createObjectURL(f)); };
+  const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => setPhotoUrl(typeof reader.result === 'string' ? reader.result : null);
+    reader.readAsDataURL(f);
+  };
   const clearPhoto = () => { setPhotoUrl(null); if (fileRef.current) fileRef.current.value = ''; };
   const resetForm = () => { setPrompt(''); setSelVoice(null); clearPhoto(); };  // keep global style across characters
 
@@ -351,7 +357,8 @@ function CreatePageInner() {
         id: editingChar ? editingChar.id : d.character_id || uid(),
         name: editingChar ? editingChar.name : `Character ${chars.length + 1}`,
         prompt, style,
-        imageUrl: d.character_image_url || null
+        imageUrl: d.character_image_url || null,
+        characterText: d.character_text || prompt
       });
       setGenDone(true);
     } catch {}
@@ -542,9 +549,16 @@ function CreatePageInner() {
     setGenScenes(approvedScenes.map((_, i) => ({ scene_number: i + 1, status: 'queued' })));
     try {
       const payload = {
-        characters: chars.map(c => ({ id: c.id, description: c.prompt, style: c.style, photo_url: null, char_url: c.imageUrl })),
+        characters: chars.map(c => ({
+          id: c.id,
+          description: c.prompt,
+          character_text: c.characterText || c.prompt,
+          style: c.style,
+          photo_url: null,
+          char_url: c.imageUrl
+        })),
         scenes: approvedScenes.map(sc => ({
-          scene_text: sc.description, aspect_ratio: sc.aspectRatio, scene_duration: res === '1080p' ? 8 : cSceneDur,
+          scene_text: sc.description, aspect_ratio: sc.aspectRatio, scene_duration: cSceneDur,
           characters: sc.characterPlacements.filter(cp => cp.characterId).map(cp => ({
             character_id: cp.characterId, role: cp.dialogue.trim() ? 'speaking' : 'silent',
             dialogue: cp.dialogue.trim() || null,
@@ -556,7 +570,7 @@ function CreatePageInner() {
         user_direction: videoBrief.trim(),
         scene_count: cSceneCount,
         aspect_ratio: cAspect,
-        scene_duration: res === '1080p' ? 8 : cSceneDur,
+        scene_duration: cSceneDur,
         style,
         resolution: res, lipsync: false
       };
@@ -1364,7 +1378,7 @@ function CreatePageInner() {
             <div>
               <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Quality</label>
               <div className="flex gap-1.5">
-                {(['720p', '1080p'] as Resolution[]).map(r => (
+                {(['480p', '720p'] as Resolution[]).map(r => (
                   <button key={r} onClick={() => setRes(r)}
                     className={`px-3.5 py-2 rounded-lg border text-[12px] transition-all ${res === r ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>{r}</button>
                 ))}
@@ -1375,7 +1389,7 @@ function CreatePageInner() {
               <div className="flex gap-1.5">
                 {([4, 6, 8] as const).map(d => (
                   <button key={d} onClick={() => setCSceneDur(d)}
-                    className={`px-3 py-2 rounded-lg border text-[12px] transition-all flex items-center gap-1 ${cSceneDur === d ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'} ${res === '1080p' && d !== 8 ? 'opacity-40' : ''}`}>
+                    className={`px-3 py-2 rounded-lg border text-[12px] transition-all flex items-center gap-1 ${cSceneDur === d ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>
                     <svg width="11" height="11" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="10" cy="10" r="7.5" /><path d="M10 5.5V10l3 1.8" strokeLinecap="round" /></svg>
                     {d}s
                   </button>
@@ -1394,7 +1408,6 @@ function CreatePageInner() {
           </div>
 
           <div className="flex items-center justify-end gap-4 border-t border-[rgba(255,255,255,0.06)] pt-5">
-            {res === '1080p' && <span className="text-[11px] text-[rgba(255,255,255,0.3)]">1080p forces 8s scenes</span>}
             <button onClick={() => setCartoonSetupDone(true)} disabled={!cTitle.trim()}
               className="px-6 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all flex items-center gap-1.5">
               Next: Characters
@@ -1517,7 +1530,7 @@ function CreatePageInner() {
                     placeholder="Optional: tell Mave the exact action, mood, camera move, or dialogue. Put exact spoken lines in quotes." />
                   <div className="rounded-lg border border-[rgba(255,255,255,0.1)] bg-[#0d0d0d] p-3 flex flex-col justify-center gap-1">
                     <div className="text-[10px] uppercase tracking-[1.4px] text-[rgba(255,255,255,0.35)]">Production</div>
-                <div className="text-[12px] text-white">{cSceneCount} scenes · {res === '1080p' ? 8 : cSceneDur}s · {cAspect}</div>
+                <div className="text-[12px] text-white">{cSceneCount} scenes · {cSceneDur}s · {cAspect}</div>
                     <div className="text-[11px] text-[rgba(255,255,255,0.36)] truncate">{cTitle}</div>
                   </div>
                 </div>
