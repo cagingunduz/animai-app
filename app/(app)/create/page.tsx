@@ -133,6 +133,8 @@ function CreatePageInner() {
   const [editingChar, setEditingChar] = useState<CharDef | null>(null);
   const [pendingChar, setPendingChar] = useState<CharDef | null>(null);
   const [activeSceneId, setActiveSceneId] = useState<string | null>(null);
+  const [videoBrief, setVideoBrief] = useState('');
+  const [autoAspect, setAutoAspect] = useState<AspectRatio>('16:9');
 
   const [jobId, setJobId] = useState<string | null>(null);
   const [genProgress, setGenProgress] = useState(0);
@@ -517,9 +519,10 @@ function CreatePageInner() {
     } catch {}
   };
 
-  const handleFinalGenerate = async () => {
+  const handleFinalGenerate = async (sceneOverride?: SceneDef[]) => {
     setStep(4); setGenStatus('processing'); setGenProgress(0); setGenMessage('Starting generation...');
-    const approvedScenes = scenes.filter(s => s.approved);
+    const sceneSource = sceneOverride || scenes;
+    const approvedScenes = sceneSource.filter(s => s.approved);
     setGenScenes(approvedScenes.map((_, i) => ({ scene_number: i + 1, status: 'queued' })));
     try {
       const payload = {
@@ -543,6 +546,36 @@ function CreatePageInner() {
       pollRef.current = setInterval(() => pollStatus(d.job_id), 3000);
       pollStatus(d.job_id);
     } catch { setGenStatus('failed'); setGenMessage('Failed to start generation.'); }
+  };
+
+  const handleAutoGenerate = () => {
+    if (chars.length === 0) return;
+    const newId = uid();
+    const firstBgId = uid();
+    const brief = videoBrief.trim() || `A short animated scene featuring ${chars.map(c => c.name).join(', ')} in a clear story moment with expressive cartoon motion.`;
+    const placements: CharPlacement[] = chars.map((c, i) => ({
+      slot: i,
+      characterId: c.id,
+      role: 'silent',
+      dialogue: '',
+    }));
+    const autoScene: SceneDef = {
+      id: newId,
+      description: brief,
+      aspectRatio: autoAspect,
+      characters: chars.map(c => ({ characterId: c.id, role: 'silent', dialogue: '' })),
+      generating: false,
+      approved: true,
+      imageUrl: null,
+      error: null,
+      backgrounds: [{ id: firstBgId, description: brief, photoUrl: null }],
+      selectedBackgroundId: firstBgId,
+      expandedBgId: firstBgId,
+      characterPlacements: placements,
+    };
+    setScenes([autoScene]);
+    setActiveSceneId(newId);
+    handleFinalGenerate([autoScene]);
   };
 
   useEffect(() => { return () => { if (pollRef.current) clearInterval(pollRef.current); }; }, []);
@@ -765,7 +798,7 @@ function CreatePageInner() {
 
   const durationSceneNote = (d: number) => d === 1 ? '≈ 10 scenes' : d === 2 ? '≈ 18 scenes' : d === 3 ? '≈ 26 scenes' : d === 5 ? '≈ 40 scenes' : '≈ 60 scenes';
 
-  const roadmap = [{ n: 1, l: 'Characters' }, { n: 2, l: 'Scenes' }, { n: 3, l: 'Review' }, { n: 4, l: 'Generate' }] as const;
+  const roadmap = [{ n: 1, l: 'Characters' }, { n: 4, l: 'Studio' }] as const;
 
   return (<>
     {/* ═══ MODE SELECTION ═══ */}
@@ -1246,15 +1279,13 @@ function CreatePageInner() {
             <div key={s.n} className="flex items-center flex-1 last:flex-initial">
               <button disabled={s.n === 4} onClick={() => {
                 if (s.n === 1) setStep(1);
-                if (s.n === 2 && chars.length > 0) setStep(2);
-                if (s.n === 3 && approvedCount > 0) setStep(3);
               }} className="flex items-center gap-2 disabled:cursor-default">
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-medium border transition-all ${step === s.n ? 'bg-white text-black border-white' : step > s.n ? 'border-[rgba(255,255,255,0.25)] text-[rgba(255,255,255,0.5)]' : 'border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.25)]'}`}>
                   {step > s.n ? <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3,8 6.5,11.5 13,5"/></svg> : s.n}
                 </div>
                 <span className={`text-[12px] hidden sm:inline ${step === s.n ? 'text-white font-medium' : 'text-[rgba(255,255,255,0.25)]'}`}>{s.l}</span>
               </button>
-              {i < 3 && <div className={`flex-1 h-px mx-3 ${step > s.n ? 'bg-[rgba(255,255,255,0.2)]' : 'bg-[rgba(255,255,255,0.06)]'}`} />}
+              {i < roadmap.length - 1 && <div className={`flex-1 h-px mx-3 ${step > s.n ? 'bg-[rgba(255,255,255,0.2)]' : 'bg-[rgba(255,255,255,0.06)]'}`} />}
             </div>
           ))}
         </div>
@@ -1399,6 +1430,19 @@ function CreatePageInner() {
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="1.5"><path d="M12 5v14M5 12h14"/></svg>
                   </button>
                 </div>
+                <div className="mt-4 grid grid-cols-1 lg:grid-cols-[1fr_220px] gap-3">
+                  <textarea value={videoBrief} onChange={e => setVideoBrief(e.target.value)}
+                    className="h-20 bg-[#111] border border-[rgba(255,255,255,0.1)] rounded-lg p-3 text-[13px] text-white placeholder:text-[rgba(255,255,255,0.22)] outline-none resize-none focus:border-[rgba(255,255,255,0.2)]"
+                    placeholder="Tell Mave what should happen in the video. If empty, Mave will create a simple scene from the approved characters." />
+                  <div className="flex lg:flex-col gap-2">
+                    {(['16:9', '9:16', '1:1'] as AspectRatio[]).map(r => (
+                      <button key={r} onClick={() => setAutoAspect(r)}
+                        className={`flex-1 px-3 py-2 rounded-lg border text-[11px] ${autoAspect === r ? 'bg-white text-black border-white' : 'border-[rgba(255,255,255,0.12)] text-[rgba(255,255,255,0.5)] hover:text-white'}`}>
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
 
@@ -1408,8 +1452,8 @@ function CreatePageInner() {
                 <button onClick={handleGenChar} disabled={!prompt.trim() || genLoading}
                   className="px-4 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-15 disabled:cursor-not-allowed transition-all">Generate Character →</button>
                 {chars.length > 0 && (
-                  <button onClick={() => { if (scenes.length === 0) addScene(); setStep(2); }}
-                    className="px-4 py-2 border border-[rgba(255,255,255,0.12)] text-[12px] text-[rgba(255,255,255,0.6)] rounded-lg hover:text-white hover:border-[rgba(255,255,255,0.2)] transition-all">Next: Scenes →</button>
+                  <button onClick={handleAutoGenerate}
+                    className="px-4 py-2 border border-[rgba(255,255,255,0.12)] text-[12px] text-[rgba(255,255,255,0.75)] rounded-lg hover:text-white hover:border-[rgba(255,255,255,0.24)] transition-all">Generate Animation →</button>
                 )}
               </div>
             </div>
@@ -1665,7 +1709,7 @@ function CreatePageInner() {
                 </div>
               </div>
               <div className="flex justify-end">
-                <button onClick={handleFinalGenerate} className="px-6 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-all">Generate Animation →</button>
+                <button onClick={() => handleFinalGenerate()} className="px-6 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-all">Generate Animation →</button>
               </div>
             </div>
           </div>
@@ -1689,7 +1733,7 @@ function CreatePageInner() {
             finalVideo={finalVideoUrl}
             step={genStep}
             totalSteps={genTotalSteps}
-            onBack={() => setStep(3)}
+            onBack={() => setStep(1)}
             onRetry={handleFinalGenerate}
             onCreateAnother={resetAll}
             downloadHref={finalVideoUrl || undefined}
@@ -1753,7 +1797,7 @@ function CreatePageInner() {
               )}
 
               {genStatus === 'completed' && <div className="flex justify-center"><button onClick={resetAll} className="px-5 py-2.5 border border-[rgba(255,255,255,0.1)] text-[13px] text-[rgba(255,255,255,0.55)] rounded-lg hover:text-white hover:border-[rgba(255,255,255,0.2)] transition-all">Create Another</button></div>}
-              {genStatus === 'failed' && <div className="flex justify-center gap-3"><button onClick={() => { setStep(3); setGenStatus('idle'); }} className="px-5 py-2.5 border border-[rgba(255,255,255,0.1)] text-[13px] text-[rgba(255,255,255,0.55)] rounded-lg hover:text-white hover:border-[rgba(255,255,255,0.2)] transition-all">← Back to Review</button><button onClick={handleFinalGenerate} className="px-5 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-all">Retry</button></div>}
+              {genStatus === 'failed' && <div className="flex justify-center gap-3"><button onClick={() => { setStep(3); setGenStatus('idle'); }} className="px-5 py-2.5 border border-[rgba(255,255,255,0.1)] text-[13px] text-[rgba(255,255,255,0.55)] rounded-lg hover:text-white hover:border-[rgba(255,255,255,0.2)] transition-all">← Back to Review</button><button onClick={() => handleFinalGenerate()} className="px-5 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-all">Retry</button></div>}
             </div>
           </div>
         )}
