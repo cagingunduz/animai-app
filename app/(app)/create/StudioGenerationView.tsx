@@ -86,9 +86,10 @@ export default function StudioGenerationView({
   const [durations, setDurations] = useState<Record<number, number>>({});
   const [chatInput, setChatInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: 'assistant', text: 'Describe what you want to change. This editor keeps the production timeline visible while clips render.' },
+    { role: 'assistant', text: 'I am Mave. Tell me what you want to change in the video or a specific scene.' },
   ]);
   const resizeRef = useRef<{ sceneIndex: number; startX: number; startDuration: number } | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     setDurations(prev => {
@@ -133,7 +134,7 @@ export default function StudioGenerationView({
     setMessages(prev => [
       ...prev,
       { role: 'user', text },
-      { role: 'assistant', text: 'Noted. Scene-level AI edits for this mode will use this editor surface; current render output stays unchanged.' },
+      { role: 'assistant', text: 'I understood the edit request. For this render view I will keep the timeline state visible; regeneration is available on modes that support scene edits.' },
     ]);
   };
 
@@ -158,7 +159,7 @@ export default function StudioGenerationView({
           <div className="space-y-3">
             {(selectedScene?.dialogue || []).slice(0, 3).map((line, i) => (
               <div key={`${line.speaker}-${i}`} className="flex gap-3 pb-3 border-b border-[rgba(255,255,255,0.06)]">
-                <div className="w-10 h-10 rounded-lg bg-[#10291d] border border-[rgba(40,199,111,0.22)] flex items-center justify-center text-[11px] text-[#28c76f]">{i + 1}</div>
+                <div className="w-10 h-10 rounded-lg bg-[#151515] border border-[rgba(255,255,255,0.14)] flex items-center justify-center text-[11px] text-white">{i + 1}</div>
                 <div>
                   <div className="text-[12px] font-medium">{line.speaker}</div>
                   <div className="text-[12px] text-[rgba(255,255,255,0.54)] leading-relaxed">{line.line}</div>
@@ -178,28 +179,28 @@ export default function StudioGenerationView({
           <div className="flex-1 min-h-0 p-2 flex items-center justify-center">
             <div className={`relative w-full ${stageAspect} rounded-md overflow-hidden bg-[#111] flex items-center justify-center`}>
               {showFinal ? (
-                <video key={finalVideo} src={finalVideo || undefined} controls className="w-full h-full object-contain bg-black" />
+                <video ref={videoRef} key={finalVideo} src={finalVideo || undefined} controls className="w-full h-full object-contain bg-black" />
               ) : selectedScene?.video_url ? (
-                <video key={selectedScene.video_url} src={selectedScene.video_url} controls className="w-full h-full object-cover bg-black" />
+                <video ref={videoRef} key={selectedScene.video_url} src={selectedScene.video_url} controls className="w-full h-full object-cover bg-black" />
               ) : selectedScene?.image_url ? (
                 <img src={selectedScene.image_url} alt="" className="w-full h-full object-cover" />
               ) : (
                 <div className="text-center px-6">
-                  <div className="w-10 h-10 mx-auto rounded-full border-2 border-[rgba(255,255,255,0.12)] border-t-[#28c76f] animate-spin mb-4" />
+                  <div className="w-10 h-10 mx-auto rounded-full border-2 border-[rgba(255,255,255,0.12)] border-t-white animate-spin mb-4" />
                   <div className="text-[12px] text-[rgba(255,255,255,0.42)]">{error || message || 'Preparing preview'}</div>
                 </div>
               )}
               {status === 'processing' && (
                 <div className="absolute left-3 bottom-3 h-1.5 w-[72%] rounded-full bg-black/70 overflow-hidden">
-                  <div className="h-full bg-[#28c76f]" style={{ width: `${progress}%` }} />
+                  <div className="h-full bg-white" style={{ width: `${progress}%` }} />
                 </div>
               )}
             </div>
           </div>
           <div className="h-[58px] px-4 flex items-center gap-3 border-t border-[rgba(255,255,255,0.06)]">
-            <button className="w-7 h-7 rounded-full bg-[rgba(255,255,255,0.08)] text-[11px]">◀</button>
-            <button className="w-7 h-7 rounded-full bg-[rgba(255,255,255,0.12)] text-[11px]">▶</button>
-            <button className="w-7 h-7 rounded-full bg-[rgba(255,255,255,0.08)] text-[11px]">■</button>
+            <button onClick={() => { if (videoRef.current) videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 2); }} className="w-7 h-7 rounded-full bg-[rgba(255,255,255,0.08)] text-[11px]">◀</button>
+            <button onClick={() => videoRef.current?.play()} className="w-7 h-7 rounded-full bg-[rgba(255,255,255,0.12)] text-[11px]">▶</button>
+            <button onClick={() => videoRef.current?.pause()} className="w-7 h-7 rounded-full bg-[rgba(255,255,255,0.08)] text-[11px]">■</button>
             <div className="ml-auto flex gap-2">
               {finalVideo && <button onClick={() => setSelectedIndex(0)} className="px-3 py-2 rounded-md bg-[rgba(255,255,255,0.08)] text-[11px]">Final</button>}
               {status === 'failed' && onRetry && <button onClick={onRetry} className="px-3 py-2 rounded-md bg-white text-black text-[11px]">Retry</button>}
@@ -215,8 +216,8 @@ export default function StudioGenerationView({
           </div>
           <div className="flex-1 overflow-y-auto space-y-3 pr-1">
             {messages.map((entry, i) => (
-              <div key={i} className={`${entry.role === 'user' ? 'ml-5 bg-[#173b2b] border-[#28c76f]' : 'mr-5 bg-black border-[rgba(255,255,255,0.08)]'} border rounded-lg px-3 py-2`}>
-                <div className="text-[10px] text-[rgba(255,255,255,0.35)] mb-1">{entry.role === 'user' ? 'You' : 'Animave AI'}</div>
+              <div key={i} className={`${entry.role === 'user' ? 'ml-5 bg-[#1a1a1a] border-[rgba(255,255,255,0.2)]' : 'mr-5 bg-black border-[rgba(255,255,255,0.08)]'} border rounded-lg px-3 py-2`}>
+                <div className="text-[10px] text-[rgba(255,255,255,0.35)] mb-1">{entry.role === 'user' ? 'You' : 'Mave'}</div>
                 <div className="text-[12px] leading-relaxed text-[rgba(255,255,255,0.78)]">{entry.text}</div>
               </div>
             ))}
@@ -225,7 +226,7 @@ export default function StudioGenerationView({
             <div className="flex gap-2">
               <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') sendChat(); }}
                 placeholder="Describe an edit..."
-                className="flex-1 bg-black border border-[rgba(255,255,255,0.12)] rounded-full px-3 py-2 text-[12px] outline-none focus:border-[#28c76f]" />
+                className="flex-1 bg-black border border-[rgba(255,255,255,0.12)] rounded-full px-3 py-2 text-[12px] outline-none focus:border-white" />
               <button onClick={sendChat} disabled={!chatInput.trim()} className="px-4 rounded-full bg-white text-black text-[12px] font-medium disabled:opacity-25">Send</button>
             </div>
           </div>
@@ -258,11 +259,11 @@ export default function StudioGenerationView({
                     const duration = durations[n] || 8;
                     return (
                       <div key={n} onClick={() => setSelectedIndex(n)}
-                        className={`relative h-8 rounded-md border flex items-center gap-2 px-2 mr-1 cursor-pointer ${selectedIndex === n ? 'bg-[#2f9f67] border-[#6ee7a0]' : 'bg-[#206b47] border-[#31865a]'}`}
+                        className={`relative h-8 rounded-md border flex items-center gap-2 px-2 mr-1 cursor-pointer ${selectedIndex === n ? 'bg-white text-black border-white' : 'bg-[#252525] border-[rgba(255,255,255,0.18)] text-white'}`}
                         style={{ width: duration * PX_PER_SECOND }}>
                         {scene.image_url && <img src={scene.image_url} alt="" className="w-6 h-6 rounded object-cover" />}
                         <span className="text-[10px] truncate">S{n} · {duration}s</span>
-                        <span className="ml-auto text-[9px] text-white/65">{label(scene.status)}</span>
+                        <span className={`ml-auto text-[9px] ${selectedIndex === n ? 'text-black/60' : 'text-white/65'}`}>{label(scene.status)}</span>
                         <div onMouseDown={(event: ReactMouseEvent<HTMLDivElement>) => {
                           event.preventDefault();
                           resizeRef.current = { sceneIndex: n, startX: event.clientX, startDuration: duration };
@@ -278,7 +279,7 @@ export default function StudioGenerationView({
               </div>
               <div className="h-[58px] border-b border-[rgba(255,255,255,0.08)] relative">
                 <div className="absolute left-0 right-10 top-4 h-7 rounded bg-[#161616] overflow-hidden">
-                  <div className="h-full opacity-90" style={{ backgroundImage: 'repeating-linear-gradient(90deg, #28c76f 0 3px, #28c76f 3px 5px, #7f8b86 5px 8px, transparent 8px 12px)' }} />
+                  <div className="h-full opacity-90" style={{ backgroundImage: 'repeating-linear-gradient(90deg, #ffffff 0 3px, #ffffff 3px 5px, #8a8a8a 5px 8px, transparent 8px 12px)' }} />
                 </div>
               </div>
               {finalVideo && (
@@ -301,7 +302,7 @@ export default function StudioGenerationView({
 
 function TrackLabel({ label, icon, active }: { label: string; icon: string; active?: boolean }) {
   return (
-    <div className={`h-[58px] border-b border-[rgba(255,255,255,0.08)] flex items-center gap-3 px-7 text-[12px] ${active ? 'border-l-4 border-l-[#28c76f]' : ''}`}>
+    <div className={`h-[58px] border-b border-[rgba(255,255,255,0.08)] flex items-center gap-3 px-7 text-[12px] ${active ? 'border-l-4 border-l-white' : ''}`}>
       <span className="text-[rgba(255,255,255,0.72)]">{icon}</span>
       <span className="text-[rgba(255,255,255,0.45)]">{label}</span>
     </div>

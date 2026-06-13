@@ -7,6 +7,7 @@ import { type Resolution, RESOLUTION_CREDITS, STORYBOOK_CREDITS_PER_SCENE } from
 import AnimatedStorytelling from './AnimatedStorytelling';
 import WhiteboardAnimation from './WhiteboardAnimation';
 import FruitDrama from './FruitDrama';
+import StudioGenerationView from './StudioGenerationView';
 
 type AnimStyle = 'western-cartoon' | 'anime' | 'pixar' | 'comic' | 'retro' | 'custom';
 type AspectRatio = '16:9' | '9:16' | '1:1';
@@ -520,16 +521,9 @@ function CreatePageInner() {
     setStep(4); setGenStatus('processing'); setGenProgress(0); setGenMessage('Starting generation...');
     const approvedScenes = scenes.filter(s => s.approved);
     setGenScenes(approvedScenes.map((_, i) => ({ scene_number: i + 1, status: 'queued' })));
-    const sb = createClient();
-    const { data: { user } } = await sb.auth.getUser();
-    if (!user) return;
-    await sb.from('animations').insert({
-      user_id: user.id, title: approvedScenes[0]?.description?.slice(0, 50) || 'Untitled',
-      status: 'processing', scenes_count: approvedScenes.length, resolution: res, lipsync: false,
-    });
     try {
       const payload = {
-        characters: chars.map(c => ({ id: c.id, description: c.prompt, style: c.style, photo_url: null })),
+        characters: chars.map(c => ({ id: c.id, description: c.prompt, style: c.style, photo_url: null, char_url: c.imageUrl })),
         scenes: approvedScenes.map(sc => ({
           scene_text: sc.description, aspect_ratio: sc.aspectRatio,
           characters: sc.characterPlacements.filter(cp => cp.characterId).map(cp => ({
@@ -542,6 +536,9 @@ function CreatePageInner() {
       };
       const r = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const d = await r.json();
+      if (!r.ok || d.error || !d.job_id) {
+        throw new Error(d.error || d.detail || 'Failed to start generation.');
+      }
       setJobId(d.job_id);
       pollRef.current = setInterval(() => pollStatus(d.job_id), 3000);
       pollStatus(d.job_id);
@@ -1676,6 +1673,30 @@ function CreatePageInner() {
 
         {/* STEP 4 */}
         {step === 4 && (
+          <StudioGenerationView
+            title={scenes.find(s => s.approved)?.description || '2D Animation'}
+            modeLabel="2D Animation"
+            aspect={(scenes.find(s => s.approved)?.aspectRatio || '16:9') as AspectRatio}
+            status={genStatus}
+            message={genMessage}
+            error={genMessage}
+            scenes={genScenes.map((s, i) => ({
+              scene_number: s.scene_number,
+              status: s.status,
+              video_url: s.video_url || null,
+              title: scenes.filter(scene => scene.approved)[i]?.description || `Scene ${s.scene_number}`,
+            }))}
+            finalVideo={finalVideoUrl}
+            step={genStep}
+            totalSteps={genTotalSteps}
+            onBack={() => setStep(3)}
+            onRetry={handleFinalGenerate}
+            onCreateAnother={resetAll}
+            downloadHref={finalVideoUrl || undefined}
+          />
+        )}
+
+        {false && step === 4 && (
           <div className="flex-1 overflow-y-auto">
             <div className="max-w-[860px] mx-auto px-5 md:px-7 py-7 animate-[fadeIn_0.3s_ease]">
               <div className="flex items-center gap-3.5 mb-7">
@@ -1721,7 +1742,7 @@ function CreatePageInner() {
 
               {genStatus === 'completed' && finalVideoUrl && (
                 <div className="border border-[rgba(255,255,255,0.06)] rounded-xl overflow-hidden bg-[#0f0f0f] mb-6">
-                  <video src={finalVideoUrl} controls autoPlay muted loop playsInline className="w-full aspect-video bg-[#0e0e0e]" />
+                  <video src={finalVideoUrl || undefined} controls autoPlay muted loop playsInline className="w-full aspect-video bg-[#0e0e0e]" />
                   <div className="p-4 flex items-center justify-between">
                     <div><h3 className="text-[15px] font-medium">Final Video Ready</h3><p className="text-[12px] text-[rgba(255,255,255,0.35)] mt-0.5">{genScenes.length} scene{genScenes.length > 1 ? 's' : ''} · {res}</p></div>
                     <button onClick={() => downloadVideo(finalVideoUrl!, 'animave-story.mp4')} className="px-4 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 transition-colors">

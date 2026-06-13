@@ -100,7 +100,7 @@ export default function FruitDrama({ onBack }: { onBack: () => void }) {
   const [clipDurations, setClipDurations] = useState<Record<number, number>>({});
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    { role: 'assistant', text: 'Tell me what to change. Example: make scene 2 more dramatic, or shorten scene 3 to 4s.' },
+    { role: 'assistant', text: 'I am Mave. Tell me what to change, like make scene 2 more dramatic or shorten scene 3 to 4s.' },
   ]);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const resizeRef = useRef<{ sceneIndex: number; startX: number; startDuration: number } | null>(null);
@@ -447,7 +447,7 @@ function ScenePanel({ scene, finalSelected, totalDuration, regenCost }: { scene:
           <div className="space-y-3">
             {(scene.dialogue || []).slice(0, 3).map((line, i) => (
               <div key={`${line.speaker}-${i}`} className="flex gap-3 pb-3 border-b border-[rgba(255,255,255,0.06)]">
-                <div className="w-10 h-10 rounded-lg bg-[#10291d] border border-[rgba(40,199,111,0.22)] flex items-center justify-center text-[11px] text-[#28c76f]">{i + 1}</div>
+                <div className="w-10 h-10 rounded-lg bg-[#151515] border border-[rgba(255,255,255,0.14)] flex items-center justify-center text-[11px] text-white">{i + 1}</div>
                 <div>
                   <div className="text-[12px] font-medium">{line.speaker}</div>
                   <div className="text-[12px] text-[rgba(255,255,255,0.54)] leading-relaxed">{line.line}</div>
@@ -485,13 +485,13 @@ function PreviewPanel(props: {
             <img src={props.selectedScene.image_url} alt="" className="w-full h-full object-cover" />
           ) : (
             <div className="text-center">
-              <div className="w-10 h-10 mx-auto rounded-full border-2 border-[rgba(255,255,255,0.12)] border-t-[#28c76f] animate-spin mb-4" />
+              <div className="w-10 h-10 mx-auto rounded-full border-2 border-[rgba(255,255,255,0.12)] border-t-white animate-spin mb-4" />
               <div className="text-[12px] text-[rgba(255,255,255,0.42)]">Preparing preview</div>
             </div>
           )}
           {props.genStatus === 'processing' && (
             <div className="absolute left-3 bottom-3 h-1.5 w-[72%] rounded-full bg-black/70 overflow-hidden">
-              <div className="h-full bg-[#28c76f]" style={{ width: `${props.progress || 5}%` }} />
+              <div className="h-full bg-white" style={{ width: `${props.progress || 5}%` }} />
             </div>
           )}
         </div>
@@ -524,8 +524,8 @@ function AiPanel(props: {
       </div>
       <div className="flex-1 overflow-y-auto space-y-3 pr-1">
         {props.messages.map((message, i) => (
-          <div key={i} className={`${message.role === 'user' ? 'ml-5 bg-[#173b2b] border-[#28c76f33]' : 'mr-5 bg-black border-[rgba(255,255,255,0.08)]'} border rounded-lg px-3 py-2`}>
-            <div className="text-[10px] text-[rgba(255,255,255,0.35)] mb-1">{message.role === 'user' ? 'You' : 'Animave AI'}</div>
+          <div key={i} className={`${message.role === 'user' ? 'ml-5 bg-[#1a1a1a] border-[rgba(255,255,255,0.2)]' : 'mr-5 bg-black border-[rgba(255,255,255,0.08)]'} border rounded-lg px-3 py-2`}>
+            <div className="text-[10px] text-[rgba(255,255,255,0.35)] mb-1">{message.role === 'user' ? 'You' : 'Mave'}</div>
             <div className="text-[12px] leading-relaxed text-[rgba(255,255,255,0.78)]">{message.text}</div>
           </div>
         ))}
@@ -534,7 +534,7 @@ function AiPanel(props: {
         <div className="flex gap-2">
           <input value={props.value} onChange={e => props.onChange(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') props.onSubmit(); }}
             placeholder="Change scene 2, make it sadder..."
-            className="flex-1 bg-black border border-[rgba(255,255,255,0.12)] rounded-full px-3 py-2 text-[12px] outline-none focus:border-[#28c76f]" />
+            className="flex-1 bg-black border border-[rgba(255,255,255,0.12)] rounded-full px-3 py-2 text-[12px] outline-none focus:border-white" />
           <button onClick={props.onSubmit} disabled={props.disabled || !props.value.trim()} className="px-4 rounded-full bg-white text-black text-[12px] font-medium disabled:opacity-25">Send</button>
         </div>
       </div>
@@ -579,11 +579,11 @@ function Timeline(props: {
                   const width = duration * PX_PER_SECOND;
                   return (
                     <div key={scene.scene_index} onClick={() => props.onSelect(scene.scene_index)}
-                      className={`relative h-8 rounded-md border flex items-center gap-2 px-2 mr-1 cursor-pointer ${props.selectedSceneIndex === scene.scene_index ? 'bg-[#2f9f67] border-[#6ee7a0]' : 'bg-[#206b47] border-[#31865a]'}`}
+                      className={`relative h-8 rounded-md border flex items-center gap-2 px-2 mr-1 cursor-pointer ${props.selectedSceneIndex === scene.scene_index ? 'bg-white text-black border-white' : 'bg-[#252525] border-[rgba(255,255,255,0.18)] text-white'}`}
                       style={{ width }}>
                       {scene.image_url && <img src={scene.image_url} alt="" className="w-6 h-6 rounded object-cover" />}
                       <span className="text-[10px] truncate">S{scene.scene_index} · {duration}s</span>
-                      <span className="ml-auto text-[9px] text-white/65">{sceneLabel(scene.status)}</span>
+                      <span className={`ml-auto text-[9px] ${props.selectedSceneIndex === scene.scene_index ? 'text-black/60' : 'text-white/65'}`}>{sceneLabel(scene.status)}</span>
                       <div onMouseDown={event => props.onResizeStart(scene.scene_index, event)}
                         className="absolute right-0 top-0 h-full w-3 cursor-ew-resize rounded-r-md bg-white/10 hover:bg-white/30" />
                     </div>
@@ -597,7 +597,7 @@ function Timeline(props: {
             </div>
             <div className="h-[58px] border-b border-[rgba(255,255,255,0.08)] relative">
               <div className="absolute left-0 right-10 top-4 h-7 rounded bg-[#161616] overflow-hidden">
-                <div className="h-full opacity-90" style={{ backgroundImage: 'repeating-linear-gradient(90deg, #28c76f 0 3px, #28c76f 3px 5px, #7f8b86 5px 8px, transparent 8px 12px)' }} />
+                <div className="h-full opacity-90" style={{ backgroundImage: 'repeating-linear-gradient(90deg, #ffffff 0 3px, #ffffff 3px 5px, #8a8a8a 5px 8px, transparent 8px 12px)' }} />
               </div>
             </div>
           </div>
@@ -609,7 +609,7 @@ function Timeline(props: {
 
 function TrackLabel({ label, icon, active }: { label: string; icon: string; active?: boolean }) {
   return (
-    <div className={`h-[58px] border-b border-[rgba(255,255,255,0.08)] flex items-center gap-3 px-7 text-[12px] ${active ? 'border-l-4 border-l-[#28c76f]' : ''}`}>
+    <div className={`h-[58px] border-b border-[rgba(255,255,255,0.08)] flex items-center gap-3 px-7 text-[12px] ${active ? 'border-l-4 border-l-white' : ''}`}>
       <span className="text-[rgba(255,255,255,0.72)]">{icon}</span>
       <span className="text-[rgba(255,255,255,0.45)]">{label}</span>
     </div>
