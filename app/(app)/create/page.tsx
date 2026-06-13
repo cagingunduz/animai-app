@@ -856,60 +856,65 @@ function CreatePageInner() {
   return (<>
     {/* ═══ MODE SELECTION ═══ */}
     {mode === 'selecting' && (
-      <div className="flex flex-col h-screen bg-black items-center justify-center px-6 animate-[fadeIn_0.3s_ease]">
-        <h1 className="text-[18px] font-medium text-white mb-8">What do you want to create?</h1>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 max-w-[1360px] w-full">
+      <div className="min-h-screen bg-[#f3f4f1] text-[#151515] px-6 py-8 animate-[fadeIn_0.3s_ease]">
+        <div className="max-w-[1180px] mx-auto">
+          <div className="mb-7">
+            <h1 className="text-[24px] font-semibold tracking-[-0.6px]">Create</h1>
+            <p className="text-[13px] text-zinc-500 mt-1">Choose a workflow and start a new video file.</p>
+          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 w-full">
           <button onClick={() => setMode('theme_select')}
-            className="bg-[#0f0f0f] border-[1.5px] border-[rgba(255,255,255,0.12)] rounded-xl p-7 text-left hover:border-[rgba(255,255,255,0.3)] transition-all group">
+            className="bg-white border border-zinc-200 rounded-2xl p-6 text-left hover:border-[#ff2f7d] hover:shadow-[0_18px_45px_rgba(0,0,0,0.08)] transition group">
             <div className="flex items-start justify-between mb-4">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" className="group-hover:stroke-white transition-colors"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 8h20M2 16h20M7 4v16M17 4v16"/></svg>
-              <span className="text-[9px] font-medium bg-white text-black px-2 py-0.5 rounded-full">Most Popular</span>
+              <span className="w-10 h-10 rounded-xl bg-zinc-100 text-zinc-500 flex items-center justify-center group-hover:bg-[#fff0f6] group-hover:text-[#ff2f7d]"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 8h20M2 16h20M7 4v16M17 4v16"/></svg></span>
+              <span className="text-[9px] font-semibold bg-[#fff0f6] text-[#e91e6f] px-2 py-0.5 rounded-full">Most Popular</span>
             </div>
-            <h3 className="text-[15px] font-medium text-white mb-0.5">Storytelling</h3>
-            <p className="text-[11px] text-[rgba(255,255,255,0.3)] mb-2">YouTube Story Videos</p>
-            <p className="text-[12px] text-[rgba(255,255,255,0.4)] leading-relaxed">AI-generated cinematic scenes with camera movement, narrator voice and sound effects</p>
+            <h3 className="text-[15px] font-semibold mb-0.5">Storytelling</h3>
+            <p className="text-[11px] text-zinc-400 mb-2">YouTube Story Videos</p>
+            <p className="text-[12px] text-zinc-500 leading-relaxed">AI-generated cinematic scenes with camera movement, narrator voice and sound effects</p>
           </button>
           <button onClick={() => { setCartoonSetupDone(false); setMode('cartoon'); }}
-            className="bg-[#0f0f0f] border border-[rgba(255,255,255,0.08)] rounded-xl p-7 text-left hover:border-[rgba(255,255,255,0.18)] transition-all group">
+            className="bg-white border border-zinc-200 rounded-2xl p-6 text-left hover:border-[#ff2f7d] hover:shadow-[0_18px_45px_rgba(0,0,0,0.08)] transition group">
             <div className="mb-4">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" className="group-hover:stroke-white transition-colors"><rect x="2" y="4" width="6" height="16" rx="1"/><rect x="9" y="4" width="6" height="16" rx="1"/><rect x="16" y="4" width="6" height="16" rx="1"/><circle cx="5" cy="10" r="1" fill="rgba(255,255,255,0.2)" stroke="none"/><circle cx="12" cy="10" r="1" fill="rgba(255,255,255,0.2)" stroke="none"/><circle cx="19" cy="10" r="1" fill="rgba(255,255,255,0.2)" stroke="none"/></svg>
+              <span className="w-10 h-10 rounded-xl bg-zinc-100 text-zinc-500 flex items-center justify-center group-hover:bg-[#fff0f6] group-hover:text-[#ff2f7d]"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="4" width="6" height="16" rx="1"/><rect x="9" y="4" width="6" height="16" rx="1"/><rect x="16" y="4" width="6" height="16" rx="1"/><circle cx="5" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="19" cy="10" r="1" fill="currentColor" stroke="none"/></svg></span>
             </div>
-            <h3 className="text-[15px] font-medium text-white mb-0.5">2D Animation</h3>
-            <p className="text-[11px] text-[rgba(255,255,255,0.3)] mb-2">Cartoon Series & Films</p>
-            <p className="text-[12px] text-[rgba(255,255,255,0.4)] leading-relaxed">Build animated series with your own characters, scenes and dialogue</p>
+            <h3 className="text-[15px] font-semibold mb-0.5">2D Animation</h3>
+            <p className="text-[11px] text-zinc-400 mb-2">Cartoon Series & Films</p>
+            <p className="text-[12px] text-zinc-500 leading-relaxed">Build animated series with your own characters, scenes and dialogue</p>
           </button>
           <button onClick={() => setMode('animated')}
-            className="bg-[#0f0f0f] border border-[rgba(255,255,255,0.08)] rounded-xl p-7 text-left hover:border-[rgba(255,255,255,0.18)] transition-all group">
+            className="bg-white border border-zinc-200 rounded-2xl p-6 text-left hover:border-[#ff2f7d] hover:shadow-[0_18px_45px_rgba(0,0,0,0.08)] transition group">
             <div className="flex items-start justify-between mb-4">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" className="group-hover:stroke-white transition-colors"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              <span className="text-[9px] font-medium bg-white text-black px-2 py-0.5 rounded-full">New</span>
+              <span className="w-10 h-10 rounded-xl bg-zinc-100 text-zinc-500 flex items-center justify-center group-hover:bg-[#fff0f6] group-hover:text-[#ff2f7d]"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polygon points="5 3 19 12 5 21 5 3"/></svg></span>
+              <span className="text-[9px] font-semibold bg-[#fff0f6] text-[#e91e6f] px-2 py-0.5 rounded-full">New</span>
             </div>
-            <h3 className="text-[15px] font-medium text-white mb-0.5">Animated Storytelling</h3>
-            <p className="text-[11px] text-[rgba(255,255,255,0.3)] mb-2">Character-driven animated stories</p>
-            <p className="text-[12px] text-[rgba(255,255,255,0.4)] leading-relaxed">Create a character, then auto-generate an animated story with narration and captions</p>
+            <h3 className="text-[15px] font-semibold mb-0.5">Animated Storytelling</h3>
+            <p className="text-[11px] text-zinc-400 mb-2">Character-driven animated stories</p>
+            <p className="text-[12px] text-zinc-500 leading-relaxed">Create a character, then auto-generate an animated story with narration and captions</p>
           </button>
           <button onClick={() => setMode('whiteboard')}
-            className="bg-[#0f0f0f] border border-[rgba(255,255,255,0.08)] rounded-xl p-7 text-left hover:border-[rgba(255,255,255,0.18)] transition-all group">
+            className="bg-white border border-zinc-200 rounded-2xl p-6 text-left hover:border-[#ff2f7d] hover:shadow-[0_18px_45px_rgba(0,0,0,0.08)] transition group">
             <div className="flex items-start justify-between mb-4">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" className="group-hover:stroke-white transition-colors"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M6 8l3 3 3-4 3 3 3-3" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              <span className="text-[9px] font-medium bg-white text-black px-2 py-0.5 rounded-full">New</span>
+              <span className="w-10 h-10 rounded-xl bg-zinc-100 text-zinc-500 flex items-center justify-center group-hover:bg-[#fff0f6] group-hover:text-[#ff2f7d]"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M6 8l3 3 3-4 3 3 3-3" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
+              <span className="text-[9px] font-semibold bg-[#fff0f6] text-[#e91e6f] px-2 py-0.5 rounded-full">New</span>
             </div>
-            <h3 className="text-[15px] font-medium text-white mb-0.5">Whiteboard Animation</h3>
-            <p className="text-[11px] text-[rgba(255,255,255,0.3)] mb-2">Doodle explainer videos</p>
-            <p className="text-[12px] text-[rgba(255,255,255,0.4)] leading-relaxed">Turn any topic into a hand-drawn whiteboard explainer with narration and captions</p>
+            <h3 className="text-[15px] font-semibold mb-0.5">Whiteboard Animation</h3>
+            <p className="text-[11px] text-zinc-400 mb-2">Doodle explainer videos</p>
+            <p className="text-[12px] text-zinc-500 leading-relaxed">Turn any topic into a hand-drawn whiteboard explainer with narration and captions</p>
           </button>
           <button onClick={() => setMode('fruit_drama')}
-            className="bg-[#0f0f0f] border border-[rgba(255,255,255,0.08)] rounded-xl p-7 text-left hover:border-[rgba(255,255,255,0.18)] transition-all group">
+            className="bg-white border border-zinc-200 rounded-2xl p-6 text-left hover:border-[#ff2f7d] hover:shadow-[0_18px_45px_rgba(0,0,0,0.08)] transition group">
             <div className="flex items-start justify-between mb-4">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" className="group-hover:stroke-white transition-colors"><path d="M12 3c4 2 7 5 7 10a7 7 0 0 1-14 0c0-5 3-8 7-10Z"/><path d="M12 3c0 3-1 4-3 5"/><path d="M13 4c2-2 4-2 6-1"/></svg>
-              <span className="text-[9px] font-medium bg-white text-black px-2 py-0.5 rounded-full">New</span>
+              <span className="w-10 h-10 rounded-xl bg-zinc-100 text-zinc-500 flex items-center justify-center group-hover:bg-[#fff0f6] group-hover:text-[#ff2f7d]"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 3c4 2 7 5 7 10a7 7 0 0 1-14 0c0-5 3-8 7-10Z"/><path d="M12 3c0 3-1 4-3 5"/><path d="M13 4c2-2 4-2 6-1"/></svg></span>
+              <span className="text-[9px] font-semibold bg-[#fff0f6] text-[#e91e6f] px-2 py-0.5 rounded-full">New</span>
             </div>
-            <h3 className="text-[15px] font-medium text-white mb-0.5">Fruit Drama</h3>
-            <p className="text-[11px] text-[rgba(255,255,255,0.3)] mb-2">Viral character shorts</p>
-            <p className="text-[12px] text-[rgba(255,255,255,0.4)] leading-relaxed">Create fruit characters, cinematic scenes and Veo 3.1 Lite videos with dialogue</p>
+            <h3 className="text-[15px] font-semibold mb-0.5">Fruit Drama</h3>
+            <p className="text-[11px] text-zinc-400 mb-2">Viral character shorts</p>
+            <p className="text-[12px] text-zinc-500 leading-relaxed">Create fruit characters, cinematic scenes and Veo 3.1 Lite videos with dialogue</p>
           </button>
         </div>
-        <p className="text-[11px] text-[rgba(255,255,255,0.2)] mt-6">Both modes support vertical and horizontal export</p>
+        <p className="text-[11px] text-zinc-400 mt-6">Both modes support vertical and horizontal export</p>
+        </div>
         <style jsx global>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
       </div>
     )}
@@ -1322,99 +1327,90 @@ function CreatePageInner() {
       </div>
     )}
 
-    {/* ═══ 2D ANIMATION — SETUP (Animated-Storytelling style) ═══ */}
+    {/* 2D Animation setup */}
     {mode === 'cartoon' && !cartoonSetupDone && (
-    <div className="flex flex-col h-screen bg-black text-white">
-      <div className="flex-shrink-0 border-b border-[rgba(255,255,255,0.1)] sticky top-0 z-30 bg-black">
-        <div className="max-w-[900px] mx-auto px-6 py-4 flex items-center">
-          <button onClick={() => setMode('selecting')} className="text-[13px] text-[rgba(255,255,255,0.3)] hover:text-white transition-colors mr-3">←</button>
-          <span className="text-[15px] font-semibold tracking-[-0.3px]">2D Animation</span>
-          <div className="flex-1 flex justify-center items-center">
-            {[0, 1].map(i => (
-              <div key={i} className="flex items-center">
-                <span className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-semibold ${i === 0 ? 'bg-white text-black' : 'bg-[rgba(255,255,255,0.06)] text-[rgba(255,255,255,0.35)] border border-[rgba(255,255,255,0.1)]'}`}>{i + 1}</span>
-                {i < 1 && <span className="h-[2px] w-16 mx-1 rounded-full bg-[rgba(255,255,255,0.1)]" />}
-              </div>
-            ))}
-          </div>
-          <span className="w-6" />
+    <div className="min-h-screen bg-[#f3f4f1] text-[#151515] flex flex-col">
+      <header className="h-[56px] bg-white border-b border-zinc-200 flex items-center px-5 gap-3">
+        <button onClick={() => setMode('selecting')} className="w-9 h-9 rounded-full border border-zinc-200 bg-white hover:bg-zinc-50 text-[18px] leading-none">‹</button>
+        <div>
+          <div className="text-[14px] font-semibold">New 2D video file</div>
+          <div className="text-[11px] text-zinc-500">Animave editor setup</div>
         </div>
-      </div>
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-[900px] mx-auto px-6 py-8 flex flex-col gap-7 animate-[fadeIn_0.3s_ease]">
-          <div>
-            <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Story Title / Prompt</label>
-            <textarea value={cTitle} onChange={e => setCTitle(e.target.value)} rows={3}
-              placeholder="A detective uncovers a midnight conspiracy…"
-              className="w-full bg-[#0e0e0e] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 py-3.5 text-[14px] outline-none resize-none focus:border-[rgba(255,255,255,0.2)] transition-colors placeholder:text-[rgba(255,255,255,0.22)] leading-relaxed" />
+      </header>
+      <div className="flex-1 px-5 py-8 flex items-start justify-center">
+        <div className="w-full max-w-[760px] bg-white border border-zinc-200 rounded-[18px] shadow-[0_18px_50px_rgba(0,0,0,0.08)] overflow-hidden">
+          <div className="h-14 px-6 border-b border-zinc-100 flex items-center justify-between">
+            <h1 className="text-[16px] font-semibold">New video file</h1>
+            <button onClick={() => setMode('selecting')} className="w-8 h-8 rounded-full hover:bg-zinc-100 text-zinc-400">×</button>
           </div>
-
-          <div>
-            <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Visual Style</label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {STYLES.map(s => (
-                <button key={s.value} onClick={() => setStyle(s.value)}
-                  className={`relative aspect-[5/3] rounded-xl overflow-hidden border transition-all ${style === s.value ? 'border-white' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.22)]'}`}>
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#2a2a31] to-[#121214]" />
-                  <div className="absolute inset-0 flex items-end p-3"><span className="text-[13px] font-semibold tracking-[-0.2px]">{s.label}</span></div>
-                  {style === s.value && <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-white flex items-center justify-center"><svg width="9" height="9" viewBox="0 0 14 14" fill="none" stroke="black" strokeWidth="2.5"><path d="M2 7l3.5 3.5L12 4" /></svg></span>}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-5 flex-wrap">
+          <div className="p-6 space-y-6">
             <div>
-              <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Format</label>
-              <div className="flex gap-1.5">
-                {(['16:9', '9:16', '1:1'] as AspectRatio[]).map(a => (
+              <label className="text-[12px] font-semibold text-zinc-700 block mb-2">File name / idea</label>
+              <textarea value={cTitle} onChange={e => setCTitle(e.target.value)} rows={4}
+                placeholder="A detective uncovers a midnight conspiracy..."
+                className="w-full bg-white border border-zinc-300 rounded-[14px] px-4 py-3 text-[14px] outline-none resize-none focus:border-[#ff2f7d] focus:ring-4 focus:ring-pink-50 transition placeholder:text-zinc-400 leading-relaxed" />
+            </div>
+
+            <div>
+              <label className="text-[12px] font-semibold text-zinc-700 block mb-2">Size (aspect ratio)</label>
+              <div className="grid grid-cols-3 gap-3">
+                {(['9:16', '1:1', '16:9'] as AspectRatio[]).map(a => (
                   <button key={a} onClick={() => setCAspect(a)}
-                    className={`px-3 py-2 rounded-lg border text-[12px] transition-all flex items-center gap-1.5 ${cAspect === a ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>
-                    <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      {a === '9:16' ? <rect x="6.5" y="2.5" width="7" height="15" rx="1.5" /> : a === '16:9' ? <rect x="2.5" y="6.5" width="15" height="7" rx="1.5" /> : <rect x="4.5" y="4.5" width="11" height="11" rx="1.5" />}
-                    </svg>
-                    {a}
+                    className={`h-11 rounded-full border text-[13px] font-semibold transition ${cAspect === a ? 'border-[#ff2f7d] bg-[#fff0f6] text-[#e91e6f]' : 'border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-50'}`}>
+                    {a === '9:16' ? '9:16 portrait' : a === '1:1' ? '1:1 square' : '16:9 landscape'}
                   </button>
                 ))}
               </div>
             </div>
-            <div>
-              <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Quality</label>
-              <div className="flex gap-1.5">
-                {(['480p', '720p'] as Resolution[]).map(r => (
-                  <button key={r} onClick={() => setRes(r)}
-                    className={`px-3.5 py-2 rounded-lg border text-[12px] transition-all ${res === r ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>{r}</button>
-                ))}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label className="text-[12px] font-semibold text-zinc-700 block mb-2">Media style</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {STYLES.map(s => (
+                    <button key={s.value} onClick={() => setStyle(s.value)}
+                      className={`h-10 rounded-full border text-[12px] font-semibold transition ${style === s.value ? 'border-[#ff2f7d] bg-[#ff2f7d] text-white' : 'border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-50'}`}>
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-            <div>
-              <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Scene duration</label>
-              <div className="flex gap-1.5">
-                {([4, 6, 8] as const).map(d => (
-                  <button key={d} onClick={() => setCSceneDur(d)}
-                    className={`px-3 py-2 rounded-lg border text-[12px] transition-all flex items-center gap-1 ${cSceneDur === d ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>
-                    <svg width="11" height="11" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="10" cy="10" r="7.5" /><path d="M10 5.5V10l3 1.8" strokeLinecap="round" /></svg>
-                    {d}s
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Scene count</label>
-              <div className="flex gap-1.5">
-                {([3, 5, 8] as const).map(n => (
-                  <button key={n} onClick={() => setCSceneCount(n)}
-                    className={`px-3.5 py-2 rounded-lg border text-[12px] transition-all ${cSceneCount === n ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>{n}</button>
-                ))}
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[12px] font-semibold text-zinc-700 block mb-2">Quality</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['480p', '720p'] as Resolution[]).map(r => (
+                      <button key={r} onClick={() => setRes(r)}
+                        className={`h-10 rounded-full border text-[12px] font-semibold ${res === r ? 'border-[#ff2f7d] bg-[#fff0f6] text-[#e91e6f]' : 'border-zinc-300 text-zinc-600 hover:bg-zinc-50'}`}>{r}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[12px] font-semibold text-zinc-700 block mb-2">Clip length</label>
+                    <div className="flex rounded-full bg-zinc-100 p-1">
+                      {([4, 6, 8] as const).map(d => (
+                        <button key={d} onClick={() => setCSceneDur(d)} className={`flex-1 h-8 rounded-full text-[12px] font-semibold ${cSceneDur === d ? 'bg-white shadow-sm text-[#151515]' : 'text-zinc-500'}`}>{d}s</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[12px] font-semibold text-zinc-700 block mb-2">Scenes</label>
+                    <div className="flex rounded-full bg-zinc-100 p-1">
+                      {([3, 5, 8] as const).map(n => (
+                        <button key={n} onClick={() => setCSceneCount(n)} className={`flex-1 h-8 rounded-full text-[12px] font-semibold ${cSceneCount === n ? 'bg-white shadow-sm text-[#151515]' : 'text-zinc-500'}`}>{n}</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-
-          <div className="flex items-center justify-end gap-4 border-t border-[rgba(255,255,255,0.06)] pt-5">
+          <div className="px-6 py-5 bg-[#fafafa] border-t border-zinc-100 flex items-center justify-end gap-4">
+            <button onClick={() => setMode('selecting')} className="h-11 px-5 rounded-full text-[13px] font-semibold text-zinc-600 hover:bg-zinc-100">Back</button>
             <button onClick={() => setCartoonSetupDone(true)} disabled={!cTitle.trim()}
-              className="px-6 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all flex items-center gap-1.5">
-              Next: Characters
-              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 7h12M8 2l5 5-5 5" /></svg>
+              className="h-11 px-7 rounded-full bg-[#ff2f7d] text-white text-[13px] font-semibold shadow-sm hover:bg-[#ec226f] disabled:opacity-30 disabled:cursor-not-allowed">
+              Submit
             </button>
           </div>
         </div>
@@ -1422,27 +1418,23 @@ function CreatePageInner() {
     </div>
     )}
 
-    {/* ═══ 2D ANIMATION FLOW ═══ */}
+    {/* 2D Animation editor */}
     {mode === 'cartoon' && cartoonSetupDone && (
-    <div className="flex flex-col h-screen bg-black">
-      <div className="flex-shrink-0 border-b border-[rgba(255,255,255,0.1)] sticky top-0 z-30 bg-black">
-        <div className="max-w-[680px] mx-auto px-6 py-4 flex items-center">
-          <button onClick={() => setMode('selecting')} className="text-[11px] text-[rgba(255,255,255,0.25)] hover:text-white mr-4 flex-shrink-0 transition-colors">←</button>
-          {roadmap.map((s, i) => (
-            <div key={s.n} className="flex items-center flex-1 last:flex-initial">
-              <button disabled={s.n === 4} onClick={() => {
-                if (s.n === 1) setStep(1);
-              }} className="flex items-center gap-2 disabled:cursor-default">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-medium border transition-all ${step === s.n ? 'bg-white text-black border-white' : step > s.n ? 'border-[rgba(255,255,255,0.25)] text-[rgba(255,255,255,0.5)]' : 'border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.25)]'}`}>
-                  {step > s.n ? <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3,8 6.5,11.5 13,5"/></svg> : s.n}
-                </div>
-                <span className={`text-[12px] hidden sm:inline ${step === s.n ? 'text-white font-medium' : 'text-[rgba(255,255,255,0.25)]'}`}>{s.l}</span>
-              </button>
-              {i < roadmap.length - 1 && <div className={`flex-1 h-px mx-3 ${step > s.n ? 'bg-[rgba(255,255,255,0.2)]' : 'bg-[rgba(255,255,255,0.06)]'}`} />}
-            </div>
-          ))}
+    <div className="flex flex-col h-screen bg-[#f3f4f1] text-[#151515]">
+      <header className="h-[56px] bg-white border-b border-zinc-200 flex items-center px-5 gap-3">
+        <button onClick={() => setMode('selecting')} className="w-9 h-9 rounded-full border border-zinc-200 bg-white hover:bg-zinc-50 text-[18px] leading-none">‹</button>
+        <div className="min-w-0">
+          <div className="text-[14px] font-semibold truncate">{cTitle || '2D Animation'}</div>
+          <div className="text-[11px] text-zinc-500">{cSceneCount} scenes · {cSceneDur}s · {cAspect} · {res}</div>
         </div>
-      </div>
+        <div className="ml-auto flex items-center gap-2">
+          <button onClick={() => setCartoonSetupDone(false)} className="h-9 px-3 rounded-full border border-zinc-200 bg-white text-[12px] font-semibold hover:bg-zinc-50">Settings</button>
+          <button onClick={handleAutoGenerate} disabled={chars.length === 0}
+            className="h-9 px-4 rounded-full bg-[#ff2f7d] text-white text-[12px] font-semibold shadow-sm hover:bg-[#ec226f] disabled:opacity-30 disabled:cursor-not-allowed">
+            Generate
+          </button>
+        </div>
+      </header>
 
       <div className="flex-1 overflow-hidden flex flex-col">
 
@@ -1450,21 +1442,21 @@ function CreatePageInner() {
         {step === 1 && (
           <div className="flex flex-col flex-1 min-h-0 animate-[fadeIn_0.3s_ease]">
             {(genLoading || genDone) && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-                <div className="w-full max-w-[400px] bg-[#0f0f0f] border border-[rgba(255,255,255,0.1)] rounded-xl p-6 mx-4">
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 backdrop-blur-sm">
+                <div className="w-full max-w-[430px] bg-white border border-zinc-200 rounded-[18px] shadow-[0_18px_70px_rgba(0,0,0,0.22)] p-6 mx-4">
                   {genLoading ? (
                     <div className="flex flex-col items-center py-8">
-                      <div className="w-10 h-10 rounded-full border-2 border-[rgba(255,255,255,0.08)] border-t-white animate-spin mb-4" />
-                      <p className="text-[14px] text-[rgba(255,255,255,0.55)]">Generating your character...</p>
+                      <div className="w-10 h-10 rounded-full border-2 border-pink-100 border-t-[#ff2f7d] animate-spin mb-4" />
+                      <p className="text-[14px] text-zinc-600">Generating your character...</p>
                     </div>
                   ) : (
                     <div>
-                      <div className="aspect-[3/4] bg-[#161616] rounded-[10px] border border-[rgba(255,255,255,0.08)] overflow-hidden mb-5">
+                      <div className="aspect-[3/4] bg-zinc-100 rounded-[14px] border border-zinc-200 overflow-hidden mb-5">
                         {pendingChar?.imageUrl ? (
                           <img src={pendingChar.imageUrl} alt="Generated character" className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
-                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#c7c7c7" strokeWidth="1"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
                           </div>
                         )}
                       </div>
@@ -1473,8 +1465,8 @@ function CreatePageInner() {
                           if (!editingChar && pendingChar) setEditingChar(pendingChar);
                           setGenDone(false);
                           setPendingChar(null);
-                        }} className="flex-1 py-2.5 border border-[rgba(255,255,255,0.12)] rounded-lg text-[13px] text-[rgba(255,255,255,0.6)] hover:text-white hover:border-[rgba(255,255,255,0.2)] transition-all">← Edit</button>
-                        <button onClick={confirmChar} className="flex-1 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-all">Use this character →</button>
+                        }} className="flex-1 py-2.5 border border-zinc-300 rounded-full text-[13px] text-zinc-600 hover:bg-zinc-50 transition">Edit</button>
+                        <button onClick={confirmChar} className="flex-1 py-2.5 bg-[#ff2f7d] text-white text-[13px] font-semibold rounded-full hover:bg-[#ec226f] transition">Use character</button>
                       </div>
                     </div>
                   )}
@@ -1482,74 +1474,93 @@ function CreatePageInner() {
               </div>
             )}
 
-            <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-              <div className="w-full max-w-[620px] mx-auto p-5 md:p-7 flex flex-col gap-4 overflow-y-auto">
-                <h2 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px]">Describe your character</h2>
-                <textarea value={prompt} onChange={e => setPrompt(e.target.value)}
-                  className="min-h-[160px] w-full bg-[#111] border border-[rgba(255,255,255,0.1)] rounded-xl p-4 text-[15px] text-white placeholder:text-[rgba(255,255,255,0.22)] outline-none resize-none focus:border-[rgba(255,255,255,0.18)] transition-colors leading-relaxed"
-                  placeholder="A confident 60-year-old male politician in a navy suit. Strong voice, authoritative presence..." />
-                <div>
+            <div className="flex-1 min-h-0 p-4 grid grid-cols-1 lg:grid-cols-[280px_minmax(460px,1fr)_300px] gap-4">
+              <aside className="bg-white border border-zinc-200 rounded-2xl overflow-hidden flex flex-col">
+                <div className="px-5 py-4 border-b border-zinc-100">
+                  <div className="text-[16px] font-semibold">Characters</div>
+                  <div className="text-[11px] text-zinc-500 mt-1">{chars.length ? `${chars.length} approved` : 'Create at least one character'}</div>
+                </div>
+                <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                  {chars.map(c => (
+                    <div key={c.id} className="relative group">
+                      <button onClick={() => openEditChar(c)} className="w-full rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 text-left p-2 flex gap-3 transition">
+                        <div className="w-14 h-14 bg-zinc-100 rounded-lg border border-zinc-200 flex items-center justify-center overflow-hidden">
+                          {c.imageUrl ? <img src={c.imageUrl} alt={c.name} className="w-full h-full object-cover object-top" /> : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c7c7c7" strokeWidth="1.5"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>}
+                        </div>
+                        <div className="min-w-0 py-1">
+                          <div className="text-[12px] font-semibold truncate">{c.name}</div>
+                          <div className="text-[11px] text-zinc-500 truncate">{c.prompt}</div>
+                        </div>
+                      </button>
+                      <button onClick={() => setChars(prev => prev.filter(x => x.id !== c.id))}
+                        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white border border-zinc-200 items-center justify-center text-zinc-400 hover:text-zinc-800 transition text-[12px] hidden group-hover:flex">×</button>
+                    </div>
+                  ))}
+                  <button onClick={resetForm} className="w-full h-12 rounded-xl border border-dashed border-zinc-300 text-[12px] font-semibold text-zinc-500 hover:border-[#ff2f7d] hover:text-[#ff2f7d] transition">Add character</button>
+                </div>
+              </aside>
+
+              <main className="bg-white border border-zinc-200 rounded-2xl overflow-hidden flex flex-col min-h-0">
+                <div className="h-12 border-b border-zinc-100 px-5 flex items-center justify-between">
+                  <div>
+                    <div className="text-[13px] font-semibold">{editingChar ? `Edit ${editingChar.name}` : `Character ${chars.length + 1}`}</div>
+                    <div className="text-[11px] text-zinc-500">Generate and approve characters first</div>
+                  </div>
+                  <span className="px-2 py-1 rounded-md bg-zinc-100 text-[11px] text-zinc-500">{style}</span>
+                </div>
+                <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4 bg-[#fbfbfa]">
+                  <textarea value={prompt} onChange={e => setPrompt(e.target.value)}
+                    className="min-h-[168px] w-full bg-white border border-zinc-300 rounded-[14px] p-4 text-[14px] text-[#151515] placeholder:text-zinc-400 outline-none resize-none focus:border-[#ff2f7d] focus:ring-4 focus:ring-pink-50 transition leading-relaxed"
+                    placeholder="A confident 60-year-old male politician in a navy suit. Strong voice, authoritative presence..." />
                   <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
                   {photoUrl ? (
-                    <div className="relative border border-[rgba(255,255,255,0.1)] rounded-[10px] overflow-hidden">
-                      <img src={photoUrl} alt="" className="w-full h-28 object-cover" />
-                      <button onClick={clearPhoto} className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/70 flex items-center justify-center text-[rgba(255,255,255,0.7)] hover:text-white text-xs">×</button>
+                    <div className="relative border border-zinc-200 rounded-[14px] overflow-hidden bg-white">
+                      <img src={photoUrl} alt="" className="w-full h-40 object-cover" />
+                      <button onClick={clearPhoto} className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/90 border border-zinc-200 flex items-center justify-center text-zinc-500 hover:text-zinc-900 text-xs">×</button>
                     </div>
                   ) : (
-                    <button onClick={() => fileRef.current?.click()} className="w-full border-[1.5px] border-dashed border-[rgba(255,255,255,0.12)] rounded-[10px] py-5 flex flex-col items-center gap-2 hover:border-[rgba(255,255,255,0.22)] transition-colors group">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="1.5" className="group-hover:stroke-[rgba(255,255,255,0.4)] transition-colors"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-                      <span className="text-[12px] text-[rgba(255,255,255,0.3)] group-hover:text-[rgba(255,255,255,0.5)]">Upload a photo for likeness</span>
-                      <span className="text-[9px] text-[rgba(255,255,255,0.2)] border border-[rgba(255,255,255,0.08)] rounded-full px-2 py-0.5">Optional</span>
+                    <button onClick={() => fileRef.current?.click()} className="w-full border-[1.5px] border-dashed border-zinc-300 rounded-[14px] py-7 flex flex-col items-center gap-2 hover:border-[#ff2f7d] hover:bg-white transition group">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a1a1aa" strokeWidth="1.5" className="group-hover:stroke-[#ff2f7d] transition"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                      <span className="text-[12px] font-semibold text-zinc-500 group-hover:text-[#ff2f7d]">Upload a photo for likeness</span>
+                      <span className="text-[10px] text-zinc-400">Optional reference image</span>
                     </button>
                   )}
                 </div>
-              </div>
-
-            </div>
-
-            {chars.length > 0 && (
-              <div className="flex-shrink-0 border-t border-[rgba(255,255,255,0.1)] px-5 md:px-7 py-4">
-                <div className="text-[10px] text-[rgba(255,255,255,0.35)] uppercase tracking-wider mb-2.5">Characters ({chars.length})</div>
-                <div className="flex gap-2.5 overflow-x-auto pb-1">
-                  {chars.map(c => (
-                    <div key={c.id} className="relative group w-[100px] flex-shrink-0">
-                      <button onClick={() => openEditChar(c)} className="w-full border border-[rgba(255,255,255,0.1)] rounded-[10px] overflow-hidden hover:border-[rgba(255,255,255,0.25)] transition-all bg-[#0f0f0f] text-left">
-                        <div className="h-[68px] bg-[#131313] flex items-center justify-center overflow-hidden">
-                          {c.imageUrl ? <img src={c.imageUrl} alt={c.name} className="w-full h-full object-cover object-top" /> : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1.5"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>}
-                        </div>
-                        <div className="px-2 py-1.5 text-[10px] text-center text-[rgba(255,255,255,0.5)] truncate">{c.name}</div>
-                      </button>
-                      <button onClick={() => setChars(prev => prev.filter(x => x.id !== c.id))}
-                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/80 border border-[rgba(255,255,255,0.1)] items-center justify-center text-[rgba(255,255,255,0.5)] hover:text-white hover:border-[rgba(255,255,255,0.3)] transition-all text-[10px] hidden group-hover:flex">×</button>
-                    </div>
-                  ))}
-                  <button onClick={resetForm} className="w-[100px] h-[96px] flex-shrink-0 border border-dashed border-[rgba(255,255,255,0.1)] rounded-[10px] flex items-center justify-center hover:border-[rgba(255,255,255,0.18)] transition-all">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="1.5"><path d="M12 5v14M5 12h14"/></svg>
-                  </button>
+                <div className="h-[62px] border-t border-zinc-100 px-5 flex items-center justify-between bg-white">
+                  <span className="text-[12px] text-zinc-500">{editingChar ? editingChar.name : `Character ${chars.length + 1}`}</span>
+                  <button onClick={handleGenChar} disabled={!prompt.trim() || genLoading}
+                    className="h-10 px-5 rounded-full bg-[#ff2f7d] text-white text-[12px] font-semibold hover:bg-[#ec226f] disabled:opacity-30 disabled:cursor-not-allowed transition">Generate Character</button>
                 </div>
-                <div className="mt-4 grid grid-cols-1 lg:grid-cols-[1fr_220px] gap-3">
+              </main>
+
+              <aside className="bg-white border border-zinc-200 rounded-2xl overflow-hidden flex flex-col min-h-0">
+                <div className="px-5 py-4 border-b border-zinc-100">
+                  <div className="text-[16px] font-semibold">Mave</div>
+                  <div className="text-[11px] text-zinc-500 mt-1">Production brief</div>
+                </div>
+                <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
                   <textarea value={videoBrief} onChange={e => setVideoBrief(e.target.value)}
-                    className="h-20 bg-[#111] border border-[rgba(255,255,255,0.1)] rounded-lg p-3 text-[13px] text-white placeholder:text-[rgba(255,255,255,0.22)] outline-none resize-none focus:border-[rgba(255,255,255,0.2)]"
-                    placeholder="Optional: tell Mave the exact action, mood, camera move, or dialogue. Put exact spoken lines in quotes." />
-                  <div className="rounded-lg border border-[rgba(255,255,255,0.1)] bg-[#0d0d0d] p-3 flex flex-col justify-center gap-1">
-                    <div className="text-[10px] uppercase tracking-[1.4px] text-[rgba(255,255,255,0.35)]">Production</div>
-                <div className="text-[12px] text-white">{cSceneCount} scenes · {cSceneDur}s · {cAspect}</div>
-                    <div className="text-[11px] text-[rgba(255,255,255,0.36)] truncate">{cTitle}</div>
+                    className="h-36 w-full bg-[#fbfbfa] border border-zinc-300 rounded-[14px] p-3 text-[13px] text-[#151515] placeholder:text-zinc-400 outline-none resize-none focus:border-[#ff2f7d] focus:ring-4 focus:ring-pink-50"
+                    placeholder="Tell Mave the exact action, mood, camera move, or dialogue. Put exact spoken lines in quotes." />
+                  <div className="rounded-[14px] border border-zinc-200 bg-[#fbfbfa] p-4">
+                    <div className="text-[10px] uppercase tracking-[1.4px] text-zinc-400 font-semibold">Production</div>
+                    <div className="text-[13px] font-semibold mt-2">{cSceneCount} scenes · {cSceneDur}s · {cAspect}</div>
+                    <div className="text-[12px] text-zinc-500 mt-1 truncate">{cTitle}</div>
+                  </div>
+                  <div className="rounded-[14px] border border-zinc-200 bg-white p-4 space-y-2">
+                    <div className="text-[12px] font-semibold">Ready checklist</div>
+                    <div className="flex items-center justify-between text-[12px]"><span className="text-zinc-500">Characters</span><span className={chars.length ? 'text-emerald-600 font-semibold' : 'text-zinc-400'}>{chars.length || 0}</span></div>
+                    <div className="flex items-center justify-between text-[12px]"><span className="text-zinc-500">Style</span><span className="font-semibold">{style}</span></div>
+                    <div className="flex items-center justify-between text-[12px]"><span className="text-zinc-500">Quality</span><span className="font-semibold">{res}</span></div>
                   </div>
                 </div>
-              </div>
-            )}
-
-            <div className="flex-shrink-0 border-t border-[rgba(255,255,255,0.1)] px-5 md:px-7 py-3 flex items-center justify-between bg-[#0f0f0f]">
-              <span className="text-[11px] text-[rgba(255,255,255,0.35)]">{editingChar ? editingChar.name : `Character ${chars.length + 1}`}</span>
-              <div className="flex gap-2.5">
-                <button onClick={handleGenChar} disabled={!prompt.trim() || genLoading}
-                  className="px-4 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-15 disabled:cursor-not-allowed transition-all">Generate Character →</button>
-                {chars.length > 0 && (
-                  <button onClick={handleAutoGenerate}
-                    className="px-4 py-2 border border-[rgba(255,255,255,0.12)] text-[12px] text-[rgba(255,255,255,0.75)] rounded-lg hover:text-white hover:border-[rgba(255,255,255,0.24)] transition-all">Generate Animation →</button>
-                )}
-              </div>
+                <div className="p-4 border-t border-zinc-100">
+                  <button onClick={handleAutoGenerate} disabled={chars.length === 0}
+                    className="w-full h-11 rounded-full bg-[#ff2f7d] text-white text-[13px] font-semibold hover:bg-[#ec226f] disabled:opacity-30 disabled:cursor-not-allowed">
+                    Generate Animation
+                  </button>
+                </div>
+              </aside>
             </div>
           </div>
         )}
