@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { whiteboardCost } from '@/lib/types';
+import StudioGenerationView from './StudioGenerationView';
 
 type Step = 'setup' | 'generating' | 'done';
 type Aspect = '16:9' | '9:16' | '1:1';
@@ -357,58 +358,37 @@ export default function WhiteboardAnimation({ onBack }: { onBack: () => void }) 
           )}
 
           {step === 'generating' && (
-            <div className="flex flex-col items-center gap-6 py-6">
-              {genStatus === 'failed' ? (
-                <>
-                  <div className="w-12 h-12 rounded-full bg-[rgba(248,113,113,0.08)] flex items-center justify-center">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(248,113,113,0.7)" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                  </div>
-                  <p className="text-[13px] text-[rgba(248,113,113,0.7)] text-center">{genErr}</p>
-                  <button onClick={() => setStep('setup')} className="text-[12px] text-[rgba(255,255,255,0.4)] hover:text-white">← Back</button>
-                </>
-              ) : (
-                <>
-                  <div className="w-10 h-10 rounded-full border-2 border-[rgba(255,255,255,0.08)] border-t-white animate-spin" />
-                  <div className="text-center">
-                    <p className="text-[14px] font-medium">Drawing your whiteboard video…</p>
-                    <p className="text-[12px] text-[rgba(255,255,255,0.4)] mt-1">{genMsg || 'Starting…'}</p>
-                  </div>
-                  {genTotal > 0 && (
-                    <div className="w-full max-w-[360px]">
-                      <div className="flex justify-between text-[10px] text-[rgba(255,255,255,0.3)] mb-1"><span>Step {genStep}/{genTotal}</span><span>{Math.round((genStep / genTotal) * 100)}%</span></div>
-                      <div className="h-1.5 bg-[rgba(255,255,255,0.06)] rounded-full overflow-hidden"><div className="h-full bg-white rounded-full transition-all duration-700" style={{ width: `${(genStep / genTotal) * 100}%` }} /></div>
-                    </div>
-                  )}
-                  {scenes.length > 0 && (
-                    <div className="flex flex-wrap gap-2 justify-center max-w-[460px]">
-                      {scenes.map(s => (
-                        <div key={s.scene_index} className={`w-[64px] h-[64px] rounded-lg border overflow-hidden flex items-center justify-center bg-white ${s.status === 'processing' ? 'animate-pulse border-white' : s.status === 'completed' ? 'border-[rgba(74,222,128,0.4)]' : 'border-[rgba(255,255,255,0.08)]'}`}>
-                          {s.image_url ? <img src={s.image_url} alt="" className="w-full h-full object-cover" /> : <span className="text-[11px] text-[rgba(0,0,0,0.3)]">{s.scene_index}</span>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <p className="text-[11px] text-[rgba(255,255,255,0.25)]">This can take a few minutes — feel free to wait here.</p>
-                </>
-              )}
-            </div>
+            <StudioGenerationView
+              title={title}
+              modeLabel="Whiteboard Animation"
+              aspect={aspect}
+              status={genStatus}
+              message={genMsg || 'Drawing your whiteboard video...'}
+              error={genErr}
+              scenes={scenes}
+              finalVideo={finalVideo}
+              step={genStep}
+              totalSteps={genTotal}
+              onBack={() => setStep('setup')}
+              onRetry={startGeneration}
+            />
           )}
 
           {step === 'done' && finalVideo && (
-            <div className="flex flex-col items-center gap-5">
-              <div className="flex items-center gap-2 text-[rgba(74,222,128,0.8)]">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12" /></svg>
-                <span className="text-[14px] font-medium">Your whiteboard video is ready</span>
-              </div>
-              <video src={finalVideo} controls autoPlay loop playsInline
-                className={`rounded-xl border border-[rgba(255,255,255,0.08)] bg-black ${aspect === '9:16' ? 'max-h-[70vh]' : 'w-full max-w-[640px]'}`} />
-              <div className="flex gap-3">
-                <a href={`/api/download?url=${encodeURIComponent(finalVideo)}&filename=${encodeURIComponent((title || 'whiteboard') + '.mp4')}`}
-                  className="px-5 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-all">Download MP4</a>
-                <button onClick={() => { setStep('setup'); setFinalVideo(null); setGenStatus('idle'); setScenes([]); }}
-                  className="px-5 py-2.5 border border-[rgba(255,255,255,0.12)] rounded-lg text-[13px] text-[rgba(255,255,255,0.6)] hover:text-white transition-all">Create Another</button>
-              </div>
-            </div>
+            <StudioGenerationView
+              title={title}
+              modeLabel="Whiteboard Animation"
+              aspect={aspect}
+              status={genStatus}
+              message="Your whiteboard video is ready"
+              scenes={scenes}
+              finalVideo={finalVideo}
+              step={genTotal}
+              totalSteps={genTotal || 1}
+              onBack={() => setStep('setup')}
+              downloadHref={`/api/download?url=${encodeURIComponent(finalVideo)}&filename=${encodeURIComponent((title || 'whiteboard') + '.mp4')}`}
+              onCreateAnother={() => { setStep('setup'); setFinalVideo(null); setGenStatus('idle'); setScenes([]); }}
+            />
           )}
         </div>
       </div>
