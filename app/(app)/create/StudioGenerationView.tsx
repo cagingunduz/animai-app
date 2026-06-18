@@ -51,22 +51,6 @@ function label(status: string): string {
   return map[status] || status || 'Queued';
 }
 
-function statusTone(status: string): string {
-  if (status === 'completed') return 'bg-emerald-50 text-emerald-700 ring-emerald-100';
-  if (status === 'failed') return 'bg-red-50 text-red-700 ring-red-100';
-  if (['processing', 'rendering_image', 'animating', 'regenerating'].includes(status)) return 'bg-pink-50 text-pink-700 ring-pink-100';
-  return 'bg-zinc-100 text-zinc-500 ring-zinc-200';
-}
-
-function TrackLabel({ label, icon, active }: { label: string; icon: string; active?: boolean }) {
-  return (
-    <div className={`h-[58px] border-b border-zinc-200 flex items-center gap-3 px-5 text-[12px] ${active ? 'border-l-4 border-l-[#ff2f7d] bg-white' : 'bg-[#fafafa]'}`}>
-      <span className="w-6 h-6 rounded-md bg-zinc-100 border border-zinc-200 flex items-center justify-center text-zinc-500">{icon}</span>
-      <span className="font-medium text-zinc-600">{label}</span>
-    </div>
-  );
-}
-
 export default function StudioGenerationView({
   title,
   modeLabel,
@@ -102,7 +86,7 @@ export default function StudioGenerationView({
   const [durations, setDurations] = useState<Record<number, number>>({});
   const [chatInput, setChatInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: 'assistant', text: 'I am Mave. Tell me what to change in the video, a specific scene, dialogue, pacing, or style.' },
+    { role: 'assistant', text: 'I am Mave. Tell me what you want to change in the video or a specific scene.' },
   ]);
   const resizeRef = useRef<{ sceneIndex: number; startX: number; startDuration: number } | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -141,9 +125,7 @@ export default function StudioGenerationView({
   const progress = totalSteps > 0 ? Math.min(100, Math.round((step / totalSteps) * 100)) : (status === 'completed' ? 100 : 6);
   const totalDuration = Math.max(8, scenes.reduce((sum, scene, i) => sum + (durations[sceneNo(scene, i + 1)] || 8), 0));
   const showFinal = selectedIndex === 0 && !!finalVideo;
-  const stageAspect = aspect === '9:16' ? 'aspect-[9/16] max-h-[470px]' : aspect === '1:1' ? 'aspect-square max-h-[470px]' : 'aspect-video';
-  const displayTitle = selectedScene ? selectedScene.title || `Scene ${sceneNo(selectedScene, selectedIndex)}` : 'Final Cut';
-  const sceneList = scenes.length ? scenes : [{ scene_index: 1, status: status === 'failed' ? 'failed' : 'queued', image_url: null, video_url: null, title: 'Scene 1' }];
+  const stageAspect = aspect === '9:16' ? 'aspect-[9/16] max-h-[456px]' : aspect === '1:1' ? 'aspect-square max-h-[456px]' : 'aspect-video';
 
   const sendChat = () => {
     const text = chatInput.trim();
@@ -152,194 +134,177 @@ export default function StudioGenerationView({
     setMessages(prev => [
       ...prev,
       { role: 'user', text },
-      { role: 'assistant', text: 'I understood. I will apply this as an edit instruction when scene regeneration is available for this project.' },
+      { role: 'assistant', text: 'I understood the edit request. For this render view I will keep the timeline state visible; regeneration is available on modes that support scene edits.' },
     ]);
   };
 
+  const displayTitle = selectedScene
+    ? selectedScene.title || `Scene ${sceneNo(selectedScene, selectedIndex)}`
+    : 'Final Cut';
+
   return (
-    <div className="fixed inset-0 z-50 bg-[#f3f4f1] text-[#151515] flex flex-col">
-      <header className="h-[56px] bg-white border-b border-zinc-200 flex items-center px-5 gap-3">
-        <button onClick={onBack} className="w-9 h-9 rounded-full border border-zinc-200 bg-white hover:bg-zinc-50 text-[18px] leading-none">‹</button>
-        <div className="min-w-0">
-          <div className="text-[13px] font-semibold truncate">{title || modeLabel || 'Untitled video'}</div>
-          <div className="text-[11px] text-zinc-500">{modeLabel} workspace</div>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          <span className={`hidden sm:inline-flex px-2.5 py-1 rounded-full ring-1 text-[11px] font-medium ${statusTone(status)}`}>{status === 'processing' ? `${progress}%` : label(status)}</span>
-          {finalVideo && <button onClick={() => setSelectedIndex(0)} className="h-9 px-3 rounded-full border border-zinc-200 bg-white text-[12px] font-medium hover:bg-zinc-50">Final</button>}
-          {status === 'failed' && onRetry && <button onClick={onRetry} className="h-9 px-4 rounded-full bg-[#ff2f7d] text-white text-[12px] font-semibold shadow-sm hover:bg-[#ec226f]">Retry</button>}
-          {downloadHref && <a href={downloadHref} download className="h-9 px-4 rounded-full bg-[#ff2f7d] text-white text-[12px] font-semibold shadow-sm hover:bg-[#ec226f] inline-flex items-center">Download</a>}
-        </div>
-      </header>
+    <div className="w-[calc(100vw-40px)] max-w-[1180px] relative left-1/2 -translate-x-1/2 h-[calc(100vh-110px)] min-h-[620px] flex flex-col gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-[268px_minmax(480px,1fr)_268px] gap-4 min-h-[404px]">
+        <aside className="rounded-lg bg-[#080808] border border-[rgba(255,255,255,0.06)] p-5 overflow-hidden">
+          <div className="text-[16px] font-semibold mb-1">{selectedIndex === 0 ? 'Final Cut' : 'Scene Brief'}</div>
+          <p className="text-[11px] leading-relaxed text-[rgba(255,255,255,0.44)] mb-5">
+            {modeLabel} production workspace.
+          </p>
+          <div className="rounded-lg border border-[rgba(255,255,255,0.08)] bg-black p-3 mb-4">
+            <div className="text-[10px] text-[rgba(255,255,255,0.34)] mb-1">Topic</div>
+            <div className="text-[13px] font-medium leading-snug">{displayTitle}</div>
+            <div className="text-[11px] text-[rgba(255,255,255,0.42)] mt-2">{title || modeLabel}</div>
+          </div>
 
-      <div className="flex-1 min-h-0 p-4 flex flex-col gap-4">
-        <div className="grid grid-cols-1 lg:grid-cols-[282px_minmax(480px,1fr)_292px] gap-4 min-h-[420px] flex-1">
-          <aside className="bg-white border border-zinc-200 rounded-2xl overflow-hidden flex flex-col">
-            <div className="px-5 py-4 border-b border-zinc-100">
-              <div className="text-[16px] font-semibold">Scenes</div>
-              <div className="text-[11px] text-zinc-500 mt-1">{sceneList.length} clips in this project</div>
-            </div>
-            <div className="flex-1 overflow-y-auto p-3 space-y-2">
-              {sceneList.map((scene, i) => {
-                const n = sceneNo(scene, i + 1);
-                const active = selectedIndex === n;
-                return (
-                  <button key={n} onClick={() => setSelectedIndex(n)} className={`w-full text-left rounded-xl border p-3 transition ${active ? 'border-[#ff2f7d] bg-pink-50/70' : 'border-zinc-200 bg-white hover:bg-zinc-50'}`}>
-                    <div className="flex gap-3">
-                      <div className="w-14 h-10 rounded-lg bg-zinc-100 overflow-hidden border border-zinc-200 flex items-center justify-center">
-                        {scene.image_url ? <img src={scene.image_url} alt="" className="w-full h-full object-cover" /> : <span className="text-[11px] text-zinc-400">S{n}</span>}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-[12px] font-semibold truncate">{scene.title || `Scene ${n}`}</div>
-                        <div className="text-[11px] text-zinc-500 mt-1 truncate">{scene.narrator_text || message || 'Preparing scene'}</div>
-                      </div>
-                    </div>
-                    <div className="mt-2 flex items-center justify-between">
-                      <span className={`px-2 py-0.5 rounded-full ring-1 text-[10px] font-medium ${statusTone(scene.status)}`}>{label(scene.status)}</span>
-                      <span className="text-[10px] text-zinc-400">{durations[n] || 8}s</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-            <div className="p-4 border-t border-zinc-100">
-              <button onClick={onBack} className="w-full h-10 rounded-full border border-zinc-300 text-[12px] font-semibold hover:bg-zinc-50">Back</button>
-            </div>
-          </aside>
+          <div className="space-y-3">
+            {(selectedScene?.dialogue || []).slice(0, 3).map((line, i) => (
+              <div key={`${line.speaker}-${i}`} className="flex gap-3 pb-3 border-b border-[rgba(255,255,255,0.06)]">
+                <div className="w-10 h-10 rounded-lg bg-[#151515] border border-[rgba(255,255,255,0.14)] flex items-center justify-center text-[11px] text-white">{i + 1}</div>
+                <div>
+                  <div className="text-[12px] font-medium">{line.speaker}</div>
+                  <div className="text-[12px] text-[rgba(255,255,255,0.54)] leading-relaxed">{line.line}</div>
+                </div>
+              </div>
+            ))}
+            {!selectedScene?.dialogue?.length && (
+              <div className="text-[12px] text-[rgba(255,255,255,0.48)] leading-relaxed">
+                {status === 'failed' ? error : message || 'Scenes will appear here as production starts.'}
+              </div>
+            )}
+          </div>
+          <button onClick={onBack} className="mt-5 w-full py-2.5 rounded-full border border-[rgba(255,255,255,0.16)] text-[12px] text-[rgba(255,255,255,0.7)] hover:text-white">Back</button>
+        </aside>
 
-          <main className="bg-white border border-zinc-200 rounded-2xl overflow-hidden flex flex-col">
-            <div className="h-12 border-b border-zinc-100 px-4 flex items-center">
-              <div className="min-w-0">
-                <div className="text-[13px] font-semibold truncate">{displayTitle}</div>
-                <div className="text-[11px] text-zinc-500 truncate">{status === 'failed' ? error : message || 'Preview updates as scenes render'}</div>
-              </div>
-              <div className="ml-auto flex items-center gap-2 text-[11px] text-zinc-500">
-                <span className="px-2 py-1 rounded-md bg-zinc-100">{aspect}</span>
-                <span className="px-2 py-1 rounded-md bg-zinc-100">{formatTime(totalDuration)}</span>
-              </div>
-            </div>
-            <div className="flex-1 min-h-0 bg-[#f7f7f4] p-5 flex items-center justify-center">
-              <div className={`relative w-full ${stageAspect} rounded-xl overflow-hidden bg-[#0d0d0d] shadow-[0_12px_40px_rgba(0,0,0,0.12)] flex items-center justify-center`}>
-                {showFinal ? (
-                  <video ref={videoRef} key={finalVideo} src={finalVideo || undefined} controls className="w-full h-full object-contain bg-black" />
-                ) : selectedScene?.video_url ? (
-                  <video ref={videoRef} key={selectedScene.video_url} src={selectedScene.video_url} controls className="w-full h-full object-cover bg-black" />
-                ) : selectedScene?.image_url ? (
-                  <img src={selectedScene.image_url} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="text-center px-8">
-                    <div className="w-11 h-11 mx-auto rounded-full border-2 border-white/20 border-t-white animate-spin mb-4" />
-                    <div className="text-[13px] text-white/74">{error || message || 'Preparing preview'}</div>
-                  </div>
-                )}
-                {status === 'processing' && (
-                  <div className="absolute left-4 right-4 bottom-4 h-2 rounded-full bg-black/45 overflow-hidden">
-                    <div className="h-full bg-[#ff2f7d]" style={{ width: `${progress}%` }} />
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="h-[58px] px-4 flex items-center gap-2 border-t border-zinc-100">
-              <button onClick={() => { if (videoRef.current) videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 2); }} className="w-8 h-8 rounded-full border border-zinc-200 bg-white text-[13px] hover:bg-zinc-50">‹</button>
-              <button onClick={() => videoRef.current?.play()} className="w-9 h-9 rounded-full bg-[#151515] text-white text-[12px]">Play</button>
-              <button onClick={() => videoRef.current?.pause()} className="w-8 h-8 rounded-full border border-zinc-200 bg-white text-[12px] hover:bg-zinc-50">Stop</button>
-              <div className="ml-auto text-[11px] text-zinc-500">{status === 'processing' ? `${step}/${totalSteps || 1} steps` : label(status)}</div>
-            </div>
-          </main>
-
-          <aside className="bg-white border border-zinc-200 rounded-2xl overflow-hidden flex flex-col min-h-0">
-            <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
-              <div>
-                <div className="text-[16px] font-semibold">Mave</div>
-                <div className="text-[11px] text-zinc-500">AI edit assistant</div>
-              </div>
-              <div className="w-9 h-9 rounded-full bg-[#fff0f6] text-[#ff2f7d] flex items-center justify-center font-semibold">M</div>
-            </div>
-            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
-              {(selectedScene?.dialogue || []).slice(0, 2).map((line, i) => (
-                <div key={`${line.speaker}-${i}`} className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-                  <div className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wide">{line.speaker}</div>
-                  <div className="text-[12px] leading-relaxed mt-1">{line.line}</div>
+        <main className="rounded-lg bg-[#080808] border border-[rgba(255,255,255,0.06)] overflow-hidden flex flex-col">
+          <div className="flex-1 min-h-0 p-2 flex items-center justify-center">
+            <div className={`relative w-full ${stageAspect} rounded-md overflow-hidden bg-[#111] flex items-center justify-center`}>
+              {showFinal ? (
+                <video ref={videoRef} key={finalVideo} src={finalVideo || undefined} controls className="w-full h-full object-contain bg-black" />
+              ) : selectedScene?.video_url ? (
+                <video ref={videoRef} key={selectedScene.video_url} src={selectedScene.video_url} controls className="w-full h-full object-cover bg-black" />
+              ) : selectedScene?.image_url ? (
+                <img src={selectedScene.image_url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <div className="text-center px-6">
+                  <div className="w-10 h-10 mx-auto rounded-full border-2 border-[rgba(255,255,255,0.12)] border-t-white animate-spin mb-4" />
+                  <div className="text-[12px] text-[rgba(255,255,255,0.42)]">{error || message || 'Preparing preview'}</div>
                 </div>
-              ))}
-              {messages.map((entry, i) => (
-                <div key={i} className={`rounded-2xl px-3 py-2.5 border ${entry.role === 'user' ? 'ml-5 bg-[#151515] text-white border-[#151515]' : 'mr-5 bg-[#fff8fb] border-pink-100'}`}>
-                  <div className={`text-[10px] mb-1 ${entry.role === 'user' ? 'text-white/50' : 'text-pink-500'}`}>{entry.role === 'user' ? 'You' : 'Mave'}</div>
-                  <div className="text-[12px] leading-relaxed">{entry.text}</div>
+              )}
+              {status === 'processing' && (
+                <div className="absolute left-3 bottom-3 h-1.5 w-[72%] rounded-full bg-black/70 overflow-hidden">
+                  <div className="h-full bg-white" style={{ width: `${progress}%` }} />
                 </div>
-              ))}
-            </div>
-            <div className="p-3 border-t border-zinc-100">
-              <div className="flex gap-2 rounded-full border border-zinc-200 bg-zinc-50 p-1">
-                <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') sendChat(); }}
-                  placeholder="Ask Mave to change anything..."
-                  className="min-w-0 flex-1 bg-transparent px-3 py-2 text-[12px] outline-none placeholder:text-zinc-400" />
-                <button onClick={sendChat} disabled={!chatInput.trim()} className="h-9 px-4 rounded-full bg-[#ff2f7d] text-white text-[12px] font-semibold disabled:opacity-30">Send</button>
-              </div>
-            </div>
-          </aside>
-        </div>
-
-        <section className="h-[214px] bg-white border border-zinc-200 rounded-2xl overflow-hidden">
-          <div className="h-full grid grid-cols-[112px_minmax(0,1fr)]">
-            <div className="border-r border-zinc-200 bg-[#fafafa]">
-              <div className="h-11 border-b border-zinc-200 flex items-center justify-center gap-3 text-zinc-500">
-                <span className="w-7 h-7 rounded-md border border-zinc-200 bg-white flex items-center justify-center">□</span>
-                <span className="w-7 h-7 rounded-md border border-zinc-200 bg-white flex items-center justify-center">⚙</span>
-              </div>
-              <TrackLabel label="Video" icon="▰" active />
-              <TrackLabel label="Audio" icon="♪" />
-            </div>
-            <div className="overflow-x-auto overflow-y-hidden">
-              <div className="relative h-full" style={{ width: Math.max(980, totalDuration * PX_PER_SECOND + 120) }}>
-                <div className="h-11 border-b border-zinc-200 relative bg-[#fbfbfa]">
-                  {Array.from({ length: Math.max(8, Math.ceil(totalDuration / 5) + 2) }, (_, i) => i * 5).map(tick => (
-                    <div key={tick} className="absolute top-0 h-full" style={{ left: tick * PX_PER_SECOND }}>
-                      <div className="text-[10px] text-zinc-500 mt-2">{formatTime(tick)}</div>
-                      <div className="absolute bottom-0 left-0 h-3 w-px bg-zinc-300" />
-                    </div>
-                  ))}
-                </div>
-                <div className="h-[58px] border-b border-zinc-200 relative">
-                  <div className="absolute left-0 top-3 flex">
-                    {sceneList.map((scene, i) => {
-                      const n = sceneNo(scene, i + 1);
-                      const duration = durations[n] || 8;
-                      return (
-                        <div key={n} onClick={() => setSelectedIndex(n)}
-                          className={`relative h-9 rounded-md border flex items-center gap-2 px-2 mr-1 cursor-pointer shadow-sm ${selectedIndex === n ? 'bg-[#ff2f7d] text-white border-[#ff2f7d]' : 'bg-[#2f8b57] border-[#28764a] text-white'}`}
-                          style={{ width: duration * PX_PER_SECOND }}>
-                          {scene.image_url && <img src={scene.image_url} alt="" className="w-6 h-6 rounded object-cover" />}
-                          <span className="text-[10px] font-semibold truncate">Scene {n}</span>
-                          <span className="ml-auto text-[9px] opacity-75">{duration}s</span>
-                          <div onMouseDown={(event: ReactMouseEvent<HTMLDivElement>) => {
-                            event.preventDefault();
-                            resizeRef.current = { sceneIndex: n, startX: event.clientX, startDuration: duration };
-                          }} className="absolute right-0 top-0 h-full w-3 cursor-ew-resize rounded-r-md bg-white/15 hover:bg-white/35" />
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="absolute left-10 top-0 bottom-0 w-px bg-[#151515]">
-                    <div className="absolute -top-1 -left-1.5 w-3 h-3 rounded-full bg-[#151515]" />
-                    <div className="absolute -bottom-1 -left-1.5 w-3 h-3 rounded-full bg-[#151515]" />
-                  </div>
-                </div>
-                <div className="h-[58px] border-b border-zinc-200 relative">
-                  <div className="absolute left-0 right-10 top-4 h-7 rounded bg-zinc-100 overflow-hidden">
-                    <div className="h-full opacity-90" style={{ backgroundImage: 'repeating-linear-gradient(90deg, #2f8b57 0 3px, #2f8b57 3px 5px, #b8b8b8 5px 8px, transparent 8px 12px)' }} />
-                  </div>
-                </div>
-                {onCreateAnother && status === 'completed' && (
-                  <button onClick={onCreateAnother} className="absolute right-4 bottom-4 px-3 py-2 rounded-full border border-zinc-300 bg-white text-[11px] font-semibold hover:bg-zinc-50">
-                    Create another
-                  </button>
-                )}
-              </div>
+              )}
             </div>
           </div>
-        </section>
+          <div className="h-[58px] px-4 flex items-center gap-3 border-t border-[rgba(255,255,255,0.06)]">
+            <button onClick={() => { if (videoRef.current) videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 2); }} className="w-7 h-7 rounded-full bg-[rgba(255,255,255,0.08)] text-[11px]">◀</button>
+            <button onClick={() => videoRef.current?.play()} className="w-7 h-7 rounded-full bg-[rgba(255,255,255,0.12)] text-[11px]">▶</button>
+            <button onClick={() => videoRef.current?.pause()} className="w-7 h-7 rounded-full bg-[rgba(255,255,255,0.08)] text-[11px]">■</button>
+            <div className="ml-auto flex gap-2">
+              {finalVideo && <button onClick={() => setSelectedIndex(0)} className="px-3 py-2 rounded-md bg-[rgba(255,255,255,0.08)] text-[11px]">Final</button>}
+              {status === 'failed' && onRetry && <button onClick={onRetry} className="px-3 py-2 rounded-md bg-white text-black text-[11px]">Retry</button>}
+              {downloadHref && <a href={downloadHref} download className="px-3 py-2 rounded-md bg-white text-black text-[11px]">Download</a>}
+            </div>
+          </div>
+        </main>
+
+        <aside className="rounded-lg bg-[#080808] border border-[rgba(255,255,255,0.06)] p-5 flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-[16px] font-semibold">AI Editor</div>
+            <div className="w-8 h-8 rounded-full border border-[rgba(255,255,255,0.18)] flex items-center justify-center text-[13px]">⌕</div>
+          </div>
+          <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+            {messages.map((entry, i) => (
+              <div key={i} className={`${entry.role === 'user' ? 'ml-5 bg-[#1a1a1a] border-[rgba(255,255,255,0.2)]' : 'mr-5 bg-black border-[rgba(255,255,255,0.08)]'} border rounded-lg px-3 py-2`}>
+                <div className="text-[10px] text-[rgba(255,255,255,0.35)] mb-1">{entry.role === 'user' ? 'You' : 'Mave'}</div>
+                <div className="text-[12px] leading-relaxed text-[rgba(255,255,255,0.78)]">{entry.text}</div>
+              </div>
+            ))}
+          </div>
+          <div className="pt-3 border-t border-[rgba(255,255,255,0.06)]">
+            <div className="flex gap-2">
+              <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') sendChat(); }}
+                placeholder="Describe an edit..."
+                className="flex-1 bg-black border border-[rgba(255,255,255,0.12)] rounded-full px-3 py-2 text-[12px] outline-none focus:border-white" />
+              <button onClick={sendChat} disabled={!chatInput.trim()} className="px-4 rounded-full bg-white text-black text-[12px] font-medium disabled:opacity-25">Send</button>
+            </div>
+          </div>
+        </aside>
       </div>
+
+      <section className="flex-1 min-h-[190px] rounded-lg bg-[#070707] border border-[rgba(255,255,255,0.06)] overflow-hidden">
+        <div className="h-full grid grid-cols-[108px_minmax(0,1fr)]">
+          <div className="border-r border-[rgba(255,255,255,0.08)] bg-[#090909]">
+            <div className="h-44 border-b border-[rgba(255,255,255,0.08)] flex items-center justify-center gap-4 text-[rgba(255,255,255,0.55)]">
+              <span className="text-[18px]">▣</span><span className="text-[18px]">⚙</span>
+            </div>
+            <TrackLabel label="Video" icon="▰" active />
+            <TrackLabel label="Audio" icon="♪" />
+          </div>
+          <div className="overflow-x-auto overflow-y-hidden">
+            <div className="relative h-full" style={{ width: Math.max(980, totalDuration * PX_PER_SECOND + 100) }}>
+              <div className="h-11 border-b border-[rgba(255,255,255,0.08)] relative">
+                {Array.from({ length: Math.max(8, Math.ceil(totalDuration / 5) + 2) }, (_, i) => i * 5).map(tick => (
+                  <div key={tick} className="absolute top-0 h-full" style={{ left: tick * PX_PER_SECOND }}>
+                    <div className="text-[10px] text-[rgba(255,255,255,0.48)] mt-2">{formatTime(tick)}</div>
+                    <div className="absolute bottom-0 left-0 h-3 w-px bg-[rgba(255,255,255,0.3)]" />
+                  </div>
+                ))}
+              </div>
+              <div className="h-[58px] border-b border-[rgba(255,255,255,0.08)] relative">
+                <div className="absolute left-0 top-3 flex">
+                  {(scenes.length ? scenes : [{ scene_index: 1, status: status === 'failed' ? 'failed' : 'queued', image_url: null, video_url: null }]).map((scene, i) => {
+                    const n = sceneNo(scene, i + 1);
+                    const duration = durations[n] || 8;
+                    return (
+                      <div key={n} onClick={() => setSelectedIndex(n)}
+                        className={`relative h-8 rounded-md border flex items-center gap-2 px-2 mr-1 cursor-pointer ${selectedIndex === n ? 'bg-white text-black border-white' : 'bg-[#252525] border-[rgba(255,255,255,0.18)] text-white'}`}
+                        style={{ width: duration * PX_PER_SECOND }}>
+                        {scene.image_url && <img src={scene.image_url} alt="" className="w-6 h-6 rounded object-cover" />}
+                        <span className="text-[10px] truncate">S{n} · {duration}s</span>
+                        <span className={`ml-auto text-[9px] ${selectedIndex === n ? 'text-black/60' : 'text-white/65'}`}>{label(scene.status)}</span>
+                        <div onMouseDown={(event: ReactMouseEvent<HTMLDivElement>) => {
+                          event.preventDefault();
+                          resizeRef.current = { sceneIndex: n, startX: event.clientX, startDuration: duration };
+                        }} className="absolute right-0 top-0 h-full w-3 cursor-ew-resize rounded-r-md bg-white/10 hover:bg-white/30" />
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="absolute left-10 top-0 bottom-0 w-px bg-white">
+                  <div className="absolute -top-1 -left-1.5 w-3 h-3 rounded-full bg-white" />
+                  <div className="absolute -bottom-1 -left-1.5 w-3 h-3 rounded-full bg-white" />
+                </div>
+              </div>
+              <div className="h-[58px] border-b border-[rgba(255,255,255,0.08)] relative">
+                <div className="absolute left-0 right-10 top-4 h-7 rounded bg-[#161616] overflow-hidden">
+                  <div className="h-full opacity-90" style={{ backgroundImage: 'repeating-linear-gradient(90deg, #ffffff 0 3px, #ffffff 3px 5px, #8a8a8a 5px 8px, transparent 8px 12px)' }} />
+                </div>
+              </div>
+              {finalVideo && (
+                <button onClick={() => setSelectedIndex(0)} className="absolute right-4 top-12 px-3 py-1.5 rounded-md bg-[rgba(255,255,255,0.08)] text-[11px] text-white">
+                  View final
+                </button>
+              )}
+              {onCreateAnother && status === 'completed' && (
+                <button onClick={onCreateAnother} className="absolute right-4 bottom-4 px-3 py-2 rounded-md border border-[rgba(255,255,255,0.14)] text-[11px] text-[rgba(255,255,255,0.72)]">
+                  Create another
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function TrackLabel({ label, icon, active }: { label: string; icon: string; active?: boolean }) {
+  return (
+    <div className={`h-[58px] border-b border-[rgba(255,255,255,0.08)] flex items-center gap-3 px-7 text-[12px] ${active ? 'border-l-4 border-l-white' : ''}`}>
+      <span className="text-[rgba(255,255,255,0.72)]">{icon}</span>
+      <span className="text-[rgba(255,255,255,0.45)]">{label}</span>
     </div>
   );
 }
