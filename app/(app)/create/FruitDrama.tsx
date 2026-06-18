@@ -4,7 +4,16 @@ import { type MouseEvent as ReactMouseEvent, useEffect, useMemo, useRef, useStat
 import { createClient } from '@/lib/supabase/client';
 import { fruitDramaCost, fruitDramaSceneCost } from '@/lib/types';
 
-type Step = 'setup' | 'editor';
+type Step = 'setup' | 'character' | 'editor';
+
+const STYLES = [
+  { value: 'western-cartoon', label: 'Western Cartoon' },
+  { value: 'anime', label: 'Anime' },
+  { value: 'pixar', label: 'Pixar' },
+  { value: 'comic', label: 'Comic' },
+  { value: 'retro', label: 'Retro' },
+  { value: 'custom', label: 'Realistic' },
+];
 type Aspect = '9:16' | '16:9';
 type Resolution = '720p' | '1080p';
 type Gender = 'girl' | 'boy';
@@ -78,6 +87,7 @@ function durationFromText(text: string): 4 | 6 | 8 | null {
 
 export default function FruitDrama({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState<Step>('setup');
+  const [style, setStyle] = useState('anime');  // Visual Style (parity with 2D setup)
   const [title, setTitle] = useState('Peach girl discovers banana boss lied to her');
   const [mainFruit, setMainFruit] = useState('peach');
   const [mainGender, setMainGender] = useState<Gender>('girl');
@@ -303,48 +313,48 @@ export default function FruitDrama({ onBack }: { onBack: () => void }) {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {step === 'setup' ? (
+      {(step === 'setup' || step === 'character') && (
         <div className="flex flex-col h-screen bg-black text-white">
           <div className="flex-shrink-0 border-b border-[rgba(255,255,255,0.1)] sticky top-0 z-30 bg-black">
             <div className="max-w-[900px] mx-auto px-6 py-4 flex items-center">
-              <button onClick={onBack} className="text-[13px] text-[rgba(255,255,255,0.3)] hover:text-white transition-colors mr-3">←</button>
+              <button onClick={step === 'setup' ? onBack : () => setStep('setup')} className="text-[13px] text-[rgba(255,255,255,0.3)] hover:text-white transition-colors mr-3">←</button>
               <span className="text-[15px] font-semibold tracking-[-0.3px]">Fruit Drama</span>
               <div className="flex-1 flex justify-center items-center">
-                {[0, 1].map(i => (
-                  <div key={i} className="flex items-center">
-                    <span className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-semibold ${i === 0 ? 'bg-white text-black' : 'bg-[rgba(255,255,255,0.06)] text-[rgba(255,255,255,0.35)] border border-[rgba(255,255,255,0.1)]'}`}>{i + 1}</span>
-                    {i < 1 && <span className="h-[2px] w-16 mx-1 rounded-full bg-[rgba(255,255,255,0.1)]" />}
-                  </div>
-                ))}
+                {[0, 1].map(i => {
+                  const cur = step === 'setup' ? 0 : 1;
+                  return (
+                    <div key={i} className="flex items-center">
+                      <span className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-semibold ${i <= cur ? 'bg-white text-black' : 'bg-[rgba(255,255,255,0.06)] text-[rgba(255,255,255,0.35)] border border-[rgba(255,255,255,0.1)]'}`}>{i + 1}</span>
+                      {i < 1 && <span className={`h-[2px] w-16 mx-1 rounded-full ${cur >= 1 ? 'bg-white' : 'bg-[rgba(255,255,255,0.1)]'}`} />}
+                    </div>
+                  );
+                })}
               </div>
               <span className="w-6" />
             </div>
           </div>
-          <SetupView
-            title={title}
-            setTitle={setTitle}
-            mainFruit={mainFruit}
-            setMainFruit={setMainFruit}
-            mainGender={mainGender}
-            setMainGender={setMainGender}
-            secondFruit={secondFruit}
-            setSecondFruit={setSecondFruit}
-            secondGender={secondGender}
-            setSecondGender={setSecondGender}
-            sceneCount={sceneCount}
-            setSceneCount={setSceneCount}
-            aspect={aspect}
-            setAspect={setAspect}
-            resolution={resolution}
-            setResolution={setResolution}
-            durationSeconds={durationSeconds}
-            setDurationSeconds={setDurationSeconds}
-            cost={cost}
-            canGenerate={!!canGenerate}
-            startGeneration={startGeneration}
-          />
+          {step === 'setup' ? (
+            <SetupView
+              title={title} setTitle={setTitle}
+              style={style} setStyle={setStyle}
+              sceneCount={sceneCount} setSceneCount={setSceneCount}
+              aspect={aspect} setAspect={setAspect}
+              resolution={resolution} setResolution={setResolution}
+              durationSeconds={durationSeconds} setDurationSeconds={setDurationSeconds}
+              onNext={() => setStep('character')}
+            />
+          ) : (
+            <CharacterView
+              mainFruit={mainFruit} setMainFruit={setMainFruit}
+              mainGender={mainGender} setMainGender={setMainGender}
+              secondFruit={secondFruit} setSecondFruit={setSecondFruit}
+              secondGender={secondGender} setSecondGender={setSecondGender}
+              cost={cost} canGenerate={!!canGenerate} startGeneration={startGeneration}
+            />
+          )}
         </div>
-      ) : (
+      )}
+      {step === 'editor' && (
         <div className="h-screen flex flex-col overflow-hidden">
           <div className="shrink-0 border-b border-[rgba(255,255,255,0.08)] bg-[#050505]">
             <div className="px-5 py-3 flex items-center gap-3">
@@ -402,41 +412,74 @@ export default function FruitDrama({ onBack }: { onBack: () => void }) {
 
 function SetupView(props: {
   title: string; setTitle: (v: string) => void;
-  mainFruit: string; setMainFruit: (v: string) => void;
-  mainGender: Gender; setMainGender: (v: Gender) => void;
-  secondFruit: string; setSecondFruit: (v: string) => void;
-  secondGender: Gender; setSecondGender: (v: Gender) => void;
+  style: string; setStyle: (v: string) => void;
   sceneCount: number; setSceneCount: (v: number) => void;
   aspect: Aspect; setAspect: (v: Aspect) => void;
   resolution: Resolution; setResolution: (v: Resolution) => void;
   durationSeconds: 4 | 6 | 8; setDurationSeconds: (v: 4 | 6 | 8) => void;
+  onNext: () => void;
+}) {
+  return (
+    <div className="flex-1 overflow-y-auto">
+      <div className="max-w-[900px] mx-auto px-6 py-8 flex flex-col gap-7 animate-[fadeIn_0.3s_ease]">
+        <div>
+          <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Story Title / Prompt</label>
+          <textarea value={props.title} onChange={e => props.setTitle(e.target.value)} rows={3}
+            placeholder="A detective uncovers a midnight conspiracy…"
+            className="w-full bg-[#0e0e0e] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 py-3.5 text-[14px] outline-none resize-none focus:border-[rgba(255,255,255,0.2)] transition-colors placeholder:text-[rgba(255,255,255,0.22)] leading-relaxed" />
+        </div>
+
+        <div>
+          <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Visual Style</label>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {STYLES.map(s => (
+              <button key={s.value} onClick={() => props.setStyle(s.value)}
+                className={`relative aspect-[5/3] rounded-xl overflow-hidden border transition-all ${props.style === s.value ? 'border-white' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.22)]'}`}>
+                <div className="absolute inset-0 bg-gradient-to-br from-[#2a2a31] to-[#121214]" />
+                <div className="absolute inset-0 flex items-end p-3"><span className="text-[13px] font-semibold tracking-[-0.2px]">{s.label}</span></div>
+                {props.style === s.value && <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-white flex items-center justify-center"><svg width="9" height="9" viewBox="0 0 14 14" fill="none" stroke="black" strokeWidth="2.5"><path d="M2 7l3.5 3.5L12 4" /></svg></span>}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-5 flex-wrap">
+          <OptionGroup label="Format" values={['16:9', '9:16'] as const} value={props.aspect} onPick={props.setAspect} suffix="" icon={aspectIcon} />
+          <OptionGroup label="Quality" values={['720p', '1080p'] as const} value={props.resolution} onPick={(r: Resolution) => { props.setResolution(r); if (r === '1080p') props.setDurationSeconds(8); }} suffix="" />
+          <OptionGroup label="Scene duration" values={[4, 6, 8] as const} value={props.durationSeconds} onPick={props.setDurationSeconds} suffix="s" disabledValue={props.resolution === '1080p' ? ([4, 6] as const) : []} icon={clockIcon} />
+          <OptionGroup label="Scene count" values={[3, 5, 8, 10] as const} value={props.sceneCount} onPick={props.setSceneCount} suffix="" />
+        </div>
+
+        <div className="flex items-center justify-end gap-4 border-t border-[rgba(255,255,255,0.06)] pt-5">
+          <button onClick={props.onNext} disabled={!props.title.trim()}
+            className="px-6 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all flex items-center gap-1.5">
+            Next: Characters
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 7h12M8 2l5 5-5 5" /></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CharacterView(props: {
+  mainFruit: string; setMainFruit: (v: string) => void;
+  mainGender: Gender; setMainGender: (v: Gender) => void;
+  secondFruit: string; setSecondFruit: (v: string) => void;
+  secondGender: Gender; setSecondGender: (v: Gender) => void;
   cost: number; canGenerate: boolean; startGeneration: () => void;
 }) {
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="max-w-[900px] mx-auto px-6 py-8 flex flex-col gap-7 animate-[fadeIn_0.3s_ease]">
         <div>
-          <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Story idea</label>
-          <textarea value={props.title} onChange={e => props.setTitle(e.target.value)} rows={3}
-            placeholder="Peach girl confronts banana boss after discovering his secret…"
-            className="w-full bg-[#0e0e0e] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 py-3.5 text-[14px] outline-none resize-none focus:border-[rgba(255,255,255,0.2)] transition-colors placeholder:text-[rgba(255,255,255,0.22)] leading-relaxed" />
+          <h2 className="text-[15px] font-medium mb-1">Choose your characters</h2>
+          <p className="text-[12px] text-[rgba(255,255,255,0.4)]">Pick the two fruit characters for your drama.</p>
         </div>
-
-        <div>
-          <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Characters</label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <CharacterPicker title="Main character" fruit={props.mainFruit} gender={props.mainGender} onFruit={props.setMainFruit} onGender={props.setMainGender} genders={['girl', 'boy'] as const} />
-            <CharacterPicker title="Second character" fruit={props.secondFruit} gender={props.secondGender} onFruit={props.setSecondFruit} onGender={props.setSecondGender} genders={['boy', 'girl'] as const} />
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <CharacterPicker title="Main character" fruit={props.mainFruit} gender={props.mainGender} onFruit={props.setMainFruit} onGender={props.setMainGender} genders={['girl', 'boy'] as const} />
+          <CharacterPicker title="Second character" fruit={props.secondFruit} gender={props.secondGender} onFruit={props.setSecondFruit} onGender={props.setSecondGender} genders={['boy', 'girl'] as const} />
         </div>
-
-        <div className="flex flex-col sm:flex-row gap-5 flex-wrap">
-          <OptionGroup label="Scenes" values={[3, 5, 8, 10] as const} value={props.sceneCount} onPick={props.setSceneCount} suffix="" />
-          <OptionGroup label="Format" values={['9:16', '16:9'] as const} value={props.aspect} onPick={props.setAspect} suffix="" icon={aspectIcon} />
-          <OptionGroup label="Quality" values={['720p', '1080p'] as const} value={props.resolution} onPick={(r: Resolution) => { props.setResolution(r); if (r === '1080p') props.setDurationSeconds(8); }} suffix="" />
-          <OptionGroup label="Clip length" values={[4, 6, 8] as const} value={props.durationSeconds} onPick={props.setDurationSeconds} suffix="s" disabledValue={props.resolution === '1080p' ? ([4, 6] as const) : []} icon={clockIcon} />
-        </div>
-
         <div className="flex items-center justify-end gap-4 border-t border-[rgba(255,255,255,0.06)] pt-5">
           <span className="text-[11px] text-[rgba(255,255,255,0.4)]"><span className="text-white font-medium">{props.cost.toLocaleString()}</span> credits · deducted now</span>
           <button onClick={props.startGeneration} disabled={!props.canGenerate}
