@@ -302,21 +302,24 @@ export default function FruitDrama({ onBack }: { onBack: () => void }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white">
-      <div className="h-screen flex flex-col overflow-hidden">
-        <div className="shrink-0 border-b border-[rgba(255,255,255,0.08)] bg-[#050505]">
-          <div className="px-5 py-3 flex items-center gap-3">
-            <button onClick={step === 'setup' ? onBack : () => setStep('setup')} className="text-[13px] text-[rgba(255,255,255,0.42)] hover:text-white">Back</button>
-            <div className="h-4 w-px bg-[rgba(255,255,255,0.12)]" />
-            <div>
-              <div className="text-[14px] font-semibold">Fruit Drama Studio</div>
-              <div className="text-[10px] text-[rgba(255,255,255,0.35)]">{resolution} / {aspect} / {durationSeconds}s source clips</div>
+    <div className="min-h-screen bg-black text-white">
+      {step === 'setup' ? (
+        <div className="flex flex-col h-screen bg-black text-white">
+          <div className="flex-shrink-0 border-b border-[rgba(255,255,255,0.1)] sticky top-0 z-30 bg-black">
+            <div className="max-w-[900px] mx-auto px-6 py-4 flex items-center">
+              <button onClick={onBack} className="text-[13px] text-[rgba(255,255,255,0.3)] hover:text-white transition-colors mr-3">←</button>
+              <span className="text-[15px] font-semibold tracking-[-0.3px]">Fruit Drama</span>
+              <div className="flex-1 flex justify-center items-center">
+                {[0, 1].map(i => (
+                  <div key={i} className="flex items-center">
+                    <span className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-semibold ${i === 0 ? 'bg-white text-black' : 'bg-[rgba(255,255,255,0.06)] text-[rgba(255,255,255,0.35)] border border-[rgba(255,255,255,0.1)]'}`}>{i + 1}</span>
+                    {i < 1 && <span className="h-[2px] w-16 mx-1 rounded-full bg-[rgba(255,255,255,0.1)]" />}
+                  </div>
+                ))}
+              </div>
+              <span className="w-6" />
             </div>
-            <div className="ml-auto text-[11px] text-[rgba(255,255,255,0.36)]">{genErr || genMsg || 'Ready'}</div>
           </div>
-        </div>
-
-        {step === 'setup' ? (
           <SetupView
             title={title}
             setTitle={setTitle}
@@ -340,7 +343,20 @@ export default function FruitDrama({ onBack }: { onBack: () => void }) {
             canGenerate={!!canGenerate}
             startGeneration={startGeneration}
           />
-        ) : (
+        </div>
+      ) : (
+        <div className="h-screen flex flex-col overflow-hidden">
+          <div className="shrink-0 border-b border-[rgba(255,255,255,0.08)] bg-[#050505]">
+            <div className="px-5 py-3 flex items-center gap-3">
+              <button onClick={() => setStep('setup')} className="text-[13px] text-[rgba(255,255,255,0.42)] hover:text-white">Back</button>
+              <div className="h-4 w-px bg-[rgba(255,255,255,0.12)]" />
+              <div>
+                <div className="text-[14px] font-semibold">Fruit Drama Studio</div>
+                <div className="text-[10px] text-[rgba(255,255,255,0.35)]">{resolution} / {aspect} / {durationSeconds}s source clips</div>
+              </div>
+              <div className="ml-auto text-[11px] text-[rgba(255,255,255,0.36)]">{genErr || genMsg || 'Ready'}</div>
+            </div>
+          </div>
           <>
             <div className="shrink-0 grid grid-cols-1 lg:grid-cols-[268px_minmax(480px,1fr)_268px] gap-4 p-5 pb-3 min-h-0">
               <ScenePanel scene={selectedScene} finalSelected={selectedSceneIndex === 0} totalDuration={totalDuration} regenCost={regenCost} />
@@ -378,8 +394,8 @@ export default function FruitDrama({ onBack }: { onBack: () => void }) {
               }}
             />
           </>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
