@@ -432,9 +432,9 @@ function SetupView(props: {
 
         <div className="flex flex-col sm:flex-row gap-5 flex-wrap">
           <OptionGroup label="Scenes" values={[3, 5, 8, 10] as const} value={props.sceneCount} onPick={props.setSceneCount} suffix="" />
-          <OptionGroup label="Format" values={['9:16', '16:9'] as const} value={props.aspect} onPick={props.setAspect} suffix="" />
+          <OptionGroup label="Format" values={['9:16', '16:9'] as const} value={props.aspect} onPick={props.setAspect} suffix="" icon={aspectIcon} />
           <OptionGroup label="Quality" values={['720p', '1080p'] as const} value={props.resolution} onPick={(r: Resolution) => { props.setResolution(r); if (r === '1080p') props.setDurationSeconds(8); }} suffix="" />
-          <OptionGroup label="Clip length" values={[4, 6, 8] as const} value={props.durationSeconds} onPick={props.setDurationSeconds} suffix="s" disabledValue={props.resolution === '1080p' ? ([4, 6] as const) : []} />
+          <OptionGroup label="Clip length" values={[4, 6, 8] as const} value={props.durationSeconds} onPick={props.setDurationSeconds} suffix="s" disabledValue={props.resolution === '1080p' ? ([4, 6] as const) : []} icon={clockIcon} />
         </div>
 
         <div className="flex items-center justify-end gap-4 border-t border-[rgba(255,255,255,0.06)] pt-5">
@@ -643,9 +643,13 @@ function CharacterPicker({ title, fruit, gender, genders, onFruit, onGender }: {
   return (
     <div className="border border-[rgba(255,255,255,0.08)] rounded-xl p-4 bg-[#0e0e0e]">
       <div className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] mb-3">{title}</div>
-      <select value={fruit} onChange={e => onFruit(e.target.value)} className="w-full bg-[#0a0a0a] border border-[rgba(255,255,255,0.1)] rounded-lg px-3 py-2 text-[13px] outline-none mb-2 focus:border-[rgba(255,255,255,0.2)] transition-colors">
-        {FRUITS.map(f => <option key={f} value={f}>{f}</option>)}
-      </select>
+      <div className="relative mb-2">
+        <select value={fruit} onChange={e => onFruit(e.target.value)}
+          className="appearance-none w-full bg-[#0a0a0a] border border-[rgba(255,255,255,0.1)] rounded-lg pl-3 pr-9 py-2 text-[13px] text-white outline-none focus:border-[rgba(255,255,255,0.2)] transition-colors cursor-pointer capitalize">
+          {FRUITS.map(f => <option key={f} value={f} className="bg-[#111] capitalize">{f}</option>)}
+        </select>
+        <svg className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2" strokeLinecap="round"><path d="m6 9 6 6 6-6" /></svg>
+      </div>
       <div className="flex gap-1.5">
         {genders.map(g => (
           <button key={g} onClick={() => onGender(g)}
@@ -658,8 +662,8 @@ function CharacterPicker({ title, fruit, gender, genders, onFruit, onGender }: {
   );
 }
 
-function OptionGroup({ label, values, value, suffix, disabledValue = [], onPick }: {
-  label: string; values: readonly (string | number)[]; value: string | number; suffix: string; disabledValue?: readonly (string | number)[]; onPick: (value: any) => void;
+function OptionGroup({ label, values, value, suffix, disabledValue = [], onPick, icon }: {
+  label: string; values: readonly (string | number)[]; value: string | number; suffix: string; disabledValue?: readonly (string | number)[]; onPick: (value: any) => void; icon?: (v: string | number) => React.ReactNode;
 }) {
   return (
     <div>
@@ -667,11 +671,20 @@ function OptionGroup({ label, values, value, suffix, disabledValue = [], onPick 
       <div className="flex gap-1.5">
         {values.map(item => (
           <button key={String(item)} onClick={() => onPick(item)} disabled={disabledValue.includes(item)}
-            className={`px-3.5 py-2 rounded-lg border text-[12px] transition-all disabled:opacity-20 disabled:cursor-not-allowed ${value === item ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>
-            {item}{suffix}
+            className={`px-3 py-2 rounded-lg border text-[12px] transition-all flex items-center gap-1.5 disabled:opacity-20 disabled:cursor-not-allowed ${value === item ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>
+            {icon?.(item)}{item}{suffix}
           </button>
         ))}
       </div>
     </div>
   );
 }
+
+const aspectIcon = (a: string | number) => (
+  <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+    {a === '9:16' ? <rect x="6.5" y="2.5" width="7" height="15" rx="1.5" /> : a === '16:9' ? <rect x="2.5" y="6.5" width="15" height="7" rx="1.5" /> : <rect x="4.5" y="4.5" width="11" height="11" rx="1.5" />}
+  </svg>
+);
+const clockIcon = () => (
+  <svg width="11" height="11" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="10" cy="10" r="7.5" /><path d="M10 5.5V10l3 1.8" strokeLinecap="round" /></svg>
+);
