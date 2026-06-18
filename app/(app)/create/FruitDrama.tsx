@@ -397,32 +397,36 @@ function SetupView(props: {
   cost: number; canGenerate: boolean; startGeneration: () => void;
 }) {
   return (
-    <div className="flex-1 overflow-y-auto px-6 py-8">
-      <div className="max-w-[1180px] mx-auto grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-6">
-        <div className="space-y-6">
-          <div>
-            <label className="text-[12px] font-medium text-[rgba(255,255,255,0.72)] block mb-2.5">Story idea</label>
-            <textarea value={props.title} onChange={e => props.setTitle(e.target.value)} rows={4}
-              placeholder="Peach girl confronts banana boss after discovering his secret..."
-              className="w-full bg-[#0d0d0d] border border-[rgba(255,255,255,0.1)] rounded-lg px-4 py-3.5 text-[15px] outline-none resize-none focus:border-[rgba(255,255,255,0.28)] transition-colors placeholder:text-[rgba(255,255,255,0.22)] leading-relaxed" />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div className="flex-1 overflow-y-auto">
+      <div className="max-w-[900px] mx-auto px-6 py-8 flex flex-col gap-7 animate-[fadeIn_0.3s_ease]">
+        <div>
+          <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Story idea</label>
+          <textarea value={props.title} onChange={e => props.setTitle(e.target.value)} rows={3}
+            placeholder="Peach girl confronts banana boss after discovering his secret…"
+            className="w-full bg-[#0e0e0e] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 py-3.5 text-[14px] outline-none resize-none focus:border-[rgba(255,255,255,0.2)] transition-colors placeholder:text-[rgba(255,255,255,0.22)] leading-relaxed" />
+        </div>
+
+        <div>
+          <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Characters</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <CharacterPicker title="Main character" fruit={props.mainFruit} gender={props.mainGender} onFruit={props.setMainFruit} onGender={props.setMainGender} genders={['girl', 'boy'] as const} />
             <CharacterPicker title="Second character" fruit={props.secondFruit} gender={props.secondGender} onFruit={props.setSecondFruit} onGender={props.setSecondGender} genders={['boy', 'girl'] as const} />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-            <OptionGroup label="Scenes" values={[3, 5, 8, 10] as const} value={props.sceneCount} onPick={props.setSceneCount} suffix="" />
-            <OptionGroup label="Aspect" values={['9:16', '16:9'] as const} value={props.aspect} onPick={props.setAspect} suffix="" />
-            <OptionGroup label="Quality" values={['720p', '1080p'] as const} value={props.resolution} onPick={(r: Resolution) => { props.setResolution(r); if (r === '1080p') props.setDurationSeconds(8); }} suffix="" />
-            <OptionGroup label="Clip length" values={[4, 6, 8] as const} value={props.durationSeconds} onPick={props.setDurationSeconds} suffix="s" disabledValue={props.resolution === '1080p' ? ([4, 6] as const) : []} />
-          </div>
         </div>
-        <div className="border border-[rgba(255,255,255,0.1)] rounded-lg bg-[#0b0b0b] p-5 h-fit">
-          <div className="text-[12px] text-[rgba(255,255,255,0.42)]">Estimated cost</div>
-          <div className="text-[32px] font-semibold tracking-[-0.8px] mb-5">{props.cost.toLocaleString()}</div>
+
+        <div className="flex flex-col sm:flex-row gap-5 flex-wrap">
+          <OptionGroup label="Scenes" values={[3, 5, 8, 10] as const} value={props.sceneCount} onPick={props.setSceneCount} suffix="" />
+          <OptionGroup label="Format" values={['9:16', '16:9'] as const} value={props.aspect} onPick={props.setAspect} suffix="" />
+          <OptionGroup label="Quality" values={['720p', '1080p'] as const} value={props.resolution} onPick={(r: Resolution) => { props.setResolution(r); if (r === '1080p') props.setDurationSeconds(8); }} suffix="" />
+          <OptionGroup label="Clip length" values={[4, 6, 8] as const} value={props.durationSeconds} onPick={props.setDurationSeconds} suffix="s" disabledValue={props.resolution === '1080p' ? ([4, 6] as const) : []} />
+        </div>
+
+        <div className="flex items-center justify-end gap-4 border-t border-[rgba(255,255,255,0.06)] pt-5">
+          <span className="text-[11px] text-[rgba(255,255,255,0.4)]"><span className="text-white font-medium">{props.cost.toLocaleString()}</span> credits · deducted now</span>
           <button onClick={props.startGeneration} disabled={!props.canGenerate}
-            className="w-full py-3 bg-white text-black text-[13px] font-medium rounded-full hover:bg-[#e7e7e7] disabled:opacity-20 disabled:cursor-not-allowed transition-all">
+            className="px-6 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all flex items-center gap-1.5">
             Generate Fruit Drama
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 7h12M8 2l5 5-5 5" /></svg>
           </button>
         </div>
       </div>
@@ -621,15 +625,15 @@ function CharacterPicker({ title, fruit, gender, genders, onFruit, onGender }: {
   onFruit: (value: string) => void; onGender: (value: Gender) => void;
 }) {
   return (
-    <div className="border border-[rgba(255,255,255,0.1)] rounded-lg p-4 bg-[#0b0b0b]">
-      <div className="text-[12px] font-medium text-[rgba(255,255,255,0.72)] mb-3">{title}</div>
-      <select value={fruit} onChange={e => onFruit(e.target.value)} className="w-full bg-black border border-[rgba(255,255,255,0.12)] rounded-lg px-3 py-2 text-[13px] outline-none mb-2">
+    <div className="border border-[rgba(255,255,255,0.08)] rounded-xl p-4 bg-[#0e0e0e]">
+      <div className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] mb-3">{title}</div>
+      <select value={fruit} onChange={e => onFruit(e.target.value)} className="w-full bg-[#0a0a0a] border border-[rgba(255,255,255,0.1)] rounded-lg px-3 py-2 text-[13px] outline-none mb-2 focus:border-[rgba(255,255,255,0.2)] transition-colors">
         {FRUITS.map(f => <option key={f} value={f}>{f}</option>)}
       </select>
       <div className="flex gap-1.5">
         {genders.map(g => (
           <button key={g} onClick={() => onGender(g)}
-            className={`flex-1 py-2 rounded-lg border text-[12px] ${gender === g ? 'border-white bg-[rgba(255,255,255,0.08)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.45)]'}`}>
+            className={`flex-1 py-2 rounded-lg border text-[12px] transition-all ${gender === g ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>
             {g}
           </button>
         ))}
@@ -643,11 +647,11 @@ function OptionGroup({ label, values, value, suffix, disabledValue = [], onPick 
 }) {
   return (
     <div>
-      <label className="text-[12px] font-medium text-[rgba(255,255,255,0.72)] block mb-2.5">{label}</label>
+      <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">{label}</label>
       <div className="flex gap-1.5">
         {values.map(item => (
           <button key={String(item)} onClick={() => onPick(item)} disabled={disabledValue.includes(item)}
-            className={`flex-1 py-2 rounded-lg border text-[12px] disabled:opacity-20 disabled:cursor-not-allowed ${value === item ? 'border-white bg-[rgba(255,255,255,0.08)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.45)]'}`}>
+            className={`px-3.5 py-2 rounded-lg border text-[12px] transition-all disabled:opacity-20 disabled:cursor-not-allowed ${value === item ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>
             {item}{suffix}
           </button>
         ))}
