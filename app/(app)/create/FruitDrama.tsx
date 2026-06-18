@@ -641,7 +641,7 @@ function CharacterPicker({ title, fruit, gender, genders, onFruit, onGender }: {
   onFruit: (value: string) => void; onGender: (value: Gender) => void;
 }) {
   return (
-    <div className="border border-[rgba(255,255,255,0.08)] rounded-xl p-4 bg-[#0e0e0e]">
+    <div className="border border-[rgba(255,255,255,0.08)] rounded-xl p-4 bg-gradient-to-br from-[#23232b] to-[#121214]">
       <div className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] mb-3">{title}</div>
       <div className="relative mb-2">
         <select value={fruit} onChange={e => onFruit(e.target.value)}
