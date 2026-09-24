@@ -7,26 +7,26 @@ export async function POST(request: Request) {
     const supabase = createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-      return NextResponse.json({ error: 'Giris yapmaniz gerekiyor.' }, { status: 401 });
+      return NextResponse.json({ error: 'Please sign in to continue.' }, { status: 401 });
     }
 
     const { data: profile, error: profileError } = await supabase
       .from('users').select('credits, is_admin').eq('id', user.id).single();
     if (profileError || !profile) {
-      return NextResponse.json({ error: 'Kullanici profili bulunamadi.' }, { status: 404 });
+      return NextResponse.json({ error: 'User profile not found.' }, { status: 404 });
     }
 
     const body = await request.json();
     const jobId = String(body.job_id || '');
     const sceneIndex = Math.max(1, Number(body.scene_index || 1));
     if (!jobId) {
-      return NextResponse.json({ error: 'job_id gerekli.' }, { status: 400 });
+      return NextResponse.json({ error: 'job_id is required.' }, { status: 400 });
     }
 
     const statusRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/status/${jobId}`);
     const statusData = await statusRes.json().catch(() => ({}));
     if (!statusRes.ok) {
-      return NextResponse.json({ error: statusData.detail || 'Job bulunamadi.' }, { status: statusRes.status });
+      return NextResponse.json({ error: statusData.detail || 'Job not found.' }, { status: statusRes.status });
     }
 
     const resolution = statusData.resolution === '1080p' ? '1080p' : '720p';
@@ -39,14 +39,14 @@ export async function POST(request: Request) {
     if (!profile.is_admin) {
       if (profile.credits < cost) {
         return NextResponse.json({
-          error: `Yetersiz kredi. Bu sahne ${cost} kredi gerektiriyor, ${profile.credits} krediniz var.`,
+          error: `Not enough credits. This scene needs ${cost} credits and you have ${profile.credits}.`,
           required: cost, available: profile.credits,
         }, { status: 402 });
       }
       const { error: deductError } = await supabase
         .from('users').update({ credits: profile.credits - cost }).eq('id', user.id);
       if (deductError) {
-        return NextResponse.json({ error: 'Kredi dusulemedi.' }, { status: 500 });
+        return NextResponse.json({ error: 'Could not deduct credits.' }, { status: 500 });
       }
       await supabase.from('credit_transactions').insert({
         user_id: user.id,
@@ -75,10 +75,10 @@ export async function POST(request: Request) {
         await supabase.from('credit_transactions').insert({
           user_id: user.id,
           amount: cost,
-          description: 'Iade - Fruit Drama sahne yenileme baslatilamadi',
+          description: 'Refund — Fruit Drama scene regeneration failed to start',
         });
       }
-      return NextResponse.json(data?.detail ? { error: data.detail } : data?.error ? data : { error: 'Sahne yenileme baslatilamadi.' }, { status: upstreamStatus || 500 });
+      return NextResponse.json(data?.detail ? { error: data.detail } : data?.error ? data : { error: 'Scene regeneration failed to start.' }, { status: upstreamStatus || 500 });
     }
 
     await supabase.from('animations').update({ status: 'processing' }).eq('job_id', jobId);

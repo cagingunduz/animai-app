@@ -7,13 +7,13 @@ export async function POST(request: Request) {
     const supabase = createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-      return NextResponse.json({ error: 'Giriş yapmanız gerekiyor.' }, { status: 401 });
+      return NextResponse.json({ error: 'Please sign in to continue.' }, { status: 401 });
     }
 
     const { data: profile, error: profileError } = await supabase
       .from('users').select('credits, is_admin').eq('id', user.id).single();
     if (profileError || !profile) {
-      return NextResponse.json({ error: 'Kullanıcı profili bulunamadı.' }, { status: 404 });
+      return NextResponse.json({ error: 'User profile not found.' }, { status: 404 });
     }
 
     const body = await request.json();
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     if (!profile.is_admin) {
       if (profile.credits < cost) {
         return NextResponse.json({
-          error: `Yetersiz kredi. Bu video ${cost} kredi gerektiriyor, ${profile.credits} krediniz var.`,
+          error: `Not enough credits. This video needs ${cost} credits and you have ${profile.credits}.`,
           required: cost,
           available: profile.credits,
         }, { status: 402 });
@@ -35,12 +35,12 @@ export async function POST(request: Request) {
       const { error: deductError } = await supabase
         .from('users').update({ credits: profile.credits - cost }).eq('id', user.id);
       if (deductError) {
-        return NextResponse.json({ error: 'Kredi düşülemedi.' }, { status: 500 });
+        return NextResponse.json({ error: 'Could not deduct credits.' }, { status: 500 });
       }
       await supabase.from('credit_transactions').insert({
         user_id: user.id,
         amount: -cost,
-        description: `2D Animation (${scenesCount} sahne, ${resolution})`,
+        description: `2D Animation (${scenesCount} scenes, ${resolution})`,
       });
     }
 
@@ -69,10 +69,10 @@ export async function POST(request: Request) {
         await supabase.from('credit_transactions').insert({
           user_id: user.id,
           amount: cost,
-          description: 'İade — 2D Animation başlatılamadı',
+          description: 'Refund — 2D Animation failed to start',
         });
       }
-      return NextResponse.json(data?.detail ? { error: data.detail } : data?.error ? data : { error: '2D animation başlatılamadı.' }, { status: upstreamStatus || 500 });
+      return NextResponse.json(data?.detail ? { error: data.detail } : data?.error ? data : { error: '2D animation failed to start.' }, { status: upstreamStatus || 500 });
     }
 
     await supabase.from('animations').insert({

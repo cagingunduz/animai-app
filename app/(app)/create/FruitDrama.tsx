@@ -1,6 +1,7 @@
 'use client';
 
-import { type MouseEvent as ReactMouseEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { EditorHeader, EditorPage, Intro, Section, Label, Segmented, StyleCard, TextArea, ActionBar, Credits, AspectGlyph, Ico, Stage, StageEmpty, StudioPanel, ChatPanel, StudioTimeline, StatusDot, Spinner } from '@/components/editor/kit';
 import { createClient } from '@/lib/supabase/client';
 import { fruitDramaCost, fruitDramaSceneCost } from '@/lib/types';
 
@@ -56,19 +57,6 @@ function seedScenes(count: number, duration: number): SceneStatus[] {
     image_url: null,
     video_url: null,
   }));
-}
-
-function sceneLabel(status: string): string {
-  const labels: Record<string, string> = {
-    queued: 'Queued',
-    processing: 'Working',
-    rendering_image: 'Image',
-    animating: 'Animate',
-    regenerating: 'Redo',
-    completed: 'Done',
-    failed: 'Failed',
-  };
-  return labels[status] || status;
 }
 
 function isBusy(status: string): boolean {
@@ -311,99 +299,83 @@ export default function FruitDrama({ onBack }: { onBack: () => void }) {
     }
   };
 
+  const stepIndex = step === 'setup' ? 0 : step === 'character' ? 1 : 2;
+
   return (
-    <div className="min-h-screen bg-black text-white">
-      {(step === 'setup' || step === 'character') && (
-        <div className="flex flex-col h-screen bg-black text-white">
-          <div className="flex-shrink-0 border-b border-[rgba(255,255,255,0.1)] sticky top-0 z-30 bg-black">
-            <div className="max-w-[900px] mx-auto px-6 py-4 flex items-center">
-              <button onClick={step === 'setup' ? onBack : () => setStep('setup')} className="text-[13px] text-[rgba(255,255,255,0.3)] hover:text-white transition-colors mr-3">←</button>
-              <span className="text-[15px] font-semibold tracking-[-0.3px]">Fruit Drama</span>
-              <div className="flex-1 flex justify-center items-center">
-                {[0, 1].map(i => {
-                  const cur = step === 'setup' ? 0 : 1;
-                  return (
-                    <div key={i} className="flex items-center">
-                      <span className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-semibold ${i <= cur ? 'bg-white text-black' : 'bg-[rgba(255,255,255,0.06)] text-[rgba(255,255,255,0.35)] border border-[rgba(255,255,255,0.1)]'}`}>{i + 1}</span>
-                      {i < 1 && <span className={`h-[2px] w-16 mx-1 rounded-full ${cur >= 1 ? 'bg-white' : 'bg-[rgba(255,255,255,0.1)]'}`} />}
-                    </div>
-                  );
-                })}
-              </div>
-              <span className="w-6" />
-            </div>
-          </div>
-          {step === 'setup' ? (
-            <SetupView
-              title={title} setTitle={setTitle}
-              style={style} setStyle={setStyle}
-              sceneCount={sceneCount} setSceneCount={setSceneCount}
-              aspect={aspect} setAspect={setAspect}
-              resolution={resolution} setResolution={setResolution}
-              durationSeconds={durationSeconds} setDurationSeconds={setDurationSeconds}
-              onNext={() => setStep('character')}
-            />
-          ) : (
-            <CharacterView
-              mainFruit={mainFruit} setMainFruit={setMainFruit}
-              mainGender={mainGender} setMainGender={setMainGender}
-              secondFruit={secondFruit} setSecondFruit={setSecondFruit}
-              secondGender={secondGender} setSecondGender={setSecondGender}
-              cost={cost} canGenerate={!!canGenerate} startGeneration={startGeneration}
-            />
-          )}
-        </div>
+    <div className="flex flex-col min-h-screen text-white">
+      <EditorHeader
+        format="Fruit Drama"
+        onBack={step === 'setup' ? onBack : () => setStep(step === 'editor' ? 'character' : 'setup')}
+        steps={['Setup', 'Characters', 'Studio']}
+        current={stepIndex}
+        onStep={step === 'editor' ? undefined : i => setStep(i === 0 ? 'setup' : 'character')}
+        meta={step === 'editor' ? <span className="ui-chip ui-chip-muted">{resolution} · {aspect} · {durationSeconds}s clips</span> : undefined}
+        right={step === 'editor'
+          ? <span className="hidden md:flex items-center gap-2 text-[11.5px] text-[var(--fg-3)] max-w-[320px] truncate">
+              {genStatus === 'processing' ? <Spinner size={12} /> : <StatusDot status={genStatus === 'failed' ? 'failed' : 'completed'} />}
+              <span className="truncate">{genErr || genMsg || 'Ready'}</span>
+            </span>
+          : <Credits n={cost} suffix="" />}
+      />
+
+      {step === 'setup' && (
+        <SetupView
+          title={title} setTitle={setTitle}
+          style={style} setStyle={setStyle}
+          sceneCount={sceneCount} setSceneCount={setSceneCount}
+          aspect={aspect} setAspect={setAspect}
+          resolution={resolution} setResolution={setResolution}
+          durationSeconds={durationSeconds} setDurationSeconds={setDurationSeconds}
+          onNext={() => setStep('character')}
+        />
       )}
+      {step === 'character' && (
+        <CharacterView
+          mainFruit={mainFruit} setMainFruit={setMainFruit}
+          mainGender={mainGender} setMainGender={setMainGender}
+          secondFruit={secondFruit} setSecondFruit={setSecondFruit}
+          secondGender={secondGender} setSecondGender={setSecondGender}
+          cost={cost} canGenerate={!!canGenerate} startGeneration={startGeneration}
+          onBack={() => setStep('setup')}
+        />
+      )}
+
       {step === 'editor' && (
-        <div className="h-screen flex flex-col overflow-hidden">
-          <div className="shrink-0 border-b border-[rgba(255,255,255,0.08)] bg-[#050505]">
-            <div className="px-5 py-3 flex items-center gap-3">
-              <button onClick={() => setStep('setup')} className="text-[13px] text-[rgba(255,255,255,0.42)] hover:text-white">Back</button>
-              <div className="h-4 w-px bg-[rgba(255,255,255,0.12)]" />
-              <div>
-                <div className="text-[14px] font-semibold">Fruit Drama Studio</div>
-                <div className="text-[10px] text-[rgba(255,255,255,0.35)]">{resolution} / {aspect} / {durationSeconds}s source clips</div>
-              </div>
-              <div className="ml-auto text-[11px] text-[rgba(255,255,255,0.36)]">{genErr || genMsg || 'Ready'}</div>
-            </div>
-          </div>
-          <>
-            <div className="shrink-0 grid grid-cols-1 lg:grid-cols-[268px_minmax(480px,1fr)_268px] gap-4 p-5 pb-3 min-h-0">
-              <ScenePanel scene={selectedScene} finalSelected={selectedSceneIndex === 0} totalDuration={totalDuration} regenCost={regenCost} />
-              <PreviewPanel
-                aspect={aspect}
-                finalVideo={finalVideo}
-                showFinal={showFinal}
-                selectedScene={selectedScene}
-                genStatus={genStatus}
-                progress={progress}
-                onFinal={() => setSelectedSceneIndex(0)}
-                onRegenerate={() => selectedScene && regenerateScene(selectedScene.scene_index)}
-              />
-              <AiPanel
-                messages={chatMessages}
-                value={chatInput}
-                onChange={setChatInput}
-                onSubmit={submitAiEdit}
-                disabled={!jobId || genStatus === 'processing'}
-              />
-            </div>
-            <Timeline
-              scenes={scenes}
-              selectedSceneIndex={selectedSceneIndex}
-              clipDurations={clipDurations}
-              totalDuration={totalDuration}
-              onSelect={setSelectedSceneIndex}
-              onResizeStart={(sceneIndex, event) => {
-                event.preventDefault();
-                resizeRef.current = {
-                  sceneIndex,
-                  startX: event.clientX,
-                  startDuration: clipDurations[sceneIndex] || durationSeconds,
-                };
-              }}
+        <div className="flex flex-col gap-3 p-3 md:p-4 min-h-[calc(100vh-60px)] lg:h-[calc(100vh-60px)]">
+          <div className="grid grid-cols-1 lg:grid-cols-[272px_minmax(0,1fr)_300px] gap-3 flex-1 min-h-[420px]">
+            <ScenePanel scene={selectedScene} finalSelected={selectedSceneIndex === 0} totalDuration={totalDuration} regenCost={regenCost} />
+            <PreviewPanel
+              aspect={aspect}
+              finalVideo={finalVideo}
+              showFinal={showFinal}
+              selectedScene={selectedScene}
+              genStatus={genStatus}
+              progress={progress}
+              onFinal={() => setSelectedSceneIndex(0)}
+              onRegenerate={() => selectedScene && regenerateScene(selectedScene.scene_index)}
             />
-          </>
+            <ChatPanel
+              messages={chatMessages}
+              value={chatInput}
+              onChange={setChatInput}
+              onSubmit={submitAiEdit}
+              disabled={!jobId || genStatus === 'processing'}
+              placeholder="Change scene 2, make it sadder…"
+            />
+          </div>
+          <StudioTimeline
+            clips={scenes.map(scene => ({ n: scene.scene_index, duration: clipDurations[scene.scene_index] || scene.duration_seconds || 8, status: scene.status, image: scene.image_url }))}
+            selected={selectedSceneIndex}
+            onSelect={setSelectedSceneIndex}
+            onResizeStart={(sceneIndex, event) => {
+              event.preventDefault();
+              resizeRef.current = { sceneIndex, startX: event.clientX, startDuration: clipDurations[sceneIndex] || durationSeconds };
+            }}
+            pxPerSecond={PX_PER_SECOND}
+            totalDuration={totalDuration}
+            formatTime={formatTime}
+            right={finalVideo ? <button onClick={() => setSelectedSceneIndex(0)} className={`ui-btn ui-btn-sm ${selectedSceneIndex === 0 ? 'ui-btn-secondary' : 'ui-btn-ghost'}`}>Final cut</button> : undefined}
+          />
         </div>
       )}
     </div>
@@ -420,45 +392,54 @@ function SetupView(props: {
   onNext: () => void;
 }) {
   return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="max-w-[900px] mx-auto px-6 py-8 flex flex-col gap-7 animate-[fadeIn_0.3s_ease]">
-        <div>
-          <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Story Title / Prompt</label>
-          <textarea value={props.title} onChange={e => props.setTitle(e.target.value)} rows={3}
-            placeholder="A detective uncovers a midnight conspiracy…"
-            className="w-full bg-[#0e0e0e] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 py-3.5 text-[14px] outline-none resize-none focus:border-[rgba(255,255,255,0.2)] transition-colors placeholder:text-[rgba(255,255,255,0.22)] leading-relaxed" />
-        </div>
+    <>
+      <EditorPage>
+        <Intro eyebrow="Step 1 · Setup" title="Set up your drama" desc="A premise, a look and the shape of the cut. Characters come next." />
 
-        <div>
-          <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Visual Style</label>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {STYLES.map(s => (
-              <button key={s.value} onClick={() => props.setStyle(s.value)}
-                className={`relative aspect-[5/3] rounded-xl overflow-hidden border transition-all ${props.style === s.value ? 'border-white' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.22)]'}`}>
-                <div className="absolute inset-0 bg-gradient-to-br from-[#2a2a31] to-[#121214]" />
-                <div className="absolute inset-0 flex items-end p-3"><span className="text-[13px] font-semibold tracking-[-0.2px]">{s.label}</span></div>
-                {props.style === s.value && <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-white flex items-center justify-center"><svg width="9" height="9" viewBox="0 0 14 14" fill="none" stroke="black" strokeWidth="2.5"><path d="M2 7l3.5 3.5L12 4" /></svg></span>}
-              </button>
+        <Section n={1} title="Premise">
+          <TextArea big value={props.title} onChange={e => props.setTitle(e.target.value)} rows={3}
+            placeholder="A detective uncovers a midnight conspiracy…" />
+        </Section>
+
+        <Section n={2} title="Visual style">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+            {STYLES.map((s, i) => (
+              <StyleCard key={s.value} label={s.label} index={i} active={props.style === s.value} onClick={() => props.setStyle(s.value)} />
             ))}
           </div>
-        </div>
+        </Section>
 
-        <div className="flex flex-col sm:flex-row gap-5 flex-wrap">
-          <OptionGroup label="Format" values={['16:9', '9:16'] as const} value={props.aspect} onPick={props.setAspect} suffix="" icon={aspectIcon} />
-          <OptionGroup label="Quality" values={['720p', '1080p'] as const} value={props.resolution} onPick={(r: Resolution) => { props.setResolution(r); if (r === '1080p') props.setDurationSeconds(8); }} suffix="" />
-          <OptionGroup label="Scene duration" values={[4, 6, 8] as const} value={props.durationSeconds} onPick={props.setDurationSeconds} suffix="s" disabledValue={props.resolution === '1080p' ? ([4, 6] as const) : []} icon={clockIcon} />
-          <OptionGroup label="Scene count" values={[3, 5, 8, 10] as const} value={props.sceneCount} onPick={props.setSceneCount} suffix="" />
-        </div>
+        <Section n={3} title="Output">
+          <div className="grid sm:grid-cols-2 gap-5">
+            <div>
+              <Label>Format</Label>
+              <Segmented full value={props.aspect} onChange={props.setAspect}
+                options={(['16:9', '9:16'] as const).map(a => ({ value: a, label: a, icon: <AspectGlyph a={a} /> }))} />
+            </div>
+            <div>
+              <Label>Quality</Label>
+              <Segmented full value={props.resolution}
+                onChange={(r: Resolution) => { props.setResolution(r); if (r === '1080p') props.setDurationSeconds(8); }}
+                options={(['720p', '1080p'] as const).map(r => ({ value: r, label: r }))} />
+            </div>
+            <div>
+              <Label right={props.resolution === '1080p' ? <span className="text-[11px] text-[var(--fg-4)]">1080p renders 8s clips</span> : undefined}>Scene duration</Label>
+              <Segmented full value={props.durationSeconds} onChange={props.setDurationSeconds}
+                options={([4, 6, 8] as const).map(d => ({ value: d, label: `${d}s`, icon: Ico.clock, disabled: props.resolution === '1080p' && d !== 8 }))} />
+            </div>
+            <div>
+              <Label>Scene count</Label>
+              <Segmented full value={props.sceneCount} onChange={props.setSceneCount}
+                options={[3, 5, 8, 10].map(n => ({ value: n, label: String(n) }))} />
+            </div>
+          </div>
+        </Section>
+      </EditorPage>
 
-        <div className="flex items-center justify-end gap-4 border-t border-[rgba(255,255,255,0.06)] pt-5">
-          <button onClick={props.onNext} disabled={!props.title.trim()}
-            className="px-6 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all flex items-center gap-1.5">
-            Next: Characters
-            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 7h12M8 2l5 5-5 5" /></svg>
-          </button>
-        </div>
-      </div>
-    </div>
+      <ActionBar left={<span className="truncate"><span className="text-white font-medium">{props.sceneCount} scenes</span> · {props.durationSeconds}s · {props.aspect} · {props.resolution}</span>}>
+        <button onClick={props.onNext} disabled={!props.title.trim()} className="ui-btn ui-btn-primary">Next: Characters{Ico.arrow}</button>
+      </ActionBar>
+    </>
   );
 }
 
@@ -467,61 +448,54 @@ function CharacterView(props: {
   mainGender: Gender; setMainGender: (v: Gender) => void;
   secondFruit: string; setSecondFruit: (v: string) => void;
   secondGender: Gender; setSecondGender: (v: Gender) => void;
-  cost: number; canGenerate: boolean; startGeneration: () => void;
+  cost: number; canGenerate: boolean; startGeneration: () => void; onBack: () => void;
 }) {
   return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="max-w-[900px] mx-auto px-6 py-8 flex flex-col gap-7 animate-[fadeIn_0.3s_ease]">
-        <div>
-          <h2 className="text-[15px] font-medium mb-1">Choose your characters</h2>
-          <p className="text-[12px] text-[rgba(255,255,255,0.4)]">Pick the two fruit characters for your drama.</p>
-        </div>
+    <>
+      <EditorPage>
+        <Intro eyebrow="Step 2 · Characters" title="Cast your fruit" desc="Pick the two characters at the heart of the drama." />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <CharacterPicker title="Main character" fruit={props.mainFruit} gender={props.mainGender} onFruit={props.setMainFruit} onGender={props.setMainGender} genders={['girl', 'boy'] as const} />
-          <CharacterPicker title="Second character" fruit={props.secondFruit} gender={props.secondGender} onFruit={props.setSecondFruit} onGender={props.setSecondGender} genders={['boy', 'girl'] as const} />
+          <CharacterPicker n={1} title="Main character" fruit={props.mainFruit} gender={props.mainGender} onFruit={props.setMainFruit} onGender={props.setMainGender} genders={['girl', 'boy'] as const} />
+          <CharacterPicker n={2} title="Second character" fruit={props.secondFruit} gender={props.secondGender} onFruit={props.setSecondFruit} onGender={props.setSecondGender} genders={['boy', 'girl'] as const} />
         </div>
-        <div className="flex items-center justify-end gap-4 border-t border-[rgba(255,255,255,0.06)] pt-5">
-          <span className="text-[11px] text-[rgba(255,255,255,0.4)]"><span className="text-white font-medium">{props.cost.toLocaleString()}</span> credits · deducted now</span>
-          <button onClick={props.startGeneration} disabled={!props.canGenerate}
-            className="px-6 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all flex items-center gap-1.5">
-            Generate Fruit Drama
-            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 7h12M8 2l5 5-5 5" /></svg>
-          </button>
-        </div>
-      </div>
-    </div>
+      </EditorPage>
+      <ActionBar left={<><Credits n={props.cost} /><span className="hidden sm:inline">· deducted when you generate</span></>}>
+        <button onClick={props.onBack} className="ui-btn ui-btn-ghost">Back</button>
+        <button onClick={props.startGeneration} disabled={!props.canGenerate} className="ui-btn ui-btn-primary">Generate Fruit Drama{Ico.arrow}</button>
+      </ActionBar>
+    </>
   );
 }
 
 function ScenePanel({ scene, finalSelected, totalDuration, regenCost }: { scene: SceneStatus | null; finalSelected: boolean; totalDuration: number; regenCost: number }) {
   return (
-    <aside className="h-[456px] rounded-lg bg-[#080808] border border-[rgba(255,255,255,0.06)] p-5 overflow-hidden">
-      <div className="text-[16px] font-semibold mb-1">{finalSelected ? 'Final Cut' : 'Scene Brief'}</div>
-      <p className="text-[11px] leading-relaxed text-[rgba(255,255,255,0.44)] mb-5">
-        {finalSelected ? `${formatTime(totalDuration)} total timeline` : 'Topic, emotion and dialogue for the selected scene.'}
-      </p>
-      {!finalSelected && scene && (
-        <div className="space-y-4">
-          <div className="rounded-lg border border-[rgba(255,255,255,0.08)] bg-black p-3">
-            <div className="text-[10px] text-[rgba(255,255,255,0.34)] mb-1">Topic</div>
-            <div className="text-[13px] font-medium leading-snug">{scene.title || `Scene ${scene.scene_index}`}</div>
-            {scene.emotion && <div className="text-[11px] text-[rgba(255,255,255,0.42)] mt-2">{scene.emotion}</div>}
-          </div>
-          <div className="space-y-3">
+    <StudioPanel title={finalSelected ? 'Final cut' : 'Scene brief'} sub={finalSelected ? formatTime(totalDuration) : scene ? `S${String(scene.scene_index).padStart(2, '0')}` : undefined} bodyClass="overflow-y-auto">
+      <div className="p-4 flex flex-col gap-4 h-full">
+        {finalSelected ? (
+          <p className="text-[12px] text-[var(--fg-3)] leading-relaxed">{formatTime(totalDuration)} total timeline. Pick a clip below to inspect or regenerate it.</p>
+        ) : scene ? (
+          <>
+            <div className="rounded-[12px] border border-[var(--line)] bg-white/[0.02] p-3.5">
+              <div className="ui-eyebrow !text-[9.5px] mb-1.5">Topic</div>
+              <div className="text-[13px] font-medium leading-snug">{scene.title || `Scene ${scene.scene_index}`}</div>
+              {scene.emotion && <span className="inline-flex mt-2.5 ui-chip ui-chip-muted capitalize">{scene.emotion}</span>}
+            </div>
             {(scene.dialogue || []).slice(0, 3).map((line, i) => (
-              <div key={`${line.speaker}-${i}`} className="flex gap-3 pb-3 border-b border-[rgba(255,255,255,0.06)]">
-                <div className="w-10 h-10 rounded-lg bg-[#151515] border border-[rgba(255,255,255,0.14)] flex items-center justify-center text-[11px] text-white">{i + 1}</div>
-                <div>
-                  <div className="text-[12px] font-medium">{line.speaker}</div>
-                  <div className="text-[12px] text-[rgba(255,255,255,0.54)] leading-relaxed">{line.line}</div>
+              <div key={`${line.speaker}-${i}`} className="flex gap-3">
+                <span className="w-7 h-7 rounded-full bg-white/[0.06] border border-[var(--line-2)] flex items-center justify-center ui-mono text-[10px] flex-shrink-0">{i + 1}</span>
+                <div className="min-w-0">
+                  <div className="text-[12px] font-medium capitalize">{line.speaker}</div>
+                  <div className="text-[12px] text-[var(--fg-3)] leading-relaxed">{line.line}</div>
                 </div>
               </div>
             ))}
-          </div>
-          <div className="pt-2 text-[11px] text-[rgba(255,255,255,0.38)]">{regenCost.toLocaleString()} credits to regenerate selected scene</div>
-        </div>
-      )}
-    </aside>
+            <div className="mt-auto pt-3 border-t border-[var(--line)]"><Credits n={regenCost} suffix=" credits to regenerate" /></div>
+          </>
+        ) : (
+          <p className="text-[12px] text-[var(--fg-4)]">Scenes appear here as production starts.</p>
+        )}
+      </div>
+    </StudioPanel>
   );
 }
 
@@ -535,11 +509,11 @@ function PreviewPanel(props: {
   onFinal: () => void;
   onRegenerate: () => void;
 }) {
-  const stageAspect = props.aspect === '16:9' ? 'aspect-video' : 'aspect-[9/16] max-h-[456px]';
+  const title = props.showFinal ? 'Final cut' : props.selectedScene ? (props.selectedScene.title || `Scene ${props.selectedScene.scene_index}`) : 'Preview';
   return (
-    <main className="h-[456px] rounded-lg bg-[#080808] border border-[rgba(255,255,255,0.06)] overflow-hidden flex flex-col">
-      <div className="flex-1 min-h-0 p-2 flex items-center justify-center">
-        <div className={`relative w-full ${stageAspect} rounded-md overflow-hidden bg-[#111] flex items-center justify-center`}>
+    <StudioPanel title={title} sub={props.aspect} bodyClass="flex flex-col">
+      <div className="flex-1 min-h-0 p-3 flex items-center justify-center">
+        <Stage aspect={props.aspect} processing={props.genStatus === 'processing'} progress={props.progress || 5}>
           {props.showFinal ? (
             <video key={props.finalVideo} src={props.finalVideo || undefined} controls className="w-full h-full object-contain bg-black" />
           ) : props.selectedScene?.video_url ? (
@@ -547,187 +521,53 @@ function PreviewPanel(props: {
           ) : props.selectedScene?.image_url ? (
             <img src={props.selectedScene.image_url} alt="" className="w-full h-full object-cover" />
           ) : (
-            <div className="text-center">
-              <div className="w-10 h-10 mx-auto rounded-full border-2 border-[rgba(255,255,255,0.12)] border-t-white animate-spin mb-4" />
-              <div className="text-[12px] text-[rgba(255,255,255,0.42)]">Preparing preview</div>
-            </div>
+            <StageEmpty label="Preparing preview" busy={props.genStatus !== 'failed'} />
           )}
-          {props.genStatus === 'processing' && (
-            <div className="absolute left-3 bottom-3 h-1.5 w-[72%] rounded-full bg-black/70 overflow-hidden">
-              <div className="h-full bg-white" style={{ width: `${props.progress || 5}%` }} />
-            </div>
-          )}
-        </div>
+        </Stage>
       </div>
-      <div className="h-[58px] px-4 flex items-center gap-3 border-t border-[rgba(255,255,255,0.06)]">
-        <button className="w-7 h-7 rounded-full bg-[rgba(255,255,255,0.08)] text-[11px]">◀</button>
-        <button className="w-7 h-7 rounded-full bg-[rgba(255,255,255,0.12)] text-[11px]">▶</button>
-        <button className="w-7 h-7 rounded-full bg-[rgba(255,255,255,0.08)] text-[11px]">■</button>
+      <div className="h-12 px-3 flex items-center gap-2 border-t border-[var(--line)] flex-shrink-0">
+        {props.selectedScene && !props.showFinal && (
+          <span className="flex items-center gap-2 text-[11px] text-[var(--fg-4)]"><StatusDot status={props.selectedScene.status} />{props.selectedScene.status}</span>
+        )}
         <div className="ml-auto flex gap-2">
-          {props.finalVideo && <button onClick={props.onFinal} className="px-3 py-2 rounded-md bg-[rgba(255,255,255,0.08)] text-[11px]">Final</button>}
-          {props.selectedScene?.video_url && <button onClick={props.onRegenerate} disabled={props.genStatus === 'processing'} className="px-3 py-2 rounded-md bg-white text-black text-[11px] disabled:opacity-30">Regenerate</button>}
+          {props.finalVideo && !props.showFinal && <button onClick={props.onFinal} className="ui-btn ui-btn-sm ui-btn-ghost">Final cut</button>}
+          {props.selectedScene?.video_url && !props.showFinal && (
+            <button onClick={props.onRegenerate} disabled={props.genStatus === 'processing'} className="ui-btn ui-btn-sm ui-btn-primary">{Ico.sparkle}Regenerate</button>
+          )}
         </div>
       </div>
-    </main>
+    </StudioPanel>
   );
 }
 
-function AiPanel(props: {
-  messages: ChatMessage[];
-  value: string;
-  onChange: (v: string) => void;
-  onSubmit: () => void;
-  disabled: boolean;
-}) {
-  return (
-    <aside className="h-[456px] rounded-lg bg-[#080808] border border-[rgba(255,255,255,0.06)] p-5 flex flex-col">
-      <div className="flex items-center justify-between mb-4">
-        <div className="text-[16px] font-semibold">AI Editor</div>
-        <div className="w-8 h-8 rounded-full border border-[rgba(255,255,255,0.18)] flex items-center justify-center text-[13px]">⌕</div>
-      </div>
-      <div className="flex-1 overflow-y-auto space-y-3 pr-1">
-        {props.messages.map((message, i) => (
-          <div key={i} className={`${message.role === 'user' ? 'ml-5 bg-[#1a1a1a] border-[rgba(255,255,255,0.2)]' : 'mr-5 bg-black border-[rgba(255,255,255,0.08)]'} border rounded-lg px-3 py-2`}>
-            <div className="text-[10px] text-[rgba(255,255,255,0.35)] mb-1">{message.role === 'user' ? 'You' : 'Mave'}</div>
-            <div className="text-[12px] leading-relaxed text-[rgba(255,255,255,0.78)]">{message.text}</div>
-          </div>
-        ))}
-      </div>
-      <div className="pt-3 border-t border-[rgba(255,255,255,0.06)]">
-        <div className="flex gap-2">
-          <input value={props.value} onChange={e => props.onChange(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') props.onSubmit(); }}
-            placeholder="Change scene 2, make it sadder..."
-            className="flex-1 bg-black border border-[rgba(255,255,255,0.12)] rounded-full px-3 py-2 text-[12px] outline-none focus:border-white" />
-          <button onClick={props.onSubmit} disabled={props.disabled || !props.value.trim()} className="px-4 rounded-full bg-white text-black text-[12px] font-medium disabled:opacity-25">Send</button>
-        </div>
-      </div>
-    </aside>
-  );
-}
-
-function Timeline(props: {
-  scenes: SceneStatus[];
-  selectedSceneIndex: number;
-  clipDurations: Record<number, number>;
-  totalDuration: number;
-  onSelect: (sceneIndex: number) => void;
-  onResizeStart: (sceneIndex: number, event: ReactMouseEvent<HTMLDivElement>) => void;
-}) {
-  const ticks = Array.from({ length: Math.max(8, Math.ceil(props.totalDuration / 5) + 2) }, (_, i) => i * 5);
-  const timelineWidth = Math.max(980, props.totalDuration * PX_PER_SECOND + 80);
-  return (
-    <section className="flex-1 min-h-0 mx-5 mb-5 rounded-lg bg-[#070707] border border-[rgba(255,255,255,0.06)] overflow-hidden">
-      <div className="h-full grid grid-cols-[108px_minmax(0,1fr)]">
-        <div className="border-r border-[rgba(255,255,255,0.08)] bg-[#090909]">
-          <div className="h-44 border-b border-[rgba(255,255,255,0.08)] flex items-center justify-center gap-4 text-[rgba(255,255,255,0.55)]">
-            <span className="text-[18px]">▣</span><span className="text-[18px]">⚙</span>
-          </div>
-          <TrackLabel label="Video" icon="▰" active />
-          <TrackLabel label="Audio" icon="♪" />
-        </div>
-        <div className="overflow-x-auto overflow-y-hidden">
-          <div className="relative h-full" style={{ width: timelineWidth }}>
-            <div className="h-11 border-b border-[rgba(255,255,255,0.08)] relative">
-              {ticks.map(tick => (
-                <div key={tick} className="absolute top-0 h-full" style={{ left: tick * PX_PER_SECOND }}>
-                  <div className="text-[10px] text-[rgba(255,255,255,0.48)] mt-2">{formatTime(tick)}</div>
-                  <div className="absolute bottom-0 left-0 h-3 w-px bg-[rgba(255,255,255,0.3)]" />
-                </div>
-              ))}
-            </div>
-            <div className="h-[58px] border-b border-[rgba(255,255,255,0.08)] relative">
-              <div className="absolute left-0 top-3 flex">
-                {props.scenes.map(scene => {
-                  const duration = props.clipDurations[scene.scene_index] || scene.duration_seconds || 8;
-                  const width = duration * PX_PER_SECOND;
-                  return (
-                    <div key={scene.scene_index} onClick={() => props.onSelect(scene.scene_index)}
-                      className={`relative h-8 rounded-md border flex items-center gap-2 px-2 mr-1 cursor-pointer ${props.selectedSceneIndex === scene.scene_index ? 'bg-white text-black border-white' : 'bg-[#252525] border-[rgba(255,255,255,0.18)] text-white'}`}
-                      style={{ width }}>
-                      {scene.image_url && <img src={scene.image_url} alt="" className="w-6 h-6 rounded object-cover" />}
-                      <span className="text-[10px] truncate">S{scene.scene_index} · {duration}s</span>
-                      <span className={`ml-auto text-[9px] ${props.selectedSceneIndex === scene.scene_index ? 'text-black/60' : 'text-white/65'}`}>{sceneLabel(scene.status)}</span>
-                      <div onMouseDown={event => props.onResizeStart(scene.scene_index, event)}
-                        className="absolute right-0 top-0 h-full w-3 cursor-ew-resize rounded-r-md bg-white/10 hover:bg-white/30" />
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="absolute left-10 top-0 bottom-0 w-px bg-white">
-                <div className="absolute -top-1 -left-1.5 w-3 h-3 rounded-full bg-white" />
-                <div className="absolute -bottom-1 -left-1.5 w-3 h-3 rounded-full bg-white" />
-              </div>
-            </div>
-            <div className="h-[58px] border-b border-[rgba(255,255,255,0.08)] relative">
-              <div className="absolute left-0 right-10 top-4 h-7 rounded bg-[#161616] overflow-hidden">
-                <div className="h-full opacity-90" style={{ backgroundImage: 'repeating-linear-gradient(90deg, #ffffff 0 3px, #ffffff 3px 5px, #8a8a8a 5px 8px, transparent 8px 12px)' }} />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function TrackLabel({ label, icon, active }: { label: string; icon: string; active?: boolean }) {
-  return (
-    <div className={`h-[58px] border-b border-[rgba(255,255,255,0.08)] flex items-center gap-3 px-7 text-[12px] ${active ? 'border-l-4 border-l-white' : ''}`}>
-      <span className="text-[rgba(255,255,255,0.72)]">{icon}</span>
-      <span className="text-[rgba(255,255,255,0.45)]">{label}</span>
-    </div>
-  );
-}
-
-function CharacterPicker({ title, fruit, gender, genders, onFruit, onGender }: {
-  title: string; fruit: string; gender: Gender; genders: readonly Gender[];
+function CharacterPicker({ n, title, fruit, gender, genders, onFruit, onGender }: {
+  n: number; title: string; fruit: string; gender: Gender; genders: readonly Gender[];
   onFruit: (value: string) => void; onGender: (value: Gender) => void;
 }) {
   return (
-    <div className="border border-[rgba(255,255,255,0.08)] rounded-xl p-4 bg-gradient-to-br from-[#23232b] to-[#121214]">
-      <div className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] mb-3">{title}</div>
-      <div className="relative mb-2">
-        <select value={fruit} onChange={e => onFruit(e.target.value)}
-          className="appearance-none w-full bg-[#0a0a0a] border border-[rgba(255,255,255,0.1)] rounded-lg pl-3 pr-9 py-2 text-[13px] text-white outline-none focus:border-[rgba(255,255,255,0.2)] transition-colors cursor-pointer capitalize">
-          {FRUITS.map(f => <option key={f} value={f} className="bg-[#111] capitalize">{f}</option>)}
-        </select>
-        <svg className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2" strokeLinecap="round"><path d="m6 9 6 6 6-6" /></svg>
+    <div className="ui-card p-5">
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-[13px] font-medium">{title}</span>
+        <span className="ui-mono text-[10.5px] text-[var(--fg-4)]">{String(n).padStart(2, '0')}</span>
       </div>
-      <div className="flex gap-1.5">
-        {genders.map(g => (
-          <button key={g} onClick={() => onGender(g)}
-            className={`flex-1 py-2 rounded-lg border text-[12px] transition-all ${gender === g ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>
-            {g}
+      <div className="relative mb-4">
+        <div className="flex items-center justify-center h-[120px] rounded-[12px] bg-[#070707] border border-[var(--line)] overflow-hidden relative">
+          <div className="absolute inset-0 ui-dots-bg opacity-40" />
+          <span className="relative text-[44px] font-semibold tracking-[-0.06em] capitalize text-white/90">{fruit.slice(0, 1)}</span>
+          <span className="absolute bottom-2.5 left-3 text-[11.5px] text-[var(--fg-3)] capitalize">{fruit} · {gender}</span>
+        </div>
+      </div>
+      <Label>Fruit</Label>
+      <div className="flex flex-wrap gap-1.5 mb-4">
+        {FRUITS.map(f => (
+          <button key={f} type="button" onClick={() => onFruit(f)}
+            className={`h-7 px-2.5 rounded-full border text-[11.5px] capitalize transition-all ${fruit === f ? 'border-white bg-white text-black font-medium' : 'border-[var(--line-2)] text-[var(--fg-3)] hover:text-white hover:border-[var(--line-3)]'}`}>
+            {f}
           </button>
         ))}
       </div>
+      <Label>Character</Label>
+      <Segmented full value={gender} onChange={onGender} options={genders.map(g => ({ value: g, label: <span className="capitalize">{g}</span> }))} />
     </div>
   );
 }
-
-function OptionGroup({ label, values, value, suffix, disabledValue = [], onPick, icon }: {
-  label: string; values: readonly (string | number)[]; value: string | number; suffix: string; disabledValue?: readonly (string | number)[]; onPick: (value: any) => void; icon?: (v: string | number) => React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">{label}</label>
-      <div className="flex gap-1.5">
-        {values.map(item => (
-          <button key={String(item)} onClick={() => onPick(item)} disabled={disabledValue.includes(item)}
-            className={`px-3 py-2 rounded-lg border text-[12px] transition-all flex items-center gap-1.5 disabled:opacity-20 disabled:cursor-not-allowed ${value === item ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>
-            {icon?.(item)}{item}{suffix}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-const aspectIcon = (a: string | number) => (
-  <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
-    {a === '9:16' ? <rect x="6.5" y="2.5" width="7" height="15" rx="1.5" /> : a === '16:9' ? <rect x="2.5" y="6.5" width="15" height="7" rx="1.5" /> : <rect x="4.5" y="4.5" width="11" height="11" rx="1.5" />}
-  </svg>
-);
-const clockIcon = () => (
-  <svg width="11" height="11" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="10" cy="10" r="7.5" /><path d="M10 5.5V10l3 1.8" strokeLinecap="round" /></svg>
-);

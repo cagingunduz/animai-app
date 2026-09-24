@@ -8,13 +8,13 @@ export async function POST(request: Request) {
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-      return NextResponse.json({ error: 'Giriş yapmanız gerekiyor.' }, { status: 401 });
+      return NextResponse.json({ error: 'Please sign in to continue.' }, { status: 401 });
     }
 
     const { data: profile, error: profileError } = await supabase
       .from('users').select('credits, is_admin').eq('id', user.id).single();
     if (profileError || !profile) {
-      return NextResponse.json({ error: 'Kullanıcı profili bulunamadı.' }, { status: 404 });
+      return NextResponse.json({ error: 'User profile not found.' }, { status: 404 });
     }
 
     const body = await request.json();
@@ -26,18 +26,18 @@ export async function POST(request: Request) {
     if (!profile.is_admin) {
       if (profile.credits < cost) {
         return NextResponse.json({
-          error: `Yetersiz kredi. Bu video ${cost} kredi gerektiriyor, ${profile.credits} krediniz var.`,
+          error: `Not enough credits. This video needs ${cost} credits and you have ${profile.credits}.`,
           required: cost, available: profile.credits,
         }, { status: 402 });
       }
       const { error: deductError } = await supabase
         .from('users').update({ credits: profile.credits - cost }).eq('id', user.id);
       if (deductError) {
-        return NextResponse.json({ error: 'Kredi düşülemedi.' }, { status: 500 });
+        return NextResponse.json({ error: 'Could not deduct credits.' }, { status: 500 });
       }
       await supabase.from('credit_transactions').insert({
         user_id: user.id, amount: -cost,
-        description: `Fruit Drama — ${body.title || 'Untitled'} (${sceneCount} sahne, ${resolution}, ${durationSeconds}s)`,
+        description: `Fruit Drama — ${body.title || 'Untitled'} (${sceneCount} scenes, ${resolution}, ${durationSeconds}s)`,
       });
     }
 
@@ -57,10 +57,10 @@ export async function POST(request: Request) {
       if (!profile.is_admin) {
         await supabase.from('users').update({ credits: profile.credits }).eq('id', user.id);
         await supabase.from('credit_transactions').insert({
-          user_id: user.id, amount: cost, description: 'İade — Fruit Drama başlatılamadı',
+          user_id: user.id, amount: cost, description: 'Refund — Fruit Drama failed to start',
         });
       }
-      return NextResponse.json(data?.error ? data : { error: 'Fruit Drama başlatılamadı.' }, { status: upstreamStatus || 500 });
+      return NextResponse.json(data?.error ? data : { error: 'Fruit Drama failed to start.' }, { status: upstreamStatus || 500 });
     }
 
     await supabase.from('animations').insert({

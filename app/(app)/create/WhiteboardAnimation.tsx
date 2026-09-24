@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { whiteboardCost } from '@/lib/types';
 import StudioGenerationView from './StudioGenerationView';
+import { EditorHeader, EditorPage, Intro, Section, Label, Segmented, Toggle, TextArea, VoiceGrid, ActionBar, Credits, AspectGlyph, Ico } from '@/components/editor/kit';
 
 type Step = 'setup' | 'generating' | 'done';
 type Aspect = '16:9' | '9:16' | '1:1';
@@ -17,14 +18,6 @@ const ASPECTS: { id: Aspect; label: string; sub: string }[] = [
   { id: '1:1', label: '1:1', sub: 'Instagram' },
 ];
 const DURATIONS = [1, 2, 3, 5, 10];
-
-const FILTER_DIMS: { key: string; label: string }[] = [
-  { key: 'accent', label: 'Accent' },
-  { key: 'gender', label: 'Gender' },
-  { key: 'age', label: 'Age' },
-  { key: 'use_case', label: 'Use case' },
-];
-const prettyLabel = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 export default function WhiteboardAnimation({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState<Step>('setup');
@@ -40,8 +33,6 @@ export default function WhiteboardAnimation({ onBack }: { onBack: () => void }) 
   const [voices, setVoices] = useState<Voice[]>([]);
   const [voiceId, setVoiceId] = useState<string | null>(null);
   const [previewVoice, setPreviewVoice] = useState<string | null>(null);
-  const [voiceFilters, setVoiceFilters] = useState<Record<string, string>>({});
-  const [openFilter, setOpenFilter] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const reqRef = useRef<string | null>(null);
 
@@ -131,7 +122,7 @@ export default function WhiteboardAnimation({ onBack }: { onBack: () => void }) 
         }),
       });
       const d = await r.json();
-      if (r.status === 402) { setGenStatus('failed'); setGenErr(d.error || 'Yetersiz kredi.'); return; }
+      if (r.status === 402) { setGenStatus('failed'); setGenErr(d.error || 'Not enough credits.'); return; }
       if (d.job_id) {
         pollRef.current = setInterval(() => pollStatus(d.job_id), 3000);
         pollStatus(d.job_id);
@@ -139,260 +130,143 @@ export default function WhiteboardAnimation({ onBack }: { onBack: () => void }) 
     } catch { setGenStatus('failed'); setGenErr('Failed to start generation'); }
   };
 
-  const filterOptions = (key: string) =>
-    Array.from(new Set(voices.map(v => v.labels?.[key]).filter(Boolean) as string[])).sort();
-  const filteredVoices = voices.filter(v =>
-    FILTER_DIMS.every(d => !voiceFilters[d.key] || v.labels?.[d.key] === voiceFilters[d.key])
-  );
-  const setVoiceFilter = (key: string, val: string) =>
-    setVoiceFilters(f => { const n = { ...f }; if (val) n[key] = val; else delete n[key]; return n; });
-  const activeFilterCount = Object.keys(voiceFilters).length;
   const stepIndex = step === 'setup' ? 0 : 1;
+  const cost = whiteboardCost(durationMinutes);
 
   return (
-    <div className="flex flex-col min-h-screen bg-black text-white">
-      <div className="flex-shrink-0 border-b border-[rgba(255,255,255,0.08)] sticky top-0 z-30 bg-black">
-        <div className="max-w-[900px] mx-auto px-6 py-4 flex items-center">
-          <button onClick={onBack} className="text-[13px] text-[rgba(255,255,255,0.3)] hover:text-white transition-colors mr-3">←</button>
-          <span className="text-[15px] font-semibold tracking-[-0.3px]">Whiteboard Animation</span>
-          <div className="flex-1 flex justify-center items-center">
-            {[0, 1].map(i => {
-              const done = i < stepIndex, current = i === stepIndex, reached = i <= stepIndex;
-              return (
-                <div key={i} className="flex items-center">
-                  <span className={`relative w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-semibold transition-all duration-300
-                    ${reached ? 'bg-white text-black' : 'bg-[rgba(255,255,255,0.06)] text-[rgba(255,255,255,0.35)] border border-[rgba(255,255,255,0.1)]'}
-                    ${current ? 'ring-2 ring-[rgba(255,255,255,0.18)] ring-offset-2 ring-offset-black' : ''}`}>
-                    {done ? <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="black" strokeWidth="2.5"><path d="M2 7.5l3.2 3.2L12 4" /></svg> : i + 1}
-                  </span>
-                  {i < 1 && (
-                    <span className="relative h-[2px] w-16 mx-1 rounded-full bg-[rgba(255,255,255,0.1)] overflow-hidden">
-                      <span className={`absolute inset-y-0 left-0 bg-white rounded-full transition-all duration-500 ${i < stepIndex ? 'w-full' : current ? 'w-1/2' : 'w-0'}`} />
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          <span className="w-6" />
-        </div>
-      </div>
+    <div className="flex flex-col min-h-screen text-white">
+      <EditorHeader
+        format="Whiteboard"
+        onBack={onBack}
+        steps={['Setup', 'Render']}
+        current={stepIndex}
+        right={<Credits n={cost} suffix="" />}
+      />
 
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-[900px] mx-auto px-6 py-8 animate-[fadeIn_0.3s_ease]">
+      {step === 'setup' && (
+        <>
+          <EditorPage>
+            <Intro eyebrow="Step 1 · Setup" title="What should we explain?" desc="A hand-drawn doodle is sketched for each beat on a whiteboard, with narration and captions." />
 
-          {step === 'setup' && (
-            <div className="flex flex-col gap-7">
-              <div>
-                <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Topic / Prompt</label>
-                <textarea value={title} onChange={e => setTitle(e.target.value)} rows={3}
-                  placeholder="Explain how compound interest works…"
-                  className="w-full bg-[#0e0e0e] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 py-3.5 text-[14px] outline-none resize-none focus:border-[rgba(255,255,255,0.2)] transition-colors placeholder:text-[rgba(255,255,255,0.22)] leading-relaxed" />
-                <p className="text-[11px] text-[rgba(255,255,255,0.3)] mt-1.5">A black-ink doodle is drawn for each beat on a white board, with narration.</p>
-              </div>
+            <Section n={1} title="Topic">
+              <TextArea big value={title} onChange={e => setTitle(e.target.value)} rows={3}
+                placeholder="Explain how compound interest works…" />
+            </Section>
 
-              <div className="flex flex-col sm:flex-row gap-5">
-                <div>
-                  <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Format</label>
-                  <div className="flex gap-1.5">
-                    {ASPECTS.map(a => (
-                      <button key={a.id} onClick={() => setAspect(a.id)} title={a.sub}
-                        className={`px-3 py-2 rounded-lg border text-[12px] transition-all flex items-center gap-1.5 ${aspect === a.id ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>
-                        <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
-                          {a.id === '9:16' ? <rect x="6.5" y="2.5" width="7" height="15" rx="1.5" /> : a.id === '16:9' ? <rect x="2.5" y="6.5" width="15" height="7" rx="1.5" /> : <rect x="4.5" y="4.5" width="11" height="11" rx="1.5" />}
-                        </svg>
-                        {a.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Quality</label>
-                  <div className="flex gap-1.5">
-                    {(['720p', '1080p'] as const).map(r => (
-                      <button key={r} onClick={() => setResolution(r)}
-                        className={`px-3.5 py-2 rounded-lg border text-[12px] transition-all ${resolution === r ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>{r}</button>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Length</label>
-                  <div className="flex gap-1.5">
-                    {DURATIONS.map(d => (
-                      <button key={d} onClick={() => setDurationMinutes(d)}
-                        className={`flex-1 py-1.5 rounded-lg border text-[11px] transition-all flex flex-col items-center leading-tight ${durationMinutes === d ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>
-                        <span className="flex items-center gap-1">
-                          <svg width="11" height="11" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="10" cy="10" r="7.5" /><path d="M10 5.5V10l3 1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                          {d} min
-                        </span>
-                        <span className="text-[9px] text-[rgba(255,255,255,0.35)]">{whiteboardCost(d).toLocaleString()} cr</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Style</label>
-                <div className="flex gap-1.5">
-                  {[{ v: false, label: 'Black & White', sub: 'Classic line draw' }, { v: true, label: 'Illustrated Color', sub: 'Golpo-style scenes drawn and coloured piece by piece' }].map(o => (
+            <Section n={2} title="Drawing style">
+              <div className="grid sm:grid-cols-2 gap-2.5">
+                {[
+                  { v: false, label: 'Black & white', sub: 'Classic single-ink line drawing' },
+                  { v: true, label: 'Illustrated colour', sub: 'Scenes drawn, then coloured piece by piece' },
+                ].map(o => {
+                  const on = colored === o.v;
+                  return (
                     <button key={String(o.v)} onClick={() => setColored(o.v)}
-                      className={`px-4 py-2 rounded-lg border text-[12px] transition-all flex flex-col items-start leading-tight ${colored === o.v ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>
-                      <span>{o.label}</span>
-                      <span className="text-[9px] text-[rgba(255,255,255,0.35)]">{o.sub}</span>
+                      className={`group relative flex items-center gap-4 p-3 rounded-[14px] border text-left transition-all ${on ? 'border-white ring-1 ring-white bg-white/[0.04]' : 'border-[var(--line)] hover:border-[var(--line-2)]'}`}>
+                      <span className="relative w-[92px] h-[60px] rounded-[10px] bg-[#f4f4f2] overflow-hidden flex-shrink-0">
+                        <svg viewBox="0 0 92 60" className="absolute inset-0 w-full h-full" fill="none">
+                          <path d="M10 44c8-16 16-20 24-12s14 10 20-4 14-14 22-2" stroke="#111" strokeWidth="2" strokeLinecap="round" />
+                          <circle cx="70" cy="16" r="7" stroke="#111" strokeWidth="1.6" fill={o.v ? '#bdbdbd' : 'none'} />
+                          <rect x="10" y="10" width="20" height="12" rx="2" stroke="#111" strokeWidth="1.4" fill={o.v ? '#8c8c8c' : 'none'} />
+                        </svg>
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-[13.5px] font-medium">{o.label}</span>
+                        <span className="block text-[11.5px] text-[var(--fg-4)] leading-relaxed">{o.sub}</span>
+                      </span>
+                      {on && <span className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-white text-black flex items-center justify-center">{Ico.check}</span>}
                     </button>
-                  ))}
+                  );
+                })}
+              </div>
+            </Section>
+
+            <Section n={3} title="Output">
+              <div className="grid sm:grid-cols-2 gap-5 mb-5">
+                <div>
+                  <Label>Format</Label>
+                  <Segmented full value={aspect} onChange={setAspect}
+                    options={ASPECTS.map(a => ({ value: a.id, label: a.label, icon: <AspectGlyph a={a.id} />, sub: a.sub }))} />
+                </div>
+                <div>
+                  <Label>Quality</Label>
+                  <Segmented full value={resolution} onChange={setResolution}
+                    options={(['720p', '1080p'] as const).map(r => ({ value: r, label: r }))} />
                 </div>
               </div>
+              <Label>Length</Label>
+              <Segmented full value={durationMinutes} onChange={setDurationMinutes}
+                options={DURATIONS.map(d => ({ value: d, label: `${d} min`, sub: `${whiteboardCost(d).toLocaleString()} cr` }))} />
+            </Section>
 
-              <div>
-                <div className="flex items-center gap-2.5 mb-3 flex-wrap">
-                  <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)]">Narrator</label>
-                  <button onClick={() => setIncludeNarrator(v => !v)}
-                    className={`w-9 h-5 rounded-full transition-colors relative ${includeNarrator ? 'bg-white' : 'bg-[rgba(255,255,255,0.12)]'}`}>
-                    <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-all ${includeNarrator ? 'left-[18px] bg-black' : 'left-0.5 bg-[rgba(255,255,255,0.5)]'}`} />
-                  </button>
-                  {includeNarrator && (
-                    <div className="flex items-center gap-1.5 flex-wrap ml-1">
-                      {FILTER_DIMS.map(d => {
-                        const opts = filterOptions(d.key);
-                        if (opts.length < 2) return null;
-                        const sel = voiceFilters[d.key];
-                        const open = openFilter === d.key;
-                        return (
-                          <div key={d.key} className="relative">
-                            <button type="button" onClick={() => setOpenFilter(open ? null : d.key)}
-                              className={`flex items-center gap-1 px-2 py-1 rounded-md border text-[10.5px] transition-all ${sel ? 'border-[rgba(255,255,255,0.4)] text-white bg-[rgba(255,255,255,0.07)]' : 'border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.2)]'}`}>
-                              {sel ? prettyLabel(sel) : d.label}
-                              <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" className={open ? 'rotate-180' : ''}><path d="M2 3.5L5 6.5 8 3.5" /></svg>
-                            </button>
-                            {open && (
-                              <>
-                                <div className="fixed inset-0 z-10" onClick={() => setOpenFilter(null)} />
-                                <div className="absolute z-20 mt-1 left-0 min-w-[140px] max-h-[210px] overflow-y-auto bg-[#161616] border border-[rgba(255,255,255,0.12)] rounded-lg p-1 shadow-[0_8px_24px_rgba(0,0,0,0.5)]">
-                                  <button type="button" onClick={() => { setVoiceFilter(d.key, ''); setOpenFilter(null); }}
-                                    className={`w-full text-left px-2 py-1.5 rounded text-[11px] ${!sel ? 'bg-[rgba(255,255,255,0.1)] text-white' : 'text-[rgba(255,255,255,0.55)] hover:bg-[rgba(255,255,255,0.05)]'}`}>All</button>
-                                  {opts.map(o => (
-                                    <button key={o} type="button" onClick={() => { setVoiceFilter(d.key, o); setOpenFilter(null); }}
-                                      className={`w-full text-left px-2 py-1.5 rounded text-[11px] ${sel === o ? 'bg-[rgba(255,255,255,0.1)] text-white' : 'text-[rgba(255,255,255,0.6)] hover:bg-[rgba(255,255,255,0.05)]'}`}>{prettyLabel(o)}</button>
-                                  ))}
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        );
-                      })}
-                      {activeFilterCount > 0 && (
-                        <button type="button" onClick={() => setVoiceFilters({})}
-                          className="text-[10.5px] text-[rgba(255,255,255,0.4)] hover:text-white px-1 transition-colors">Clear</button>
-                      )}
+            <Section n={4} title="Narrator" hint={includeNarrator ? 'Pick a voice — tap ▶ to preview' : 'Off — video will have no voiceover'}
+              right={<Toggle on={includeNarrator} onChange={setIncludeNarrator} label="Narrator" />}>
+              {includeNarrator ? (
+                <>
+                  <VoiceGrid voices={voices} value={voiceId} onChange={setVoiceId} previewing={previewVoice} onPreview={v => playVoicePreview(v as Voice)} />
+                  <div className="flex flex-wrap items-center gap-x-8 gap-y-4 mt-5 pt-5 border-t border-[var(--line)]">
+                    <div className="flex items-center gap-3">
+                      <span className="text-[12px] text-[var(--fg-3)]">Speed</span>
+                      <Segmented size="sm" value={narratorSpeed} onChange={setNarratorSpeed}
+                        options={[1, 1.5, 2].map(sp => ({ value: sp, label: `${sp}×` }))} />
                     </div>
-                  )}
-                </div>
-                {includeNarrator && (
-                  <>
-                    {filteredVoices.length === 0 && (
-                      <div className="text-[11px] text-[rgba(255,255,255,0.35)] py-3">No voices match these filters.</div>
-                    )}
-                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 max-h-[230px] overflow-y-auto pr-1">
-                      {filteredVoices.map(v => (
-                        <div key={v.voice_id} onClick={() => setVoiceId(v.voice_id === voiceId ? null : v.voice_id)}
-                          className={`flex items-center gap-2.5 pl-2 pr-1.5 py-2 rounded-xl border transition-all cursor-pointer ${voiceId === v.voice_id ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.18)]'}`}>
-                          <div className="w-8 h-8 rounded-full shrink-0"
-                            style={{
-                              background: v.labels?.gender === 'female'
-                                ? 'radial-gradient(circle at 28% 26%, #ffffff 0%, transparent 52%), radial-gradient(circle at 74% 70%, #ff7fb5 0%, transparent 56%), radial-gradient(circle at 68% 22%, #ffd4e6 0%, transparent 48%), linear-gradient(135deg, #ffd2e2, #ff9ec6)'
-                                : 'radial-gradient(circle at 28% 26%, #ffffff 0%, transparent 52%), radial-gradient(circle at 74% 70%, #5b8cff 0%, transparent 56%), radial-gradient(circle at 68% 22%, #d3e2ff 0%, transparent 48%), linear-gradient(135deg, #dbe7ff, #6f9bff)',
-                              boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.5), inset 0 -2px 5px rgba(0,0,0,0.18)',
-                            }} />
-                          <div className="min-w-0 flex-1">
-                            <div className="text-[12px] font-medium truncate">{v.name}</div>
-                            {v.labels?.descriptive && <div className="text-[10px] text-[rgba(255,255,255,0.35)] truncate">{v.labels.descriptive}</div>}
-                          </div>
-                          <button type="button" title="Preview voice"
-                            onClick={(e) => { e.stopPropagation(); playVoicePreview(v); }}
-                            className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center bg-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.18)] transition-colors">
-                            {previewVoice === v.voice_id
-                              ? <span className="block w-2 h-2 rounded-full bg-white animate-pulse" />
-                              : <svg width="11" height="11" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z" /></svg>}
-                          </button>
-                        </div>
-                      ))}
+                    <div className="flex items-center gap-3">
+                      <span className="text-[12px] text-[var(--fg-3)]">Captions</span>
+                      <Toggle on={includeSubtitles} onChange={setIncludeSubtitles} label="Captions" />
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-6 gap-y-3 mt-4">
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-[12px] text-[rgba(255,255,255,0.5)]">Speed</span>
-                        <div className="flex gap-1.5">
-                          {[1, 1.5, 2].map(sp => (
-                            <button key={sp} onClick={() => setNarratorSpeed(sp)}
-                              className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all ${narratorSpeed === sp ? 'border-white bg-white text-black' : 'border-[rgba(255,255,255,0.12)] text-[rgba(255,255,255,0.6)] hover:border-[rgba(255,255,255,0.25)]'}`}>
-                              {sp}x
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-[12px] text-[rgba(255,255,255,0.5)]">Captions</span>
-                        <button onClick={() => setIncludeSubtitles(v => !v)}
-                          className={`w-9 h-5 rounded-full transition-colors relative ${includeSubtitles ? 'bg-white' : 'bg-[rgba(255,255,255,0.12)]'}`}>
-                          <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-all ${includeSubtitles ? 'left-[18px] bg-black' : 'left-0.5 bg-[rgba(255,255,255,0.5)]'}`} />
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
+                  </div>
+                </>
+              ) : (
+                <div className="rounded-[14px] border border-dashed border-[var(--line-2)] py-8 text-center text-[12.5px] text-[var(--fg-4)]">Narration disabled</div>
+              )}
+            </Section>
+          </EditorPage>
 
-              <div className="flex items-center justify-end gap-4 border-t border-[rgba(255,255,255,0.06)] pt-5">
-                {includeNarrator && !voiceId && <span className="text-[11px] text-[rgba(255,255,255,0.3)]">Pick a narrator voice to continue</span>}
-                <span className="text-[11px] text-[rgba(255,255,255,0.4)]">
-                  <span className="text-white font-medium">{whiteboardCost(durationMinutes).toLocaleString()}</span> credits · deducted now
-                </span>
-                <button onClick={startGeneration} disabled={!title.trim() || (includeNarrator && !voiceId)}
-                  className="px-6 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all flex items-center gap-1.5">
-                  Generate
-                  <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 7h12M8 2l5 5-5 5" /></svg>
-                </button>
-              </div>
-            </div>
-          )}
+          <ActionBar left={
+            includeNarrator && !voiceId
+              ? <span>Pick a narrator voice to continue</span>
+              : <><Credits n={cost} /><span className="hidden sm:inline">· deducted when you generate</span></>
+          }>
+            <button onClick={startGeneration} disabled={!title.trim() || (includeNarrator && !voiceId)} className="ui-btn ui-btn-primary">
+              Generate{Ico.arrow}
+            </button>
+          </ActionBar>
+        </>
+      )}
 
-          {step === 'generating' && (
-            <StudioGenerationView
-              title={title}
-              modeLabel="Whiteboard Animation"
-              aspect={aspect}
-              status={genStatus}
-              message={genMsg || 'Drawing your whiteboard video...'}
-              error={genErr}
-              scenes={scenes}
-              finalVideo={finalVideo}
-              step={genStep}
-              totalSteps={genTotal}
-              onBack={() => setStep('setup')}
-              onRetry={startGeneration}
-            />
-          )}
+      {step === 'generating' && (
+        <StudioGenerationView
+          title={title}
+          modeLabel="Whiteboard Animation"
+          aspect={aspect}
+          status={genStatus}
+          message={genMsg || 'Drawing your whiteboard video...'}
+          error={genErr}
+          scenes={scenes}
+          finalVideo={finalVideo}
+          step={genStep}
+          totalSteps={genTotal}
+          onBack={() => setStep('setup')}
+          onRetry={startGeneration}
+        />
+      )}
 
-          {step === 'done' && finalVideo && (
-            <StudioGenerationView
-              title={title}
-              modeLabel="Whiteboard Animation"
-              aspect={aspect}
-              status={genStatus}
-              message="Your whiteboard video is ready"
-              scenes={scenes}
-              finalVideo={finalVideo}
-              step={genTotal}
-              totalSteps={genTotal || 1}
-              onBack={() => setStep('setup')}
-              downloadHref={`/api/download?url=${encodeURIComponent(finalVideo)}&filename=${encodeURIComponent((title || 'whiteboard') + '.mp4')}`}
-              onCreateAnother={() => { setStep('setup'); setFinalVideo(null); setGenStatus('idle'); setScenes([]); }}
-            />
-          )}
-        </div>
-      </div>
-      <style jsx global>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+      {step === 'done' && finalVideo && (
+        <StudioGenerationView
+          title={title}
+          modeLabel="Whiteboard Animation"
+          aspect={aspect}
+          status={genStatus}
+          message="Your whiteboard video is ready"
+          scenes={scenes}
+          finalVideo={finalVideo}
+          step={genTotal}
+          totalSteps={genTotal || 1}
+          onBack={() => setStep('setup')}
+          downloadHref={`/api/download?url=${encodeURIComponent(finalVideo)}&filename=${encodeURIComponent((title || 'whiteboard') + '.mp4')}`}
+          onCreateAnother={() => { setStep('setup'); setFinalVideo(null); setGenStatus('idle'); setScenes([]); }}
+        />
+      )}
     </div>
   );
 }
