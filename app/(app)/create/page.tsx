@@ -9,6 +9,7 @@ import WhiteboardAnimation from './WhiteboardAnimation';
 import FruitDrama from './FruitDrama';
 import StudioGenerationView from './StudioGenerationView';
 import FormatArt, { FORMATS, type FormatKey } from '@/components/FormatArt';
+import { EditorHeader, EditorPage, Intro, Section, Label, Segmented, StyleCard, ToggleRow, TextArea, VoiceGrid, ActionBar, Credits, Modal, ErrorNote, Spinner, AspectGlyph, Ico, StatusDot } from '@/components/editor/kit';
 
 type AnimStyle = 'western-cartoon' | 'anime' | 'pixar' | 'comic' | 'retro' | 'custom';
 type AspectRatio = '16:9' | '9:16' | '1:1';
@@ -1062,566 +1063,467 @@ function CreatePageInner() {
 
     {/* ═══ STORY MODE ═══ */}
     {mode === 'story' && (
-      <div className="flex flex-col h-screen bg-black">
-        {/* Roadmap */}
-        <div className="flex-shrink-0 border-b border-[rgba(255,255,255,0.1)] sticky top-0 z-30 bg-black">
-          <div className="max-w-[560px] mx-auto px-6 py-4 flex items-center">
-            <button onClick={() => setMode('theme_select')} className="text-[11px] text-[rgba(255,255,255,0.25)] hover:text-white mr-3 flex-shrink-0 transition-colors">←</button>
-            <span className="text-[10px] font-medium text-[rgba(255,255,255,0.45)] bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.08)] px-2 py-0.5 rounded mr-3 flex-shrink-0">{themeLabel}</span>
-            {userCredits !== null && <span className="text-[10px] text-[rgba(255,255,255,0.3)] border border-[rgba(255,255,255,0.06)] px-2 py-0.5 rounded mr-3 flex-shrink-0 ml-auto">{userCredits.toLocaleString()} cr</span>}
-            {[{ n: 1, l: 'Setup' }, { n: 2, l: 'Structure' }, { n: 3, l: 'Timeline' }].map((s, i) => (
-              <div key={s.n} className="flex items-center flex-1 last:flex-initial">
-                <button onClick={() => { if (s.n <= storyStep) setStoryStep(s.n as 1|2|3); }} className="flex items-center gap-2">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-medium border transition-all ${storyStep === s.n ? 'bg-white text-black border-white' : storyStep > s.n ? 'border-[rgba(255,255,255,0.25)] text-[rgba(255,255,255,0.5)]' : 'border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.25)]'}`}>
-                    {storyStep > s.n ? <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3,8 6.5,11.5 13,5"/></svg> : s.n}
-                  </div>
-                  <span className={`text-[12px] hidden sm:inline ${storyStep === s.n ? 'text-white font-medium' : 'text-[rgba(255,255,255,0.25)]'}`}>{s.l}</span>
-                </button>
-                {i < 2 && <div className={`flex-1 h-px mx-3 ${storyStep > s.n ? 'bg-[rgba(255,255,255,0.2)]' : 'bg-[rgba(255,255,255,0.06)]'}`} />}
-              </div>
-            ))}
-          </div>
-        </div>
+      <div className="flex flex-col h-screen">
+        <EditorHeader
+          format="Storytelling"
+          onBack={() => setMode('theme_select')}
+          steps={['Setup', 'Structure', 'Timeline']}
+          current={storyStep - 1}
+          onStep={i => { if (i + 1 <= storyStep) setStoryStep((i + 1) as 1 | 2 | 3); }}
+          meta={<>
+            <span className="ui-chip ui-chip-muted">{GENRE_EXAMPLES.find(g => g.value === customGenre)?.label}</span>
+            <span className="ui-chip ui-chip-muted">{STYLES.find(x => x.value === storyStyle)?.label}</span>
+          </>}
+          right={userCredits !== null ? <Credits n={userCredits} suffix="" /> : undefined}
+        />
 
-        <div className="flex-1 overflow-hidden flex flex-col">
-          {/* ── STEP 1: Setup ── */}
-          {storyStep === 1 && (
-            <div className="flex flex-col flex-1 min-h-0 animate-[fadeIn_0.3s_ease]">
-              <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
-                <div className="md:w-1/2 p-5 md:p-7 flex flex-col gap-5 overflow-y-auto">
-                  <div>
-                    <h2 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px] mb-3">Story title or topic</h2>
-                    <textarea value={storyTitle} onChange={e => setStoryTitle(e.target.value)}
-                      className="w-full min-h-[120px] bg-[#111] border border-[rgba(255,255,255,0.1)] rounded-xl p-4 text-[15px] text-white placeholder:text-[rgba(255,255,255,0.2)] outline-none resize-none focus:border-[rgba(255,255,255,0.18)] transition-colors leading-relaxed"
+        {/* ── STEP 1: Setup ── */}
+        {storyStep === 1 && (
+          <>
+            <EditorPage width={1080}>
+              <Intro eyebrow="Step 1 · Setup" title="Tell the story" desc="Your topic, the frame and a narrator. Everything can be tweaked scene by scene later." />
+              <div className="grid lg:grid-cols-2 gap-x-10">
+                <div>
+                  <Section n={1} title="Topic">
+                    <TextArea big value={storyTitle} onChange={e => setStoryTitle(e.target.value)}
                       placeholder={GENRE_EXAMPLES.find(g => g.value === customGenre)?.placeholder ?? 'Describe your story topic...'} />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <button onClick={() => setBlurFaces(!blurFaces)} className={`relative w-10 h-5 rounded-full transition-all ${blurFaces ? 'bg-white' : 'bg-[rgba(255,255,255,0.1)]'}`}>
-                      <div className={`absolute top-0.5 w-4 h-4 rounded-full transition-all ${blurFaces ? 'left-[22px] bg-black' : 'left-0.5 bg-[rgba(255,255,255,0.3)]'}`} />
-                    </button>
-                    <div>
-                      <span className="text-[12px] text-[rgba(255,255,255,0.6)]">Blur faces</span>
-                      <span className="text-[10px] text-[rgba(255,255,255,0.25)] ml-2">Recommended for crime & mystery</span>
+                  </Section>
+                  <Section n={2} title="Format">
+                    <Segmented full value={storyAspectRatio} onChange={setStoryAspectRatio}
+                      options={[
+                        { value: '9:16' as const, label: 'Vertical', icon: <AspectGlyph a="9:16" />, sub: 'TikTok / Reels' },
+                        { value: '16:9' as const, label: 'Horizontal', icon: <AspectGlyph a="16:9" />, sub: 'YouTube' },
+                      ]} />
+                  </Section>
+                  <Section n={3} title="Production">
+                    <div className="flex flex-col gap-2">
+                      <ToggleRow icon={Ico.camera} label="Camera movement" desc="Ken Burns zoom effect" on={globalCameraMove} onChange={setGlobalCameraMove} />
+                      <ToggleRow icon={Ico.mic} label="Narrator voice" desc="AI voice reads the script" on={globalNarrator} onChange={setGlobalNarrator} />
+                      <ToggleRow icon={Ico.captions} label="Subtitles" desc="Word-by-word captions" on={globalSubtitles} onChange={setGlobalSubtitles} />
+                      <ToggleRow icon={Ico.user} label="Blur faces" desc="Recommended for crime & mystery" on={blurFaces} onChange={setBlurFaces} />
                     </div>
-                  </div>
-                  {/* Aspect ratio */}
-                  <div>
-                    <h2 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px] mb-2">Format</h2>
-                    <div className="flex gap-2">
-                      {([
-                        { value: '9:16', label: 'Vertical', sub: 'TikTok / Reels', icon: 'M7 2h10a1 1 0 011 1v18a1 1 0 01-1 1H7a1 1 0 01-1-1V3a1 1 0 011-1z' },
-                        { value: '16:9', label: 'Horizontal', sub: 'YouTube', icon: 'M2 7h20a1 1 0 011 1v8a1 1 0 01-1 1H2a1 1 0 01-1-1V8a1 1 0 011-1z' },
-                      ] as const).map(r => (
-                        <button key={r.value} onClick={() => setStoryAspectRatio(r.value)}
-                          className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border flex-1 transition-all ${storyAspectRatio === r.value ? 'border-white bg-[rgba(255,255,255,0.05)]' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.16)]'}`}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={storyAspectRatio === r.value ? 'white' : 'rgba(255,255,255,0.3)'} strokeWidth="1.5"><path d={r.icon}/></svg>
-                          <div className="text-left">
-                            <div className={`text-[12px] font-medium ${storyAspectRatio === r.value ? 'text-white' : 'text-[rgba(255,255,255,0.5)]'}`}>{r.label}</div>
-                            <div className="text-[10px] text-[rgba(255,255,255,0.25)]">{r.sub}</div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  {/* Global feature toggles */}
-                  <div className="flex flex-col gap-2 mt-1">
-                    {[
-                      { key: 'camera', label: 'Camera movement', desc: 'Ken Burns zoom effect', value: globalCameraMove, set: setGlobalCameraMove },
-                      { key: 'narrator', label: 'Narrator voice', desc: 'AI voice reads the script', value: globalNarrator, set: setGlobalNarrator },
-                      { key: 'subtitles', label: 'Subtitles', desc: 'Word-by-word captions', value: globalSubtitles, set: setGlobalSubtitles },
-                    ].map(({ key, label, desc, value, set }) => (
-                      <div key={key} className="flex items-center gap-3">
-                        <button onClick={() => set(!value)} className={`relative w-10 h-5 rounded-full transition-all flex-shrink-0 ${value ? 'bg-white' : 'bg-[rgba(255,255,255,0.1)]'}`}>
-                          <div className={`absolute top-0.5 w-4 h-4 rounded-full transition-all ${value ? 'left-[22px] bg-black' : 'left-0.5 bg-[rgba(255,255,255,0.3)]'}`} />
-                        </button>
-                        <div>
-                          <span className="text-[12px] text-[rgba(255,255,255,0.6)]">{label}</span>
-                          <span className="text-[10px] text-[rgba(255,255,255,0.25)] ml-2">{desc}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  </Section>
                 </div>
-                {/* Right: voice picker */}
-                <div className="md:w-1/2 border-t md:border-t-0 md:border-l border-[rgba(255,255,255,0.1)] flex flex-col min-h-0 overflow-hidden">
-                  <div className="p-5 md:p-7 pb-3 flex-shrink-0">
-                    <h2 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px] mb-1">Narrator voice</h2>
-                    <p className="text-[11px] text-[rgba(255,255,255,0.25)]">Select a voice for the narration</p>
-                  </div>
-                  <div className="flex-1 overflow-y-auto px-3 md:px-5 py-1 min-h-0">
-                    {voices.length === 0 ? (
-                      <div className="flex items-center justify-center py-12"><div className="w-5 h-5 rounded-full border-2 border-[rgba(255,255,255,0.08)] border-t-[rgba(255,255,255,0.35)] animate-spin" /></div>
-                    ) : voices.map((v, idx) => (
-                      <button key={v.voice_id} onClick={() => setStoryNarratorVoiceId(v.voice_id === storyNarratorVoiceId ? null : v.voice_id)}
-                        className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-all mb-1 ${storyNarratorVoiceId === v.voice_id ? 'bg-[rgba(255,255,255,0.07)] border border-[rgba(255,255,255,0.15)]' : 'border border-transparent hover:bg-[rgba(255,255,255,0.04)]'}`}>
-                        <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-[14px] font-bold text-white" style={{ backgroundColor: AVATAR_COLORS[idx % AVATAR_COLORS.length] }}>{v.name.charAt(0)}</div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[13px] font-medium text-[rgba(255,255,255,0.9)]">{v.name}</div>
-                          <div className="text-[11px] text-[rgba(255,255,255,0.35)] capitalize">{v.labels.gender}{v.labels.accent ? ` · ${v.labels.accent}` : ''} · {v.labels.descriptive}</div>
-                        </div>
-                        {storyNarratorVoiceId === v.voice_id && (
-                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" strokeWidth="2.5"><polyline points="3,8 6.5,11.5 13,5"/></svg>
-                        )}
-                      </button>
-                    ))}
-                  </div>
+                <div>
+                  <Section n={4} title="Narrator voice" hint="Tap ▶ to preview">
+                    <VoiceGrid voices={voices} value={storyNarratorVoiceId} onChange={setStoryNarratorVoiceId} columns={2} maxHeight={560}
+                      previewing={playingId} onPreview={v => handlePlayVoice(v.voice_id, v.preview_url || '')} />
+                  </Section>
                 </div>
               </div>
-              <div className="flex-shrink-0 border-t border-[rgba(255,255,255,0.1)] px-5 md:px-7 py-3 flex justify-end bg-[#0f0f0f]">
-                <button onClick={() => setStoryStep(2)} disabled={!storySetupValid} className="px-5 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-15 disabled:cursor-not-allowed transition-all">Next →</button>
-              </div>
-            </div>
-          )}
+            </EditorPage>
+            <ActionBar left={storyNarratorVoiceId
+              ? <span className="truncate">Narrator: <span className="text-white font-medium">{voices.find(v => v.voice_id === storyNarratorVoiceId)?.name}</span></span>
+              : <span>Pick a narrator voice for the export</span>}>
+              <button onClick={() => setStoryStep(2)} disabled={!storySetupValid} className="ui-btn ui-btn-primary">Continue{Ico.arrow}</button>
+            </ActionBar>
+          </>
+        )}
 
-          {/* ── STEP 2: Structure ── */}
-          {storyStep === 2 && (
-            <div className="flex-1 overflow-y-auto">
-              <div className="max-w-[600px] mx-auto px-5 md:px-7 py-10 animate-[fadeIn_0.3s_ease]">
-                <h2 className="text-[16px] font-medium text-white mb-2">How should we build it?</h2>
-                <p className="text-[13px] text-[rgba(255,255,255,0.4)] mb-8">Choose how you want to structure your story.</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                  <button onClick={() => setStoryStructure('auto')} className={`p-6 rounded-xl border text-left transition-all ${storyStructure === 'auto' ? 'border-white bg-[rgba(255,255,255,0.04)]' : 'border-[rgba(255,255,255,0.08)] bg-[#0f0f0f] hover:border-[rgba(255,255,255,0.18)]'}`}>
-                    <h3 className="text-[14px] font-medium text-white mb-2">Build it for me</h3>
-                    <p className="text-[12px] text-[rgba(255,255,255,0.4)] leading-relaxed mb-5">We'll write a full cinematic script with hook, rising action, climax and resolution.</p>
-                    <div className="text-[10px] text-[rgba(255,255,255,0.35)] uppercase tracking-wider mb-2">Video length</div>
-                    <div className="flex gap-1.5 flex-wrap">
-                      {[1, 2, 3, 5, 10].map(d => (<button key={d} onClick={e => { e.stopPropagation(); setStoryStructure('auto'); setStoryDuration(d); }} className={`px-2.5 py-1 rounded-md text-[11px] transition-all ${storyStructure === 'auto' && storyDuration === d ? 'bg-white text-black font-medium' : 'border border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.4)]'}`}>{d} min</button>))}
-                    </div>
-                    <p className="text-[9px] text-[rgba(255,255,255,0.2)] mt-2.5">{durationSceneNote(storyDuration)}</p>
-                  </button>
-                  <button onClick={() => setStoryStructure('manual')} className={`p-6 rounded-xl border text-left transition-all ${storyStructure === 'manual' ? 'border-white bg-[rgba(255,255,255,0.04)]' : 'border-[rgba(255,255,255,0.08)] bg-[#0f0f0f] hover:border-[rgba(255,255,255,0.18)]'}`}>
-                    <h3 className="text-[14px] font-medium text-white mb-2">I'll write my own</h3>
-                    <p className="text-[12px] text-[rgba(255,255,255,0.4)] leading-relaxed">Start with a blank timeline and build scenes manually.</p>
-                  </button>
+        {/* ── STEP 2: Structure ── */}
+        {storyStep === 2 && (
+          <>
+            <EditorPage width={820}>
+              <Intro eyebrow="Step 2 · Structure" title="How should we build it?" desc="Let Animave write a full cinematic script, or start from a blank timeline." />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div onClick={() => setStoryStructure('auto')}
+                  className={`relative p-6 rounded-[18px] border text-left cursor-pointer transition-all ${storyStructure === 'auto' ? 'border-white ring-1 ring-white bg-white/[0.04]' : 'border-[var(--line)] hover:border-[var(--line-2)] bg-white/[0.015]'}`}>
+                  <div className="flex items-center justify-between mb-6">
+                    <span className={`w-10 h-10 rounded-[12px] flex items-center justify-center ${storyStructure === 'auto' ? 'bg-white text-black' : 'bg-white/[0.06] text-white'}`}>{Ico.sparkle}</span>
+                    <span className="ui-chip ui-chip-muted">Recommended</span>
+                  </div>
+                  <h3 className="text-[16px] font-semibold tracking-[-0.02em] mb-1.5">Build it for me</h3>
+                  <p className="text-[12.5px] text-[var(--fg-3)] leading-relaxed mb-6">A full script with hook, rising action, climax and resolution.</p>
+                  <Label right={<span className="ui-mono text-[10.5px] text-[var(--fg-4)]">{durationSceneNote(storyDuration)}</span>}>Video length</Label>
+                  <div onClick={e => e.stopPropagation()}>
+                    <Segmented full size="sm" value={storyDuration} onChange={d => { setStoryStructure('auto'); setStoryDuration(d); }}
+                      options={[1, 2, 3, 5, 10].map(d => ({ value: d, label: `${d}m` }))} />
+                  </div>
                 </div>
-                <div className="flex justify-end">
-                  <button onClick={() => { if (storyStructure === 'auto') { setStoryStep(3); handleGenerateScript(); } else if (storyStructure === 'manual') { goToTimelineFromScript(); } }} disabled={!storyStructure}
-                    className="px-5 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-15 disabled:cursor-not-allowed transition-all">
-                    {storyStructure === 'auto' ? 'Generate Script →' : storyStructure === 'manual' ? 'Start Building →' : 'Select an option'}
-                  </button>
+                <div onClick={() => setStoryStructure('manual')}
+                  className={`relative p-6 rounded-[18px] border text-left cursor-pointer transition-all ${storyStructure === 'manual' ? 'border-white ring-1 ring-white bg-white/[0.04]' : 'border-[var(--line)] hover:border-[var(--line-2)] bg-white/[0.015]'}`}>
+                  <div className="flex items-center justify-between mb-6">
+                    <span className={`w-10 h-10 rounded-[12px] flex items-center justify-center ${storyStructure === 'manual' ? 'bg-white text-black' : 'bg-white/[0.06] text-white'}`}>{Ico.plus}</span>
+                  </div>
+                  <h3 className="text-[16px] font-semibold tracking-[-0.02em] mb-1.5">I'll write my own</h3>
+                  <p className="text-[12.5px] text-[var(--fg-3)] leading-relaxed">Start with a blank timeline and build scenes manually.</p>
                 </div>
               </div>
-            </div>
-          )}
+            </EditorPage>
+            <ActionBar left={<span>{storyStructure === 'auto' ? `${storyDuration} min · ${durationSceneNote(storyDuration)}` : storyStructure === 'manual' ? 'Blank timeline' : 'Choose an option'}</span>}>
+              <button onClick={() => setStoryStep(1)} className="ui-btn ui-btn-ghost">Back</button>
+              <button onClick={() => { if (storyStructure === 'auto') { setStoryStep(3); handleGenerateScript(); } else if (storyStructure === 'manual') { goToTimelineFromScript(); } }} disabled={!storyStructure}
+                className="ui-btn ui-btn-primary">
+                {storyStructure === 'auto' ? 'Generate script' : storyStructure === 'manual' ? 'Start building' : 'Continue'}{Ico.arrow}
+              </button>
+            </ActionBar>
+          </>
+        )}
 
-          {/* ── STEP 3: Timeline Editor ── */}
-          {storyStep === 3 && (
-            <div className="flex flex-col flex-1 min-h-0 animate-[fadeIn_0.3s_ease]">
-              {/* Script gen overlay */}
-              {storyGenerating && (
-                <div className="flex-1 flex flex-col items-center justify-center">
-                  <div className="w-10 h-10 rounded-full border-2 border-[rgba(255,255,255,0.06)] border-t-white animate-spin mb-5" />
-                  <h2 className="text-[16px] font-medium text-white mb-2">Writing your script...</h2>
-                  <p className="text-[13px] text-[rgba(255,255,255,0.35)]">{durationSceneNote(storyDuration)}</p>
+        {/* ── STEP 3: Timeline Editor ── */}
+        {storyStep === 3 && (
+          <div className="flex flex-col flex-1 min-h-0">
+            {storyGenerating && (
+              <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
+                <div className="relative w-16 h-16 mb-6">
+                  <div className="absolute inset-0 rounded-full border border-[var(--line-2)]" />
+                  <Spinner size={64} className="!border-transparent !border-t-white absolute inset-0" />
+                  <span className="absolute inset-0 flex items-center justify-center">{Ico.sparkle}</span>
                 </div>
-              )}
-              {storyError && !storyGenerating && (
-                <div className="flex-1 flex flex-col items-center justify-center">
-                  <div className="w-10 h-10 rounded-full bg-[rgba(248,113,113,0.08)] flex items-center justify-center mb-5"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(248,113,113,0.7)" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg></div>
-                  <p className="text-[14px] text-[rgba(248,113,113,0.7)] mb-4">{storyError}</p>
-                  <button onClick={handleGenerateScript} className="px-5 py-2 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-all">Retry</button>
-                </div>
+                <h2 className="text-[22px] font-semibold tracking-[-0.03em] mb-2">Writing your script…</h2>
+                <p className="text-[13px] text-[var(--fg-3)]">{durationSceneNote(storyDuration)} · hook, rising action, climax, resolution</p>
+              </div>
+            )}
+            {storyError && !storyGenerating && (
+              <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6">
+                <ErrorNote>{storyError}</ErrorNote>
+                <button onClick={handleGenerateScript} className="ui-btn ui-btn-primary">Retry</button>
+              </div>
+            )}
+
+            {!storyGenerating && !storyError && generatedScript.length > 0 && (<>
+              {showExport && (
+                <Modal onClose={() => setShowExport(false)} width={400}>
+                  <div className="ui-eyebrow mb-2">Export</div>
+                  <h3 className="text-[20px] font-semibold tracking-[-0.03em] mb-5">Ready to generate video</h3>
+                  <Label>Resolution</Label>
+                  <Segmented full value={exportRes} onChange={setExportRes}
+                    options={(['480p', '720p', '1080p'] as Resolution[]).map(r => ({ value: r, label: r, sub: `${RESOLUTION_CREDITS[r]} cr` }))} />
+                  <div className="text-[12.5px] text-[var(--fg-3)] my-5 flex items-center gap-2">
+                    {generatedScript.filter(s => s.sceneDescription.trim()).every(s => s.videoUrl)
+                      ? <><span className="w-1.5 h-1.5 rounded-full bg-white" /><span className="text-white">Tüm sahneler hazır — export ücretsiz</span></>
+                      : <><span className="w-1.5 h-1.5 rounded-full bg-white/30" /><span>Eksik sahneler üretilecek · {generatedScript.filter(s => s.sceneDescription.trim() && !s.videoUrl).length} sahne kaldı</span></>}
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => setShowExport(false)} className="ui-btn ui-btn-secondary flex-1">Cancel</button>
+                    <button onClick={handleStoryExport} className="ui-btn ui-btn-primary flex-1">Generate video{Ico.arrow}</button>
+                  </div>
+                </Modal>
               )}
 
-              {!storyGenerating && !storyError && generatedScript.length > 0 && (<>
-                {/* Export modal */}
-                {showExport && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-                    <div className="w-full max-w-[380px] bg-[#0f0f0f] border border-[rgba(255,255,255,0.1)] rounded-xl p-6 mx-4">
-                      <h3 className="text-[15px] font-medium text-white mb-4">Ready to generate video</h3>
-                      <div className="text-[10px] text-[rgba(255,255,255,0.35)] uppercase tracking-wider mb-2">Resolution</div>
-                      <div className="flex border border-[rgba(255,255,255,0.08)] rounded-lg overflow-hidden mb-4">
-                        {(['480p', '720p', '1080p'] as Resolution[]).map(r => (<button key={r} onClick={() => setExportRes(r)} className={`flex-1 py-2 text-[11px] transition-all ${exportRes === r ? 'bg-[rgba(255,255,255,0.08)] text-white' : 'text-[rgba(255,255,255,0.3)]'}`}>{r}<div className="text-[8px] text-[rgba(255,255,255,0.15)] mt-0.5">{RESOLUTION_CREDITS[r]} cr</div></button>))}
-                      </div>
-                      <div className="text-[12px] text-[rgba(255,255,255,0.4)] mb-4">
-                        {generatedScript.filter(s => s.sceneDescription.trim()).every(s => s.videoUrl)
-                          ? <span className="text-[rgba(74,222,128,0.7)]">Tüm sahneler hazır — export ücretsiz</span>
-                          : <span>Eksik sahneler üretilecek · {generatedScript.filter(s => s.sceneDescription.trim() && !s.videoUrl).length} sahne kaldı</span>
-                        }
-                      </div>
-                      <div className="flex gap-3">
-                        <button onClick={() => setShowExport(false)} className="flex-1 py-2.5 border border-[rgba(255,255,255,0.1)] rounded-lg text-[13px] text-[rgba(255,255,255,0.5)] hover:text-white transition-all">Cancel</button>
-                        <button onClick={handleStoryExport} className="flex-1 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-all">Generate Video →</button>
-                      </div>
+              <div className="flex-1 flex min-h-0 overflow-hidden">
+                {/* PREVIEW */}
+                <div className="relative flex-1 flex flex-col min-w-0 p-4 md:p-6">
+                  <div className="absolute inset-0 ui-dots-bg opacity-30 pointer-events-none" />
+                  <div className="relative flex items-center justify-between mb-4 flex-shrink-0">
+                    <div className="flex items-center gap-2.5">
+                      <span className="ui-chip !h-6 !px-2.5 ui-mono">SC {String(selectedSceneIdx + 1).padStart(2, '0')}</span>
+                      <span className="text-[13px] font-medium truncate max-w-[320px]">{selectedScene?.title}</span>
                     </div>
+                    {selectedScene?.approved && <span className="ui-chip ui-chip-solid">{Ico.check}Approved</span>}
                   </div>
-                )}
-
-                {/* TOP BAR */}
-                <div className="flex-shrink-0 h-[48px] border-b border-[rgba(255,255,255,0.08)] px-5 flex items-center gap-3 bg-[#0a0a0a]">
-                  <button onClick={() => setStoryStep(2)} className="text-[11px] text-[rgba(255,255,255,0.3)] hover:text-white transition-colors">← Back</button>
-                  <span className="text-[10px] text-[rgba(255,255,255,0.35)] bg-[rgba(255,255,255,0.04)] px-2 py-0.5 rounded">{themeLabel}</span>
-                  <span className="text-[11px] text-[rgba(255,255,255,0.25)]">{generatedScript.length} scenes</span>
-                </div>
-
-                {/* MAIN: Preview + Editor */}
-                <div className="flex-1 flex min-h-0 overflow-hidden">
-                  {/* PREVIEW */}
-                  <div className="flex-1 flex flex-col min-w-0 p-5 md:p-7">
-                    <div className="flex items-center justify-between mb-4 flex-shrink-0">
-                      <span className="text-[11px] font-medium text-[rgba(255,255,255,0.5)] bg-[rgba(255,255,255,0.05)] px-2.5 py-1 rounded-md uppercase tracking-wider">Scene {selectedSceneIdx + 1}</span>
-                      {selectedScene?.approved && (
-                        <span className="flex items-center gap-1 text-[11px] text-[rgba(74,222,128,0.8)] font-medium">
-                          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3,8 6.5,11.5 13,5"/></svg>
-                          Approved
-                        </span>
+                  <div className="relative flex-1 flex items-center justify-center min-h-0">
+                    <div className={`relative rounded-[16px] border border-[var(--line-2)] bg-[#0b0b0b] overflow-hidden flex items-center justify-center shadow-[0_30px_80px_-20px_rgba(0,0,0,0.9)] ${storyAspectRatio === '9:16' ? 'aspect-[9/16] h-full max-h-[62vh]' : 'aspect-video w-full max-w-[820px]'}`}>
+                      {selectedScene?.videoUrl ? (
+                        <video ref={storyVideoRef} src={selectedScene.videoUrl} loop playsInline
+                          onPlay={() => setStoryVideoPlaying(true)} onPause={() => setStoryVideoPlaying(false)}
+                          className="w-full h-full object-cover cursor-pointer"
+                          onClick={() => { const v = storyVideoRef.current; if (!v) return; storyVideoPlaying ? v.pause() : v.play(); }} />
+                      ) : selectedScene?.imageUrl ? (
+                        <img src={selectedScene.imageUrl} alt="" className="w-full h-full object-cover" />
+                      ) : selectedScene?.generating ? (
+                        <div className="flex flex-col items-center gap-3"><Spinner size={26} /><span className="text-[12px] text-[var(--fg-3)]">Generating preview…</span></div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-3 px-8 text-center text-white/20">
+                          {Ico.film}
+                          <span className="text-[12px] text-[var(--fg-4)]">{selectedScene?.sceneDescription.trim() ? 'Ready to generate' : 'Describe the scene to start'}</span>
+                        </div>
+                      )}
+                      {selectedScene?.videoUrl && (
+                        <button onClick={() => { const v = storyVideoRef.current; if (!v) return; storyVideoPlaying ? v.pause() : v.play(); }}
+                          className="absolute bottom-3 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shadow-lg hover:scale-105 transition-transform">
+                          {storyVideoPlaying ? Ico.pause : Ico.play}
+                        </button>
                       )}
                     </div>
-                    <div className="flex-1 flex items-center justify-center min-h-0">
-                      <div className={`relative rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#0d0d0d] overflow-hidden flex items-center justify-center ${storyAspectRatio === '9:16' ? 'aspect-[9/16] h-full max-h-[58vh]' : 'aspect-video w-full max-w-[760px]'}`}>
-                        {selectedScene?.videoUrl ? (
-                          <video ref={storyVideoRef} src={selectedScene.videoUrl} loop playsInline
-                            onPlay={() => setStoryVideoPlaying(true)} onPause={() => setStoryVideoPlaying(false)}
-                            className="w-full h-full object-cover cursor-pointer"
-                            onClick={() => { const v = storyVideoRef.current; if (!v) return; storyVideoPlaying ? v.pause() : v.play(); }} />
-                        ) : selectedScene?.imageUrl ? (
-                          <img src={selectedScene.imageUrl} alt="" className="w-full h-full object-cover" />
-                        ) : selectedScene?.generating ? (
-                          <div className="flex flex-col items-center gap-3">
-                            <div className="w-8 h-8 rounded-full border-2 border-[rgba(255,255,255,0.08)] border-t-white animate-spin" />
-                            <span className="text-[12px] text-[rgba(255,255,255,0.4)]">Generating preview…</span>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-center gap-2.5 px-8 text-center">
-                            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1"><rect x="2" y="3" width="20" height="14" rx="2"/><polygon points="9,7 16,10.5 9,14" fill="rgba(255,255,255,0.08)" stroke="none"/></svg>
-                            <span className="text-[12px] text-[rgba(255,255,255,0.28)]">{selectedScene?.sceneDescription.trim() ? 'Ready to generate' : 'Describe the scene to start'}</span>
-                          </div>
-                        )}
-                        {selectedScene?.videoUrl && (
-                          <button onClick={() => { const v = storyVideoRef.current; if (!v) return; storyVideoPlaying ? v.pause() : v.play(); }}
-                            className="absolute bottom-3 left-1/2 -translate-x-1/2 w-9 h-9 rounded-full bg-black/55 backdrop-blur flex items-center justify-center text-white hover:bg-black/75 transition-all">
-                            {storyVideoPlaying
-                              ? <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="2" width="4" height="12"/><rect x="9" y="2" width="4" height="12"/></svg>
-                              : <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><polygon points="3,1 14,8 3,15"/></svg>}
+                  </div>
+                </div>
+
+                {/* INSPECTOR */}
+                <aside className="w-[360px] flex-shrink-0 border-l border-[var(--line)] overflow-y-auto bg-[#060606] hidden md:block">
+                  {selectedScene ? (
+                    <div className="p-5 flex flex-col gap-5">
+                      <div>
+                        <div className="ui-eyebrow mb-2">Scene {selectedSceneIdx + 1} of {generatedScript.length}</div>
+                        <input value={selectedScene.title} onChange={e => updateScriptScene(selectedScene.id, { title: e.target.value })}
+                          className="w-full bg-transparent text-[18px] font-semibold tracking-[-0.02em] text-white outline-none border-b border-transparent focus:border-[var(--line-2)] pb-1 transition-colors" />
+                      </div>
+                      <div>
+                        <Label>Narration</Label>
+                        <TextArea value={selectedScene.narratorText} onChange={e => updateScriptScene(selectedScene.id, { narratorText: e.target.value })} className="min-h-[96px]" />
+                      </div>
+                      <div>
+                        <Label>Scene description</Label>
+                        <TextArea value={selectedScene.sceneDescription} onChange={e => updateScriptScene(selectedScene.id, { sceneDescription: e.target.value })} className="min-h-[84px] !text-[12.5px] !text-[var(--fg-2)]" />
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {([
+                          ['kenBurns', 'Camera', Ico.camera],
+                          ['includeNarrator', 'Narrator', Ico.mic],
+                          ['includeSubtitles', 'Subtitles', Ico.captions],
+                        ] as const).map(([key, label, icon]) => (
+                          <button key={key} onClick={() => updateScriptScene(selectedScene.id, { [key]: !selectedScene[key] } as Partial<ScriptScene>)}
+                            className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-full border text-[11.5px] transition-all ${selectedScene[key] ? 'border-white bg-white text-black font-medium' : 'border-[var(--line-2)] text-[var(--fg-3)] hover:text-white'}`}>
+                            {icon}{label}
                           </button>
+                        ))}
+                      </div>
+
+                      <div className="rounded-[14px] border border-[var(--line)] p-3.5 flex flex-col gap-3">
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-2 text-[12px] text-[var(--fg-2)]">
+                            <StatusDot status={selectedScene.approved ? 'completed' : selectedScene.generating ? 'processing' : selectedScene.error ? 'failed' : 'queued'} />
+                            {selectedScene.approved ? 'Approved' : selectedScene.generating ? 'Generating' : selectedScene.error ? 'Failed' : selectedScene.imageUrl ? 'Ready for review' : 'Not generated'}
+                          </span>
+                          {selectedScene.approved && <button onClick={() => unapproveStoryScene(selectedScene.id)} className="text-[11.5px] text-[var(--fg-3)] hover:text-white">Edit</button>}
+                        </div>
+                        {selectedScene.error && <ErrorNote>{selectedScene.error}</ErrorNote>}
+                        {!selectedScene.generating && (
+                          <div className="flex gap-2">
+                            {selectedScene.imageUrl ? (
+                              <>
+                                <button onClick={() => generateStoryScenePreview(selectedScene.id)} className="ui-btn ui-btn-sm ui-btn-secondary flex-1">Regenerate</button>
+                                {!selectedScene.approved && <button onClick={() => approveStoryScene(selectedScene.id)} className="ui-btn ui-btn-sm ui-btn-primary flex-1">{Ico.check}Approve</button>}
+                              </>
+                            ) : (
+                              <button onClick={() => generateStoryScenePreview(selectedScene.id)} disabled={!selectedScene.sceneDescription.trim()} className="ui-btn ui-btn-sm ui-btn-primary flex-1">
+                                {Ico.sparkle}{selectedScene.error ? 'Retry' : 'Generate preview'}
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
-                  </div>
+                  ) : (<div className="h-full flex items-center justify-center"><p className="text-[13px] text-[var(--fg-4)]">Select a scene</p></div>)}
+                </aside>
+              </div>
 
-                  {/* INSPECTOR — Scene Editor */}
-                  <div className="w-[360px] flex-shrink-0 border-l border-[rgba(255,255,255,0.08)] overflow-y-auto bg-[#080808]">
-                    {selectedScene ? (
-                      <div className="p-5 flex flex-col gap-4">
-                        <input value={selectedScene.title} onChange={e => updateScriptScene(selectedScene.id, { title: e.target.value })} className="bg-transparent text-[15px] font-medium text-white outline-none border-b border-transparent focus:border-[rgba(255,255,255,0.1)] pb-1 transition-colors" />
-                        <div className="border-t border-[rgba(255,255,255,0.05)]" />
-                        <div><div className="text-[10px] text-[rgba(255,255,255,0.25)] uppercase tracking-wider mb-1.5">Narrator</div>
-                          <textarea value={selectedScene.narratorText} onChange={e => updateScriptScene(selectedScene.id, { narratorText: e.target.value })} className="w-full bg-[#111] border border-[rgba(255,255,255,0.08)] rounded-lg p-3 text-[13px] text-white outline-none resize-none min-h-[70px] focus:border-[rgba(255,255,255,0.15)] transition-colors leading-relaxed" /></div>
-                        <div><div className="text-[10px] text-[rgba(255,255,255,0.25)] uppercase tracking-wider mb-1.5">Scene description</div>
-                          <textarea value={selectedScene.sceneDescription} onChange={e => updateScriptScene(selectedScene.id, { sceneDescription: e.target.value })} className="w-full bg-[#111] border border-[rgba(255,255,255,0.08)] rounded-lg p-3 text-[12px] text-[rgba(255,255,255,0.6)] outline-none resize-none min-h-[60px] focus:border-[rgba(255,255,255,0.15)] transition-colors leading-relaxed" /></div>
-                        {/* Camera movement + Narrator toggles */}
-                        <div className="flex gap-4">
-                          <button onClick={() => updateScriptScene(selectedScene.id, { kenBurns: !selectedScene.kenBurns })}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] transition-all ${selectedScene.kenBurns ? 'border-white text-white' : 'border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.35)]'}`}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 10l4.553-2.069A1 1 0 0121 8.871v6.258a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
-                            Camera move
-                          </button>
-                          <button onClick={() => updateScriptScene(selectedScene.id, { includeNarrator: !selectedScene.includeNarrator })}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] transition-all ${selectedScene.includeNarrator ? 'border-white text-white' : 'border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.35)]'}`}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-                            Narrator
-                          </button>
-                          <button onClick={() => updateScriptScene(selectedScene.id, { includeSubtitles: !selectedScene.includeSubtitles })}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[11px] transition-all ${selectedScene.includeSubtitles ? 'border-white text-white' : 'border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.35)]'}`}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 15h4M13 15h4M7 11h2M11 11h6"/></svg>
-                            Subtitles
-                          </button>
-                        </div>
-                        <div className="border-t border-[rgba(255,255,255,0.05)] pt-4">
-                          {selectedScene.generating ? (<div className="flex items-center gap-2.5"><div className="w-4 h-4 rounded-full border-2 border-[rgba(255,255,255,0.06)] border-t-white animate-spin" /><span className="text-[12px] text-[rgba(255,255,255,0.4)]">Generating...</span></div>
-                          ) : selectedScene.error ? (<div className="flex items-center gap-2"><span className="text-[11px] text-[rgba(248,113,113,0.6)]">{selectedScene.error}</span><button onClick={() => generateStoryScenePreview(selectedScene.id)} className="text-[11px] text-[rgba(255,255,255,0.5)] hover:text-white underline">Retry</button></div>
-                          ) : selectedScene.imageUrl ? (
-                            <div className="flex flex-col gap-2.5">
-                              <div className="h-20 rounded-lg bg-[#111] border border-[rgba(255,255,255,0.06)] overflow-hidden"><img src={selectedScene.imageUrl} alt="" className="w-full h-full object-cover" /></div>
-                              <button onClick={() => generateStoryScenePreview(selectedScene.id)} className="self-start px-3 py-1.5 border border-[rgba(255,255,255,0.1)] rounded-md text-[11px] text-[rgba(255,255,255,0.5)] hover:text-white transition-all">Regenerate</button>
-                            </div>
-                          ) : (
-                            <button onClick={() => generateStoryScenePreview(selectedScene.id)} disabled={!selectedScene.sceneDescription.trim()} className="px-4 py-2 border border-[rgba(255,255,255,0.12)] rounded-lg text-[12px] text-[rgba(255,255,255,0.55)] hover:text-white hover:border-[rgba(255,255,255,0.2)] disabled:opacity-20 disabled:cursor-not-allowed transition-all">Generate Preview</button>
-                          )}
-                        </div>
-                        <div className="border-t border-[rgba(255,255,255,0.05)] pt-3 flex items-center gap-3">
-                          <span className={`text-[9px] px-2 py-0.5 rounded-full font-medium ${selectedScene.approved ? 'bg-[rgba(74,222,128,0.1)] text-[rgba(74,222,128,0.6)]' : selectedScene.generating ? 'bg-[rgba(250,204,21,0.08)] text-[rgba(250,204,21,0.5)]' : selectedScene.imageUrl ? 'bg-[rgba(255,255,255,0.04)] text-[rgba(255,255,255,0.3)]' : 'bg-[rgba(255,255,255,0.03)] text-[rgba(255,255,255,0.2)]'}`}>
-                            {selectedScene.approved ? '✓ Approved' : selectedScene.generating ? 'Generating' : selectedScene.imageUrl ? 'Ready' : 'Queued'}
-                          </span>
-                          {selectedScene.imageUrl && !selectedScene.approved && (<button onClick={() => approveStoryScene(selectedScene.id)} className="text-[11px] text-[rgba(255,255,255,0.4)] border border-[rgba(255,255,255,0.1)] px-2.5 py-1 rounded-md hover:text-white hover:border-[rgba(255,255,255,0.2)] transition-all">Approve</button>)}
-                          {selectedScene.approved && (<button onClick={() => unapproveStoryScene(selectedScene.id)} className="text-[11px] text-[rgba(255,255,255,0.3)] hover:text-white transition-colors">Edit</button>)}
-                        </div>
+              {/* FILM STRIP */}
+              <div className="flex-shrink-0 border-t border-[var(--line)] bg-[#050505] px-4 md:px-6 py-3 flex items-center gap-4">
+                <div className="flex-1 flex items-center gap-2 overflow-x-auto py-1.5">
+                  {generatedScript.map((ss, idx) => {
+                    const isActive = ss.id === selectedSceneId;
+                    return (
+                      <div key={ss.id} className="relative group flex-shrink-0"
+                        draggable onDragStart={() => { storyDragI.current = idx; }} onDragEnter={() => { storyDragO.current = idx; }} onDragEnd={onStoryDragEnd} onDragOver={e => e.preventDefault()}>
+                        <button onClick={() => setSelectedSceneId(ss.id)}
+                          className={`relative block ${storyAspectRatio === '9:16' ? 'w-[52px]' : 'w-[112px]'} rounded-[10px] border overflow-hidden transition-all ${isActive ? 'border-white ring-2 ring-white/20' : 'border-[var(--line-2)] hover:border-[var(--line-3)] opacity-80 hover:opacity-100'} ${ss.generating ? 'animate-pulse' : ''}`}>
+                          <div className={`${storyAspectRatio === '9:16' ? 'aspect-[9/16]' : 'aspect-video'} bg-[#111] flex items-center justify-center`}>
+                            {ss.videoUrl ? <video src={ss.videoUrl} muted loop autoPlay playsInline className="w-full h-full object-cover" /> : ss.imageUrl ? <img src={ss.imageUrl} alt="" className="w-full h-full object-cover" /> : null}
+                          </div>
+                          <span className="absolute top-1 left-1 ui-mono text-[9px] text-white bg-black/70 px-1 rounded">{String(idx + 1).padStart(2, '0')}</span>
+                          {ss.approved && <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-white text-black flex items-center justify-center scale-90">{Ico.check}</span>}
+                        </button>
+                        {generatedScript.length > 1 && (
+                          <button onClick={() => removeStoryScene(ss.id)} aria-label="Remove scene"
+                            className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-black border border-[var(--line-3)] items-center justify-center text-[var(--fg-2)] hover:text-white hidden group-hover:flex">{Ico.x}</button>
+                        )}
                       </div>
-                    ) : (<div className="flex-1 flex items-center justify-center h-full"><p className="text-[13px] text-[rgba(255,255,255,0.2)]">Select a scene</p></div>)}
-                  </div>
+                    );
+                  })}
+                  <button onClick={addStoryScene} aria-label="Add scene"
+                    className={`${storyAspectRatio === '9:16' ? 'w-[52px] aspect-[9/16]' : 'w-[112px] aspect-video'} flex-shrink-0 rounded-[10px] border border-dashed border-[var(--line-2)] flex flex-col items-center justify-center gap-1 text-[var(--fg-4)] hover:text-white hover:border-[var(--line-3)] transition-all`}>
+                    {Ico.plus}
+                    {storyAspectRatio !== '9:16' && <span className="text-[10px]">Add scene</span>}
+                  </button>
                 </div>
-
-                {/* FILM STRIP */}
-                <div className="flex-shrink-0 border-t border-[rgba(255,255,255,0.08)] bg-[#0a0a0a] px-5 md:px-7 py-3.5 flex items-center gap-4">
-                  <div className="flex-1 flex items-center gap-2.5 overflow-x-auto pb-1">
-                    {generatedScript.map((ss, idx) => {
-                      const isActive = ss.id === selectedSceneId;
-                      return (
-                        <div key={ss.id} className="relative group flex-shrink-0"
-                          draggable onDragStart={() => { storyDragI.current = idx; }} onDragEnter={() => { storyDragO.current = idx; }} onDragEnd={onStoryDragEnd} onDragOver={e => e.preventDefault()}>
-                          <button onClick={() => setSelectedSceneId(ss.id)}
-                            className={`relative ${storyAspectRatio === '9:16' ? 'w-[54px]' : 'w-[116px]'} rounded-lg border overflow-hidden transition-all ${isActive ? 'border-white' : 'border-[rgba(255,255,255,0.1)] hover:border-[rgba(255,255,255,0.25)]'} ${ss.generating ? 'animate-pulse' : ''}`}>
-                            <div className={`${storyAspectRatio === '9:16' ? 'aspect-[9/16]' : 'aspect-video'} bg-[#131313] flex items-center justify-center`}>
-                              {ss.videoUrl ? <video src={ss.videoUrl} muted loop autoPlay playsInline className="w-full h-full object-cover" /> : ss.imageUrl ? <img src={ss.imageUrl} alt="" className="w-full h-full object-cover" /> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1.2"><rect x="2" y="3" width="20" height="14" rx="2"/></svg>}
-                            </div>
-                            <span className="absolute top-1 left-1 text-[9px] font-medium text-white bg-black/60 px-1.5 py-0.5 rounded">{idx + 1}</span>
-                            {ss.approved && <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[rgba(74,222,128,0.85)] flex items-center justify-center"><svg width="8" height="8" viewBox="0 0 16 16" fill="none" stroke="black" strokeWidth="3"><polyline points="3,8 6.5,11.5 13,5"/></svg></span>}
-                          </button>
-                          {generatedScript.length > 1 && (
-                            <button onClick={() => removeStoryScene(ss.id)}
-                              className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-black border border-[rgba(255,255,255,0.15)] items-center justify-center text-[rgba(255,255,255,0.5)] hover:text-white hover:border-[rgba(255,255,255,0.35)] text-[10px] hidden group-hover:flex">×</button>
-                          )}
-                        </div>
-                      );
-                    })}
-                    <button onClick={addStoryScene} className={`${storyAspectRatio === '9:16' ? 'w-[54px] aspect-[9/16]' : 'w-[116px] aspect-video'} flex-shrink-0 rounded-lg border border-dashed border-[rgba(255,255,255,0.12)] flex flex-col items-center justify-center gap-1 hover:border-[rgba(255,255,255,0.25)] transition-all`}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5"><path d="M12 5v14M5 12h14"/></svg>
-                      <span className="text-[9px] text-[rgba(255,255,255,0.3)]">{storyAspectRatio === '9:16' ? 'Add' : 'Add Scene'}</span>
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-3 flex-shrink-0">
-                    <span className="text-[11px] text-[rgba(255,255,255,0.35)]">{generatedScript.filter(s => s.approved).length}/{generatedScript.length} approved</span>
-                    <button onClick={() => setShowExport(true)} disabled={!storyHasApproved} className="px-5 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-15 disabled:cursor-not-allowed transition-all">Export →</button>
-                  </div>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <span className="ui-mono text-[11px] text-[var(--fg-3)] hidden sm:inline">{generatedScript.filter(s => s.approved).length}/{generatedScript.length} approved</span>
+                  <button onClick={() => setShowExport(true)} disabled={!storyHasApproved} className="ui-btn ui-btn-primary">Export{Ico.arrow}</button>
                 </div>
-              </>)}
-            </div>
-          )}
-        </div>
-        <style jsx global>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+              </div>
+            </>)}
+          </div>
+        )}
       </div>
     )}
 
-    {/* ═══ 2D ANIMATION — SETUP (Animated-Storytelling style) ═══ */}
+    {/* ═══ 2D ANIMATION — SETUP ═══ */}
     {mode === 'cartoon' && !cartoonSetupDone && (
-    <div className="flex flex-col h-screen bg-black text-white">
-      <div className="flex-shrink-0 border-b border-[rgba(255,255,255,0.1)] sticky top-0 z-30 bg-black">
-        <div className="max-w-[900px] mx-auto px-6 py-4 flex items-center">
-          <button onClick={() => setMode('selecting')} className="text-[13px] text-[rgba(255,255,255,0.3)] hover:text-white transition-colors mr-3">←</button>
-          <span className="text-[15px] font-semibold tracking-[-0.3px]">2D Animation</span>
-          <div className="flex-1 flex justify-center items-center">
-            {[0, 1].map(i => (
-              <div key={i} className="flex items-center">
-                <span className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-semibold ${i === 0 ? 'bg-white text-black' : 'bg-[rgba(255,255,255,0.06)] text-[rgba(255,255,255,0.35)] border border-[rgba(255,255,255,0.1)]'}`}>{i + 1}</span>
-                {i < 1 && <span className="h-[2px] w-16 mx-1 rounded-full bg-[rgba(255,255,255,0.1)]" />}
-              </div>
-            ))}
-          </div>
-          <span className="w-6" />
-        </div>
-      </div>
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-[900px] mx-auto px-6 py-8 flex flex-col gap-7 animate-[fadeIn_0.3s_ease]">
-          <div>
-            <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Story Title / Prompt</label>
-            <textarea value={cTitle} onChange={e => setCTitle(e.target.value)} rows={3}
-              placeholder="A detective uncovers a midnight conspiracy…"
-              className="w-full bg-[#0e0e0e] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 py-3.5 text-[14px] outline-none resize-none focus:border-[rgba(255,255,255,0.2)] transition-colors placeholder:text-[rgba(255,255,255,0.22)] leading-relaxed" />
-          </div>
+      <div className="flex flex-col h-screen">
+        <EditorHeader format="2D Animation" onBack={goHome} steps={['Setup', 'Characters', 'Studio']} current={0} />
+        <EditorPage>
+          <Intro eyebrow="Step 1 · Setup" title="Set up your episode" desc="A premise, a look and the shape of the cut. You'll build the cast next." />
 
-          <div>
-            <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Visual Style</label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {STYLES.map(s => (
-                <button key={s.value} onClick={() => setStyle(s.value)}
-                  className={`relative aspect-[5/3] rounded-xl overflow-hidden border transition-all ${style === s.value ? 'border-white' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.22)]'}`}>
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#2a2a31] to-[#121214]" />
-                  <div className="absolute inset-0 flex items-end p-3"><span className="text-[13px] font-semibold tracking-[-0.2px]">{s.label}</span></div>
-                  {style === s.value && <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-white flex items-center justify-center"><svg width="9" height="9" viewBox="0 0 14 14" fill="none" stroke="black" strokeWidth="2.5"><path d="M2 7l3.5 3.5L12 4" /></svg></span>}
-                </button>
+          <Section n={1} title="Premise">
+            <TextArea big value={cTitle} onChange={e => setCTitle(e.target.value)} rows={3}
+              placeholder="A detective uncovers a midnight conspiracy…" />
+          </Section>
+
+          <Section n={2} title="Visual style">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              {STYLES.map((s, i) => (
+                <StyleCard key={s.value} label={s.label} index={i} active={style === s.value} onClick={() => setStyle(s.value)} />
               ))}
             </div>
-          </div>
+          </Section>
 
-          <div className="flex flex-col sm:flex-row gap-5 flex-wrap">
-            <div>
-              <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Format</label>
-              <div className="flex gap-1.5">
-                {(['16:9', '9:16', '1:1'] as AspectRatio[]).map(a => (
-                  <button key={a} onClick={() => setCAspect(a)}
-                    className={`px-3 py-2 rounded-lg border text-[12px] transition-all flex items-center gap-1.5 ${cAspect === a ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>
-                    <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      {a === '9:16' ? <rect x="6.5" y="2.5" width="7" height="15" rx="1.5" /> : a === '16:9' ? <rect x="2.5" y="6.5" width="15" height="7" rx="1.5" /> : <rect x="4.5" y="4.5" width="11" height="11" rx="1.5" />}
-                    </svg>
-                    {a}
-                  </button>
-                ))}
+          <Section n={3} title="Output">
+            <div className="grid sm:grid-cols-2 gap-5">
+              <div>
+                <Label>Format</Label>
+                <Segmented full value={cAspect} onChange={setCAspect}
+                  options={(['16:9', '9:16', '1:1'] as AspectRatio[]).map(a => ({ value: a, label: a, icon: <AspectGlyph a={a} /> }))} />
+              </div>
+              <div>
+                <Label>Quality</Label>
+                <Segmented full value={res} onChange={setRes}
+                  options={(['480p', '720p'] as Resolution[]).map(r => ({ value: r, label: r }))} />
+              </div>
+              <div>
+                <Label>Scene duration</Label>
+                <Segmented full value={cSceneDur} onChange={setCSceneDur}
+                  options={([4, 6, 8] as const).map(d => ({ value: d, label: `${d}s`, icon: Ico.clock }))} />
+              </div>
+              <div>
+                <Label>Scene count</Label>
+                <Segmented full value={cSceneCount} onChange={setCSceneCount}
+                  options={([3, 5, 8] as const).map(n => ({ value: n, label: String(n) }))} />
               </div>
             </div>
-            <div>
-              <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Quality</label>
-              <div className="flex gap-1.5">
-                {(['480p', '720p'] as Resolution[]).map(r => (
-                  <button key={r} onClick={() => setRes(r)}
-                    className={`px-3.5 py-2 rounded-lg border text-[12px] transition-all ${res === r ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>{r}</button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Scene duration</label>
-              <div className="flex gap-1.5">
-                {([4, 6, 8] as const).map(d => (
-                  <button key={d} onClick={() => setCSceneDur(d)}
-                    className={`px-3 py-2 rounded-lg border text-[12px] transition-all flex items-center gap-1 ${cSceneDur === d ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>
-                    <svg width="11" height="11" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="10" cy="10" r="7.5" /><path d="M10 5.5V10l3 1.8" strokeLinecap="round" /></svg>
-                    {d}s
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Scene count</label>
-              <div className="flex gap-1.5">
-                {([3, 5, 8] as const).map(n => (
-                  <button key={n} onClick={() => setCSceneCount(n)}
-                    className={`px-3.5 py-2 rounded-lg border text-[12px] transition-all ${cSceneCount === n ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>{n}</button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-end gap-4 border-t border-[rgba(255,255,255,0.06)] pt-5">
-            <button onClick={() => setCartoonSetupDone(true)} disabled={!cTitle.trim()}
-              className="px-6 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all flex items-center gap-1.5">
-              Next: Characters
-              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 7h12M8 2l5 5-5 5" /></svg>
-            </button>
-          </div>
-        </div>
+          </Section>
+        </EditorPage>
+        <ActionBar left={<span className="truncate"><span className="text-white font-medium">{cSceneCount} scenes</span> · {cSceneDur}s · {cAspect} · {res}</span>}>
+          <button onClick={() => setCartoonSetupDone(true)} disabled={!cTitle.trim()} className="ui-btn ui-btn-primary">Next: Characters{Ico.arrow}</button>
+        </ActionBar>
       </div>
-    </div>
     )}
 
     {/* ═══ 2D ANIMATION FLOW ═══ */}
     {mode === 'cartoon' && cartoonSetupDone && (
-    <div className="flex flex-col h-screen bg-black">
-      <div className="flex-shrink-0 border-b border-[rgba(255,255,255,0.1)] sticky top-0 z-30 bg-black">
-        <div className="max-w-[680px] mx-auto px-6 py-4 flex items-center">
-          <button onClick={() => setMode('selecting')} className="text-[11px] text-[rgba(255,255,255,0.25)] hover:text-white mr-4 flex-shrink-0 transition-colors">←</button>
-          {roadmap.map((s, i) => (
-            <div key={s.n} className="flex items-center flex-1 last:flex-initial">
-              <button disabled={s.n === 4} onClick={() => {
-                if (s.n === 1) setStep(1);
-              }} className="flex items-center gap-2 disabled:cursor-default">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-medium border transition-all ${step === s.n ? 'bg-white text-black border-white' : step > s.n ? 'border-[rgba(255,255,255,0.25)] text-[rgba(255,255,255,0.5)]' : 'border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.25)]'}`}>
-                  {step > s.n ? <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3,8 6.5,11.5 13,5"/></svg> : s.n}
-                </div>
-                <span className={`text-[12px] hidden sm:inline ${step === s.n ? 'text-white font-medium' : 'text-[rgba(255,255,255,0.25)]'}`}>{s.l}</span>
-              </button>
-              {i < roadmap.length - 1 && <div className={`flex-1 h-px mx-3 ${step > s.n ? 'bg-[rgba(255,255,255,0.2)]' : 'bg-[rgba(255,255,255,0.06)]'}`} />}
-            </div>
-          ))}
-        </div>
-      </div>
+    <div className="flex flex-col h-screen">
+      <EditorHeader
+        format="2D Animation"
+        onBack={() => { if (step === 4) setStep(1); else setCartoonSetupDone(false); }}
+        steps={['Setup', 'Characters', 'Studio']}
+        current={step === 4 ? 2 : 1}
+        onStep={i => { if (i === 0) setCartoonSetupDone(false); else if (i === 1) setStep(1); }}
+        meta={<span className="ui-chip ui-chip-muted">{cSceneCount} scenes · {cSceneDur}s · {cAspect}</span>}
+      />
 
-      <div className="flex-1 overflow-hidden flex flex-col">
+      <div className="flex-1 overflow-y-auto flex flex-col">
 
         {/* STEP 1 */}
         {step === 1 && (
-          <div className="flex flex-col flex-1 min-h-0 animate-[fadeIn_0.3s_ease]">
+          <>
             {(genLoading || genDone) && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-                <div className="w-full max-w-[400px] bg-[#0f0f0f] border border-[rgba(255,255,255,0.1)] rounded-xl p-6 mx-4">
-                  {genLoading ? (
-                    <div className="flex flex-col items-center py-8">
-                      <div className="w-10 h-10 rounded-full border-2 border-[rgba(255,255,255,0.08)] border-t-white animate-spin mb-4" />
-                      <p className="text-[14px] text-[rgba(255,255,255,0.55)]">Generating your character...</p>
+              <Modal width={400}>
+                {genLoading ? (
+                  <div className="flex flex-col items-center py-10">
+                    <Spinner size={30} className="mb-5" />
+                    <p className="text-[14px] font-medium">Designing your character…</p>
+                    <p className="text-[12px] text-[var(--fg-4)] mt-1">{STYLES.find(x => x.value === style)?.label} style</p>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="ui-eyebrow mb-2">{editingChar ? editingChar.name : `Character ${chars.length + 1}`}</div>
+                    <h3 className="text-[18px] font-semibold tracking-[-0.03em] mb-4">Use this character?</h3>
+                    <div className="relative aspect-[3/4] bg-[#0a0a0a] rounded-[14px] border border-[var(--line)] overflow-hidden mb-5">
+                      {pendingChar?.imageUrl ? (
+                        <img src={pendingChar.imageUrl} alt="Generated character" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-white/15 scale-[2]">{Ico.user}</div>
+                      )}
                     </div>
-                  ) : (
-                    <div>
-                      <div className="aspect-[3/4] bg-[#161616] rounded-[10px] border border-[rgba(255,255,255,0.08)] overflow-hidden mb-5">
-                        {pendingChar?.imageUrl ? (
-                          <img src={pendingChar.imageUrl} alt="Generated character" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="1"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex gap-3">
-                        <button onClick={() => {
-                          if (!editingChar && pendingChar) setEditingChar(pendingChar);
-                          setGenDone(false);
-                          setPendingChar(null);
-                        }} className="flex-1 py-2.5 border border-[rgba(255,255,255,0.12)] rounded-lg text-[13px] text-[rgba(255,255,255,0.6)] hover:text-white hover:border-[rgba(255,255,255,0.2)] transition-all">← Edit</button>
-                        <button onClick={confirmChar} className="flex-1 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-all">Use this character →</button>
-                      </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => {
+                        if (!editingChar && pendingChar) setEditingChar(pendingChar);
+                        setGenDone(false);
+                        setPendingChar(null);
+                      }} className="ui-btn ui-btn-secondary flex-1">Edit prompt</button>
+                      <button onClick={confirmChar} className="ui-btn ui-btn-primary flex-1">{Ico.check}Use character</button>
                     </div>
-                  )}
-                </div>
-              </div>
+                  </div>
+                )}
+              </Modal>
             )}
 
-            <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-              <div className="w-full max-w-[620px] mx-auto p-5 md:p-7 flex flex-col gap-4 overflow-y-auto">
-                <h2 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px]">Describe your character</h2>
-                <textarea value={prompt} onChange={e => setPrompt(e.target.value)}
-                  className="min-h-[160px] w-full bg-[#111] border border-[rgba(255,255,255,0.1)] rounded-xl p-4 text-[15px] text-white placeholder:text-[rgba(255,255,255,0.22)] outline-none resize-none focus:border-[rgba(255,255,255,0.18)] transition-colors leading-relaxed"
-                  placeholder="A confident 60-year-old male politician in a navy suit. Strong voice, authoritative presence..." />
+            <EditorPage width={1080}>
+              <Intro eyebrow="Step 2 · Characters" title="Build your cast" desc="Describe each character once — they stay consistent in every scene. Add as many as the story needs." />
+              <div className="grid lg:grid-cols-[1fr_360px] gap-8 items-start">
                 <div>
-                  <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
-                  {photoUrl ? (
-                    <div className="relative border border-[rgba(255,255,255,0.1)] rounded-[10px] overflow-hidden">
-                      <img src={photoUrl} alt="" className="w-full h-28 object-cover" />
-                      <button onClick={clearPhoto} className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/70 flex items-center justify-center text-[rgba(255,255,255,0.7)] hover:text-white text-xs">×</button>
+                  <Section n={1} title={editingChar ? `Edit ${editingChar.name}` : `Character ${chars.length + 1}`}>
+                    <TextArea big value={prompt} onChange={e => setPrompt(e.target.value)} className="min-h-[170px]"
+                      placeholder="A confident 60-year-old male politician in a navy suit. Strong voice, authoritative presence..." />
+                    <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
+                    <div className="mt-3">
+                      {photoUrl ? (
+                        <div className="relative h-28 rounded-[14px] border border-[var(--line)] overflow-hidden">
+                          <img src={photoUrl} alt="" className="w-full h-full object-cover" />
+                          <span className="absolute bottom-2 left-2 ui-chip">Likeness reference</span>
+                          <button onClick={clearPhoto} aria-label="Remove photo" className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/70 backdrop-blur flex items-center justify-center text-white/80 hover:text-white">{Ico.x}</button>
+                        </div>
+                      ) : (
+                        <button onClick={() => fileRef.current?.click()}
+                          className="w-full h-[72px] rounded-[14px] border border-dashed border-[var(--line-2)] flex items-center justify-center gap-3 text-[var(--fg-4)] hover:text-white hover:border-[var(--line-3)] transition-colors">
+                          {Ico.image}
+                          <span className="text-[12.5px]">Upload a photo for likeness</span>
+                          <span className="ui-chip ui-chip-muted">Optional</span>
+                        </button>
+                      )}
                     </div>
-                  ) : (
-                    <button onClick={() => fileRef.current?.click()} className="w-full border-[1.5px] border-dashed border-[rgba(255,255,255,0.12)] rounded-[10px] py-5 flex flex-col items-center gap-2 hover:border-[rgba(255,255,255,0.22)] transition-colors group">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="1.5" className="group-hover:stroke-[rgba(255,255,255,0.4)] transition-colors"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-                      <span className="text-[12px] text-[rgba(255,255,255,0.3)] group-hover:text-[rgba(255,255,255,0.5)]">Upload a photo for likeness</span>
-                      <span className="text-[9px] text-[rgba(255,255,255,0.2)] border border-[rgba(255,255,255,0.08)] rounded-full px-2 py-0.5">Optional</span>
-                    </button>
+                    <div className="flex items-center gap-3 mt-4">
+                      <button onClick={handleGenChar} disabled={!prompt.trim() || genLoading} className={`ui-btn ${chars.length ? 'ui-btn-secondary' : 'ui-btn-primary'}`}>
+                        {Ico.sparkle}{editingChar ? 'Regenerate character' : 'Generate character'}
+                      </button>
+                      <span className="text-[12px] text-[var(--fg-4)]">{STYLES.find(x => x.value === style)?.label} style</span>
+                    </div>
+                  </Section>
+
+                  {chars.length > 0 && (
+                    <Section n={2} title="Direction" hint="Optional">
+                      <TextArea value={videoBrief} onChange={e => setVideoBrief(e.target.value)} className="min-h-[96px]"
+                        placeholder="Tell Mave the exact action, mood, camera move, or dialogue. Put exact spoken lines in quotes." />
+                    </Section>
                   )}
                 </div>
-              </div>
 
-            </div>
-
-            {chars.length > 0 && (
-              <div className="flex-shrink-0 border-t border-[rgba(255,255,255,0.1)] px-5 md:px-7 py-4">
-                <div className="text-[10px] text-[rgba(255,255,255,0.35)] uppercase tracking-wider mb-2.5">Characters ({chars.length})</div>
-                <div className="flex gap-2.5 overflow-x-auto pb-1">
-                  {chars.map(c => (
-                    <div key={c.id} className="relative group w-[100px] flex-shrink-0">
-                      <button onClick={() => openEditChar(c)} className="w-full border border-[rgba(255,255,255,0.1)] rounded-[10px] overflow-hidden hover:border-[rgba(255,255,255,0.25)] transition-all bg-[#0f0f0f] text-left">
-                        <div className="h-[68px] bg-[#131313] flex items-center justify-center overflow-hidden">
-                          {c.imageUrl ? <img src={c.imageUrl} alt={c.name} className="w-full h-full object-cover object-top" /> : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1.5"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>}
-                        </div>
-                        <div className="px-2 py-1.5 text-[10px] text-center text-[rgba(255,255,255,0.5)] truncate">{c.name}</div>
-                      </button>
-                      <button onClick={() => setChars(prev => prev.filter(x => x.id !== c.id))}
-                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/80 border border-[rgba(255,255,255,0.1)] items-center justify-center text-[rgba(255,255,255,0.5)] hover:text-white hover:border-[rgba(255,255,255,0.3)] transition-all text-[10px] hidden group-hover:flex">×</button>
+                {/* Cast */}
+                <div className="ui-card p-4 lg:sticky lg:top-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-[13px] font-medium">Cast</span>
+                    <span className="ui-mono text-[10.5px] text-[var(--fg-4)]">{chars.length} {chars.length === 1 ? 'character' : 'characters'}</span>
+                  </div>
+                  {chars.length === 0 ? (
+                    <div className="rounded-[12px] border border-dashed border-[var(--line-2)] py-10 flex flex-col items-center gap-2 text-white/20">
+                      {Ico.user}
+                      <span className="text-[12px] text-[var(--fg-4)]">Generated characters appear here</span>
                     </div>
-                  ))}
-                  <button onClick={resetForm} className="w-[100px] h-[96px] flex-shrink-0 border border-dashed border-[rgba(255,255,255,0.1)] rounded-[10px] flex items-center justify-center hover:border-[rgba(255,255,255,0.18)] transition-all">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="1.5"><path d="M12 5v14M5 12h14"/></svg>
-                  </button>
-                </div>
-                <div className="mt-4 grid grid-cols-1 lg:grid-cols-[1fr_220px] gap-3">
-                  <textarea value={videoBrief} onChange={e => setVideoBrief(e.target.value)}
-                    className="h-20 bg-[#111] border border-[rgba(255,255,255,0.1)] rounded-lg p-3 text-[13px] text-white placeholder:text-[rgba(255,255,255,0.22)] outline-none resize-none focus:border-[rgba(255,255,255,0.2)]"
-                    placeholder="Optional: tell Mave the exact action, mood, camera move, or dialogue. Put exact spoken lines in quotes." />
-                  <div className="rounded-lg border border-[rgba(255,255,255,0.1)] bg-[#0d0d0d] p-3 flex flex-col justify-center gap-1">
-                    <div className="text-[10px] uppercase tracking-[1.4px] text-[rgba(255,255,255,0.35)]">Production</div>
-                <div className="text-[12px] text-white">{cSceneCount} scenes · {cSceneDur}s · {cAspect}</div>
-                    <div className="text-[11px] text-[rgba(255,255,255,0.36)] truncate">{cTitle}</div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-2">
+                      {chars.map(c => (
+                        <div key={c.id} className="relative group">
+                          <button onClick={() => openEditChar(c)} className={`w-full rounded-[12px] border overflow-hidden text-left transition-all ${editingChar?.id === c.id ? 'border-white' : 'border-[var(--line)] hover:border-[var(--line-3)]'}`}>
+                            <div className="aspect-[3/4] bg-[#111] flex items-center justify-center overflow-hidden text-white/15">
+                              {c.imageUrl ? <img src={c.imageUrl} alt={c.name} className="w-full h-full object-cover object-top" /> : Ico.user}
+                            </div>
+                            <div className="px-2 py-1.5 text-[10.5px] text-[var(--fg-2)] truncate">{c.name}</div>
+                          </button>
+                          <button onClick={() => setChars(prev => prev.filter(x => x.id !== c.id))} aria-label={`Remove ${c.name}`}
+                            className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/80 border border-[var(--line-2)] items-center justify-center text-white/70 hover:text-white hidden group-hover:flex">{Ico.x}</button>
+                        </div>
+                      ))}
+                      <button onClick={() => { setEditingChar(null); resetForm(); }} aria-label="New character"
+                        className="aspect-[3/4] rounded-[12px] border border-dashed border-[var(--line-2)] flex items-center justify-center text-[var(--fg-4)] hover:text-white hover:border-[var(--line-3)] transition-colors">
+                        {Ico.plus}
+                      </button>
+                    </div>
+                  )}
+                  <div className="mt-4 pt-4 border-t border-[var(--line)]">
+                    <div className="ui-eyebrow !text-[9.5px] mb-1.5">Production</div>
+                    <div className="text-[12.5px]">{cSceneCount} scenes · {cSceneDur}s · {cAspect} · {res}</div>
+                    <div className="text-[11.5px] text-[var(--fg-4)] truncate mt-0.5">{cTitle}</div>
                   </div>
                 </div>
               </div>
-            )}
+            </EditorPage>
 
-            <div className="flex-shrink-0 border-t border-[rgba(255,255,255,0.1)] px-5 md:px-7 py-3 flex items-center justify-between bg-[#0f0f0f]">
-              <span className="text-[11px] text-[rgba(255,255,255,0.35)]">{editingChar ? editingChar.name : `Character ${chars.length + 1}`}</span>
-              <div className="flex gap-2.5">
-                <button onClick={handleGenChar} disabled={!prompt.trim() || genLoading}
-                  className="px-4 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-15 disabled:cursor-not-allowed transition-all">Generate Character →</button>
-                {chars.length > 0 && (
-                  <button onClick={handleAutoGenerate}
-                    className="px-4 py-2 border border-[rgba(255,255,255,0.12)] text-[12px] text-[rgba(255,255,255,0.75)] rounded-lg hover:text-white hover:border-[rgba(255,255,255,0.24)] transition-all">Generate Animation →</button>
-                )}
-              </div>
-            </div>
-          </div>
+            <ActionBar left={chars.length ? <span><span className="text-white font-medium">{chars.length}</span> in cast · ready to animate</span> : <span>Generate at least one character</span>}>
+              {chars.length > 0 && (
+                <button onClick={handleAutoGenerate} className="ui-btn ui-btn-primary">Generate animation{Ico.arrow}</button>
+              )}
+            </ActionBar>
+          </>
         )}
 
         {/* Legacy manual scene builder is disabled for the cleaned 2D flow. */}

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { animatedStoryCost } from '@/lib/types';
 import StudioGenerationView from './StudioGenerationView';
+import { EditorHeader, EditorPage, Intro, Section, Label, Segmented, StyleCard, Toggle, TextArea, VoiceGrid, ActionBar, Credits, ErrorNote, Spinner, AspectGlyph, Ico } from '@/components/editor/kit';
 
 type Step = 'setup' | 'character' | 'generating' | 'done';
 type Aspect = '16:9' | '9:16' | '1:1';
@@ -24,15 +25,6 @@ const ASPECTS: { id: Aspect; label: string; sub: string }[] = [
 ];
 const DURATIONS = [1, 2, 3, 5, 10];
 
-// Voice filter dimensions (driven by ElevenLabs labels)
-const FILTER_DIMS: { key: string; label: string }[] = [
-  { key: 'accent', label: 'Accent' },
-  { key: 'gender', label: 'Gender' },
-  { key: 'age', label: 'Age' },
-  { key: 'use_case', label: 'Use case' },
-];
-const prettyLabel = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-
 export default function AnimatedStorytelling({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState<Step>('setup');
 
@@ -48,8 +40,6 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
   const [voices, setVoices] = useState<Voice[]>([]);
   const [voiceId, setVoiceId] = useState<string | null>(null);
   const [previewVoice, setPreviewVoice] = useState<string | null>(null); // voice_id currently loading/playing
-  const [voiceFilters, setVoiceFilters] = useState<Record<string, string>>({}); // dim key -> selected value
-  const [openFilter, setOpenFilter] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const reqRef = useRef<string | null>(null); // latest requested voice (guards async races)
 
@@ -191,327 +181,169 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
     } catch { setGenStatus('failed'); setGenErr('Failed to start generation'); }
   };
 
-  // ── Voice filtering ──
-  const filterOptions = (key: string) =>
-    Array.from(new Set(voices.map(v => v.labels?.[key]).filter(Boolean) as string[])).sort();
-  const filteredVoices = voices.filter(v =>
-    FILTER_DIMS.every(d => !voiceFilters[d.key] || v.labels?.[d.key] === voiceFilters[d.key])
-  );
-  const setVoiceFilter = (key: string, val: string) =>
-    setVoiceFilters(f => { const n = { ...f }; if (val) n[key] = val; else delete n[key]; return n; });
-  const activeFilterCount = Object.keys(voiceFilters).length;
+  const stepIndex = step === 'setup' ? 0 : step === 'character' ? 1 : 2;
+  const cost = animatedStoryCost(durationMinutes, resolution);
+  const inStudio = step === 'generating' || step === 'done';
 
   return (
-    <div className="flex flex-col min-h-screen bg-black text-white">
-      {/* Header */}
-      <div className="flex-shrink-0 border-b border-[rgba(255,255,255,0.08)] sticky top-0 z-30 bg-black">
-        <div className="max-w-[900px] mx-auto px-6 py-4 flex items-center">
-          <button onClick={onBack} className="text-[13px] text-[rgba(255,255,255,0.3)] hover:text-white transition-colors mr-3">←</button>
-          <span className="text-[15px] font-semibold tracking-[-0.3px]">Animated Storytelling</span>
-          <div className="flex-1 flex justify-center items-center">
-            {[0, 1, 2].map(i => {
-              const stepIndex = step === 'setup' ? 0 : step === 'character' ? 1 : 2;
-              const done = i < stepIndex;
-              const current = i === stepIndex;
-              const reached = i <= stepIndex;
-              return (
-                <div key={i} className="flex items-center">
-                  <span className={`relative w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-semibold transition-all duration-300
-                    ${reached ? 'bg-white text-black' : 'bg-[rgba(255,255,255,0.06)] text-[rgba(255,255,255,0.35)] border border-[rgba(255,255,255,0.1)]'}
-                    ${current ? 'ring-2 ring-[rgba(255,255,255,0.18)] ring-offset-2 ring-offset-black' : ''}`}>
-                    {done
-                      ? <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="black" strokeWidth="2.5"><path d="M2 7.5l3.2 3.2L12 4" /></svg>
-                      : i + 1}
-                  </span>
-                  {i < 2 && (
-                    <span className="relative h-[2px] w-16 mx-1 rounded-full bg-[rgba(255,255,255,0.1)] overflow-hidden">
-                      <span className={`absolute inset-y-0 left-0 bg-white rounded-full transition-all duration-500 ${i < stepIndex ? 'w-full' : current ? 'w-1/2' : 'w-0'}`} />
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          <span className="w-6" />
-        </div>
-      </div>
+    <div className="flex flex-col min-h-screen text-white">
+      <EditorHeader
+        format="Animated Story"
+        onBack={onBack}
+        steps={['Setup', 'Character', 'Render']}
+        current={stepIndex}
+        onStep={inStudio ? undefined : i => setStep(i === 0 ? 'setup' : 'character')}
+        right={<Credits n={cost} suffix="" />}
+      />
 
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-[900px] mx-auto px-6 py-8 animate-[fadeIn_0.3s_ease]">
+      {/* ── SETUP ── */}
+      {step === 'setup' && (
+        <>
+          <EditorPage>
+            <Intro eyebrow="Step 1 · Setup" title="Shape your story" desc="Give it a premise, pick a look and a narrator. We'll handle the script, scenes and edit." />
 
-          {/* ── SETUP ── */}
-          {step === 'setup' && (
-            <div className="flex flex-col gap-7">
-              {/* Story Title / Prompt */}
-              <div>
-                <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Story Title / Prompt</label>
-                <textarea value={title} onChange={e => setTitle(e.target.value)} rows={3}
-                  placeholder="A detective uncovers a midnight conspiracy…"
-                  className="w-full bg-[#0e0e0e] border border-[rgba(255,255,255,0.08)] rounded-xl px-4 py-3.5 text-[14px] outline-none resize-none focus:border-[rgba(255,255,255,0.2)] transition-colors placeholder:text-[rgba(255,255,255,0.22)] leading-relaxed" />
+            <Section n={1} title="Premise">
+              <TextArea big value={title} onChange={e => setTitle(e.target.value)} rows={3}
+                placeholder="A detective uncovers a midnight conspiracy…" />
+            </Section>
+
+            <Section n={2} title="Visual style">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {STYLES.map((s, i) => (
+                  <StyleCard key={s.id} label={s.label} index={i} active={style === s.id} onClick={() => setStyle(s.id)} />
+                ))}
               </div>
+            </Section>
 
-              {/* Visual Style */}
-              <div>
-                <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Visual Style</label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {STYLES.map(s => (
-                    <button key={s.id} onClick={() => setStyle(s.id)}
-                      className={`relative aspect-[4/3] rounded-xl overflow-hidden border transition-all ${style === s.id ? 'border-white' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.22)]'}`}>
-                      <div className={`absolute inset-0 bg-gradient-to-br ${s.grad}`} />
-                      <div className="absolute inset-0 flex items-end p-3">
-                        <span className="text-[13px] font-semibold tracking-[-0.2px] drop-shadow-[0_1px_3px_rgba(0,0,0,0.7)]">{s.label}</span>
-                      </div>
-                      {style === s.id && (
-                        <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-white flex items-center justify-center">
-                          <svg width="9" height="9" viewBox="0 0 14 14" fill="none" stroke="black" strokeWidth="2.5"><path d="M2 7l3.5 3.5L12 4" /></svg>
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Format · Quality · Length */}
-              <div className="flex flex-col sm:flex-row gap-5">
+            <Section n={3} title="Output">
+              <div className="grid sm:grid-cols-2 gap-5 mb-5">
                 <div>
-                  <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Format</label>
-                  <div className="flex gap-1.5">
-                    {ASPECTS.map(a => (
-                      <button key={a.id} onClick={() => setAspect(a.id)} title={a.sub}
-                        className={`px-3 py-2 rounded-lg border text-[12px] transition-all flex items-center gap-1.5 ${aspect === a.id ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>
-                        <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
-                          {a.id === '9:16'
-                            ? <rect x="6.5" y="2.5" width="7" height="15" rx="1.5" />
-                            : a.id === '16:9'
-                            ? <rect x="2.5" y="6.5" width="15" height="7" rx="1.5" />
-                            : <rect x="4.5" y="4.5" width="11" height="11" rx="1.5" />}
-                        </svg>
-                        {a.label}
-                      </button>
-                    ))}
-                  </div>
+                  <Label>Format</Label>
+                  <Segmented full value={aspect} onChange={setAspect}
+                    options={ASPECTS.map(a => ({ value: a.id, label: a.label, icon: <AspectGlyph a={a.id} />, sub: a.sub }))} />
                 </div>
                 <div>
-                  <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Quality</label>
-                  <div className="flex gap-1.5">
-                    {(['720p', '1080p'] as const).map(r => (
-                      <button key={r} onClick={() => setResolution(r)}
-                        className={`px-3.5 py-1.5 rounded-lg border text-[12px] transition-all flex flex-col items-center leading-tight ${resolution === r ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>
-                        <span>{r}</span>
-                        <span className="text-[9px] text-[rgba(255,255,255,0.35)]">{animatedStoryCost(durationMinutes, r).toLocaleString()} cr</span>
-                      </button>
-                    ))}
+                  <Label>Quality</Label>
+                  <Segmented full value={resolution} onChange={setResolution}
+                    options={(['720p', '1080p'] as const).map(r => ({ value: r, label: r, sub: `${animatedStoryCost(durationMinutes, r).toLocaleString()} cr` }))} />
+                </div>
+              </div>
+              <Label>Length</Label>
+              <Segmented full value={durationMinutes} onChange={setDurationMinutes}
+                options={DURATIONS.map(d => ({ value: d, label: `${d} min`, sub: `${animatedStoryCost(d, resolution).toLocaleString()} cr` }))} />
+            </Section>
+
+            <Section n={4} title="Narrator" hint={includeNarrator ? 'Pick a voice — tap ▶ to preview' : 'Off — video will have no voiceover'}
+              right={<Toggle on={includeNarrator} onChange={setIncludeNarrator} label="Narrator" />}>
+              {includeNarrator ? (
+                <>
+                  <VoiceGrid voices={voices} value={voiceId} onChange={setVoiceId} previewing={previewVoice} onPreview={v => playVoicePreview(v as Voice)} />
+                  <div className="flex flex-wrap items-center gap-x-8 gap-y-4 mt-5 pt-5 border-t border-[var(--line)]">
+                    <div className="flex items-center gap-3">
+                      <span className="text-[12px] text-[var(--fg-3)]">Speed</span>
+                      <Segmented size="sm" value={narratorSpeed} onChange={setNarratorSpeed}
+                        options={[1, 1.5, 2].map(sp => ({ value: sp, label: `${sp}×` }))} />
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[12px] text-[var(--fg-3)]">Captions</span>
+                      <Toggle on={includeSubtitles} onChange={setIncludeSubtitles} label="Captions" />
+                    </div>
                   </div>
-                </div>
-                <div className="flex-1">
-                  <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)] block mb-2.5">Length</label>
-                  <div className="flex gap-1.5">
-                    {DURATIONS.map(d => (
-                      <button key={d} onClick={() => setDurationMinutes(d)}
-                        className={`flex-1 py-1.5 rounded-lg border text-[11px] transition-all flex flex-col items-center leading-tight ${durationMinutes === d ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.18)]'}`}>
-                        <span className="flex items-center gap-1">
-                          <svg width="11" height="11" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="10" cy="10" r="7.5" /><path d="M10 5.5V10l3 1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                          {d} min
-                        </span>
-                        <span className="text-[9px] text-[rgba(255,255,255,0.35)]">{animatedStoryCost(d, resolution).toLocaleString()} cr</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
+                </>
+              ) : (
+                <div className="rounded-[14px] border border-dashed border-[var(--line-2)] py-8 text-center text-[12.5px] text-[var(--fg-4)]">Narration disabled</div>
+              )}
+            </Section>
+          </EditorPage>
 
-              {/* Narrator */}
-              <div>
-                <div className="flex items-center gap-2.5 mb-3 flex-wrap">
-                  <label className="text-[12px] font-medium text-[rgba(255,255,255,0.7)]">Narrator</label>
-                  <button onClick={() => setIncludeNarrator(v => !v)}
-                    className={`w-9 h-5 rounded-full transition-colors relative ${includeNarrator ? 'bg-white' : 'bg-[rgba(255,255,255,0.12)]'}`}>
-                    <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-all ${includeNarrator ? 'left-[18px] bg-black' : 'left-0.5 bg-[rgba(255,255,255,0.5)]'}`} />
-                  </button>
-                  {includeNarrator && (
-                    <div className="flex items-center gap-1.5 flex-wrap ml-1">
-                      {FILTER_DIMS.map(d => {
-                        const opts = filterOptions(d.key);
-                        if (opts.length < 2) return null;
-                        const sel = voiceFilters[d.key];
-                        const open = openFilter === d.key;
-                        return (
-                          <div key={d.key} className="relative">
-                            <button type="button" onClick={() => setOpenFilter(open ? null : d.key)}
-                              className={`flex items-center gap-1 px-2 py-1 rounded-md border text-[10.5px] transition-all ${sel ? 'border-[rgba(255,255,255,0.4)] text-white bg-[rgba(255,255,255,0.07)]' : 'border-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.5)] hover:border-[rgba(255,255,255,0.2)]'}`}>
-                              {sel ? prettyLabel(sel) : d.label}
-                              <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" className={open ? 'rotate-180' : ''}><path d="M2 3.5L5 6.5 8 3.5" /></svg>
-                            </button>
-                            {open && (
-                              <>
-                                <div className="fixed inset-0 z-10" onClick={() => setOpenFilter(null)} />
-                                <div className="absolute z-20 mt-1 left-0 min-w-[140px] max-h-[210px] overflow-y-auto bg-[#161616] border border-[rgba(255,255,255,0.12)] rounded-lg p-1 shadow-[0_8px_24px_rgba(0,0,0,0.5)]">
-                                  <button type="button" onClick={() => { setVoiceFilter(d.key, ''); setOpenFilter(null); }}
-                                    className={`w-full text-left px-2 py-1.5 rounded text-[11px] ${!sel ? 'bg-[rgba(255,255,255,0.1)] text-white' : 'text-[rgba(255,255,255,0.55)] hover:bg-[rgba(255,255,255,0.05)]'}`}>All</button>
-                                  {opts.map(o => (
-                                    <button key={o} type="button" onClick={() => { setVoiceFilter(d.key, o); setOpenFilter(null); }}
-                                      className={`w-full text-left px-2 py-1.5 rounded text-[11px] ${sel === o ? 'bg-[rgba(255,255,255,0.1)] text-white' : 'text-[rgba(255,255,255,0.6)] hover:bg-[rgba(255,255,255,0.05)]'}`}>{prettyLabel(o)}</button>
-                                  ))}
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        );
-                      })}
-                      {activeFilterCount > 0 && (
-                        <button type="button" onClick={() => setVoiceFilters({})}
-                          className="text-[10.5px] text-[rgba(255,255,255,0.4)] hover:text-white px-1 transition-colors">Clear</button>
-                      )}
-                    </div>
-                  )}
-                </div>
-                {includeNarrator && (
-                  <>
-                    {filteredVoices.length === 0 && (
-                      <div className="text-[11px] text-[rgba(255,255,255,0.35)] py-3">No voices match these filters.</div>
-                    )}
-                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 max-h-[230px] overflow-y-auto pr-1">
-                      {filteredVoices.map(v => (
-                        <div key={v.voice_id} onClick={() => setVoiceId(v.voice_id === voiceId ? null : v.voice_id)}
-                          className={`flex items-center gap-2.5 pl-2 pr-1.5 py-2 rounded-xl border transition-all cursor-pointer ${voiceId === v.voice_id ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.18)]'}`}>
-                          <div className="w-8 h-8 rounded-full shrink-0"
-                            style={{
-                              background: v.labels?.gender === 'female'
-                                ? 'radial-gradient(circle at 28% 26%, #ffffff 0%, transparent 52%), radial-gradient(circle at 74% 70%, #ff7fb5 0%, transparent 56%), radial-gradient(circle at 68% 22%, #ffd4e6 0%, transparent 48%), linear-gradient(135deg, #ffd2e2, #ff9ec6)'
-                                : 'radial-gradient(circle at 28% 26%, #ffffff 0%, transparent 52%), radial-gradient(circle at 74% 70%, #5b8cff 0%, transparent 56%), radial-gradient(circle at 68% 22%, #d3e2ff 0%, transparent 48%), linear-gradient(135deg, #dbe7ff, #6f9bff)',
-                              boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.5), inset 0 -2px 5px rgba(0,0,0,0.18)',
-                            }} />
-                          <div className="min-w-0 flex-1">
-                            <div className="text-[12px] font-medium truncate">{v.name}</div>
-                            {v.labels?.descriptive && <div className="text-[10px] text-[rgba(255,255,255,0.35)] truncate">{v.labels.descriptive}</div>}
-                          </div>
-                          <button type="button" title="Preview voice"
-                            onClick={(e) => { e.stopPropagation(); playVoicePreview(v); }}
-                            className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center bg-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.18)] transition-colors">
-                            {previewVoice === v.voice_id
-                              ? <span className="block w-2 h-2 rounded-full bg-white animate-pulse" />
-                              : <svg width="11" height="11" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z" /></svg>}
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-x-6 gap-y-3 mt-4">
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-[12px] text-[rgba(255,255,255,0.5)]">Speed</span>
-                        <div className="flex gap-1.5">
-                          {[1, 1.5, 2].map(sp => (
-                            <button key={sp} onClick={() => setNarratorSpeed(sp)}
-                              className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all ${narratorSpeed === sp ? 'border-white bg-white text-black' : 'border-[rgba(255,255,255,0.12)] text-[rgba(255,255,255,0.6)] hover:border-[rgba(255,255,255,0.25)]'}`}>
-                              {sp}x
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-[12px] text-[rgba(255,255,255,0.5)]">Captions</span>
-                        <button onClick={() => setIncludeSubtitles(v => !v)}
-                          className={`w-9 h-5 rounded-full transition-colors relative ${includeSubtitles ? 'bg-white' : 'bg-[rgba(255,255,255,0.12)]'}`}>
-                          <span className={`absolute top-0.5 w-4 h-4 rounded-full transition-all ${includeSubtitles ? 'left-[18px] bg-black' : 'left-0.5 bg-[rgba(255,255,255,0.5)]'}`} />
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
+          <ActionBar left={
+            includeNarrator && !voiceId
+              ? <span>Pick a narrator voice to continue</span>
+              : <span className="truncate"><span className="text-white font-medium">{STYLES.find(s => s.id === style)?.label}</span> · {aspect} · {durationMinutes} min</span>
+          }>
+            <button onClick={() => setStep('character')} disabled={!title.trim() || (includeNarrator && !voiceId)} className="ui-btn ui-btn-primary">
+              Continue{Ico.arrow}
+            </button>
+          </ActionBar>
+        </>
+      )}
 
-              {/* Footer */}
-              <div className="flex items-center justify-end gap-4 border-t border-[rgba(255,255,255,0.06)] pt-5">
-                {includeNarrator && !voiceId && <span className="text-[11px] text-[rgba(255,255,255,0.3)]">Pick a narrator voice to continue</span>}
-                <button onClick={() => setStep('character')} disabled={!title.trim() || (includeNarrator && !voiceId)}
-                  className="px-6 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all flex items-center gap-1.5">
-                  Next Step
-                  <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 7h12M8 2l5 5-5 5" /></svg>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ── CHARACTER ── */}
-          {step === 'character' && (
-            <div className="flex flex-col gap-5">
-              <div>
-                <h2 className="text-[15px] font-medium mb-1">Create your character</h2>
-                <p className="text-[12px] text-[rgba(255,255,255,0.4)]">Describe the main character — they'll appear consistently across every scene.</p>
-              </div>
-              <textarea value={charDesc} onChange={e => setCharDesc(e.target.value)}
-                placeholder="A detective with slicked-back dark hair, full beard, tan trench coat, red tie..."
-                className="w-full bg-[#111] border border-[rgba(255,255,255,0.08)] rounded-lg p-3.5 text-[13px] outline-none resize-none h-24 focus:border-[rgba(255,255,255,0.18)] transition-colors placeholder:text-[rgba(255,255,255,0.2)] leading-relaxed" />
-              <div className="flex items-center gap-3">
-                <button onClick={generateCharacter} disabled={!charDesc.trim() || charGen}
-                  className="px-4 py-2 border border-[rgba(255,255,255,0.12)] rounded-lg text-[12px] hover:border-[rgba(255,255,255,0.25)] disabled:opacity-30 transition-all">
-                  {charGen ? 'Generating…' : charUrl ? 'Regenerate' : 'Generate Character'}
-                </button>
-                {charErr && <span className="text-[11px] text-[rgba(248,113,113,0.7)]">{charErr}</span>}
-              </div>
-
-              <div className="flex items-center justify-center min-h-[220px] border border-[rgba(255,255,255,0.06)] rounded-xl bg-[#0d0d0d] overflow-hidden">
-                {charGen ? (
-                  <div className="flex flex-col items-center gap-2"><div className="w-6 h-6 rounded-full border-2 border-[rgba(255,255,255,0.08)] border-t-white animate-spin" /><span className="text-[11px] text-[rgba(255,255,255,0.3)]">Designing character…</span></div>
-                ) : charUrl ? (
-                  <img src={charUrl} alt="character" className="max-h-[320px] object-contain" />
-                ) : (
-                  <span className="text-[12px] text-[rgba(255,255,255,0.25)]">Your character will appear here</span>
-                )}
-              </div>
-
-              <div className="flex justify-between items-center">
-                <button onClick={() => setStep('setup')} className="px-4 py-2 text-[12px] text-[rgba(255,255,255,0.5)] hover:text-white transition-colors">← Back</button>
+      {/* ── CHARACTER ── */}
+      {step === 'character' && (
+        <>
+          <EditorPage width={980}>
+            <Intro eyebrow="Step 2 · Character" title="Design your lead" desc="Describe the main character — they'll stay consistent across every scene." />
+            <div className="grid lg:grid-cols-[1fr_360px] gap-6 items-start">
+              <div className="flex flex-col gap-4">
+                <TextArea big value={charDesc} onChange={e => setCharDesc(e.target.value)} rows={6}
+                  placeholder="A detective with slicked-back dark hair, full beard, tan trench coat, red tie..." />
                 <div className="flex items-center gap-3">
-                  <span className="text-[11px] text-[rgba(255,255,255,0.4)]">
-                    <span className="text-white font-medium">{animatedStoryCost(durationMinutes, resolution).toLocaleString()}</span> credits · deducted now
-                  </span>
-                  <button onClick={startGeneration} disabled={!charUrl}
-                    className="px-6 py-2.5 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all">
-                    Generate Story →
+                  <button onClick={generateCharacter} disabled={!charDesc.trim() || charGen} className="ui-btn ui-btn-secondary">
+                    {charGen ? <><Spinner size={13} />Designing…</> : <>{Ico.sparkle}{charUrl ? 'Regenerate' : 'Generate character'}</>}
                   </button>
+                  <span className="text-[12px] text-[var(--fg-4)]">Style: {STYLES.find(s => s.id === style)?.label}</span>
                 </div>
+                {charErr && <ErrorNote>{charErr}</ErrorNote>}
+              </div>
+              <div className="relative aspect-[3/4] rounded-[18px] border border-[var(--line)] bg-[#080808] overflow-hidden flex items-center justify-center">
+                <div className="absolute inset-0 ui-dots-bg opacity-40" />
+                {charGen ? (
+                  <div className="relative flex flex-col items-center gap-3"><Spinner size={26} /><span className="text-[12px] text-[var(--fg-3)]">Designing character…</span></div>
+                ) : charUrl ? (
+                  <img src={charUrl} alt="character" className="relative w-full h-full object-contain" />
+                ) : (
+                  <div className="relative flex flex-col items-center gap-3 text-white/20">
+                    <span className="scale-[2.2]">{Ico.user}</span>
+                    <span className="text-[12px] text-[var(--fg-4)] mt-3">Your character appears here</span>
+                  </div>
+                )}
+                {charUrl && !charGen && <span className="absolute top-3 left-3 ui-chip ui-chip-solid">{Ico.check}Ready</span>}
               </div>
             </div>
-          )}
+          </EditorPage>
 
-          {/* ── GENERATING ── */}
-          {step === 'generating' && (
-            <StudioGenerationView
-              title={title}
-              modeLabel="Animated Storytelling"
-              aspect={aspect}
-              status={genStatus}
-              message={genMsg || 'Creating your animated story...'}
-              error={genErr}
-              scenes={scenes}
-              finalVideo={finalVideo}
-              step={genStep}
-              totalSteps={genTotal}
-              onBack={() => setStep('character')}
-              onRetry={startGeneration}
-            />
-          )}
+          <ActionBar left={<><Credits n={cost} /><span className="hidden sm:inline">· deducted when you generate</span></>}>
+            <button onClick={() => setStep('setup')} className="ui-btn ui-btn-ghost">Back</button>
+            <button onClick={startGeneration} disabled={!charUrl} className="ui-btn ui-btn-primary">Generate story{Ico.arrow}</button>
+          </ActionBar>
+        </>
+      )}
 
-          {/* ── DONE ── */}
-          {step === 'done' && finalVideo && (
-            <StudioGenerationView
-              title={title}
-              modeLabel="Animated Storytelling"
-              aspect={aspect}
-              status={genStatus}
-              message="Your animated story is ready"
-              scenes={scenes}
-              finalVideo={finalVideo}
-              step={genTotal}
-              totalSteps={genTotal || 1}
-              onBack={() => setStep('character')}
-              downloadHref={finalVideo}
-              onCreateAnother={() => { setStep('setup'); setCharUrl(null); setCharDesc(''); setFinalVideo(null); setGenStatus('idle'); setScenes([]); }}
-            />
-          )}
-        </div>
-      </div>
-      <style jsx global>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+      {/* ── GENERATING ── */}
+      {step === 'generating' && (
+        <StudioGenerationView
+          title={title}
+          modeLabel="Animated Storytelling"
+          aspect={aspect}
+          status={genStatus}
+          message={genMsg || 'Creating your animated story...'}
+          error={genErr}
+          scenes={scenes}
+          finalVideo={finalVideo}
+          step={genStep}
+          totalSteps={genTotal}
+          onBack={() => setStep('character')}
+          onRetry={startGeneration}
+        />
+      )}
+
+      {/* ── DONE ── */}
+      {step === 'done' && finalVideo && (
+        <StudioGenerationView
+          title={title}
+          modeLabel="Animated Storytelling"
+          aspect={aspect}
+          status={genStatus}
+          message="Your animated story is ready"
+          scenes={scenes}
+          finalVideo={finalVideo}
+          step={genTotal}
+          totalSteps={genTotal || 1}
+          onBack={() => setStep('character')}
+          downloadHref={finalVideo}
+          onCreateAnother={() => { setStep('setup'); setCharUrl(null); setCharDesc(''); setFinalVideo(null); setGenStatus('idle'); setScenes([]); }}
+        />
+      )}
     </div>
   );
 }
