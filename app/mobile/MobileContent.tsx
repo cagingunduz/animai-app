@@ -1,87 +1,69 @@
 'use client';
 
 import { useState } from 'react';
+import Logo from '@/components/Logo';
+import FormatArt, { FORMATS } from '@/components/FormatArt';
 
 export default function MobileContent() {
   const [showWarning, setShowWarning] = useState(false);
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
-      {/* Navbar */}
-      <header className="flex items-center justify-between px-5 py-4">
-        <div className="flex items-center gap-2">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5">
-            <polygon points="12,2 22,20 2,20"/>
-            <line x1="12" y1="8" x2="12" y2="15"/>
-            <circle cx="12" cy="17" r="0.5" fill="white"/>
-          </svg>
-          <span className="text-[15px] font-semibold tracking-[-0.3px]">AnimAI</span>
-        </div>
-        <button
-          onClick={() => setShowWarning(true)}
-          className="px-3.5 py-2 bg-white text-black text-[12px] font-semibold rounded-lg"
-        >
-          Start Creating
-        </button>
+    <div className="relative min-h-screen bg-black text-white flex flex-col overflow-hidden">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[480px]">
+        <div className="absolute inset-0 ui-grid-bg [mask-image:linear-gradient(to_bottom,black,transparent)]" />
+        <div className="absolute left-1/2 -top-32 -translate-x-1/2 w-[600px] h-[360px] bg-[radial-gradient(ellipse,rgba(255,255,255,0.1),transparent_65%)]" />
+      </div>
+
+      <header className="relative flex items-center justify-between px-5 py-4">
+        <Logo size={22} />
+        <button onClick={() => setShowWarning(true)} className="ui-btn ui-btn-sm ui-btn-primary">Start creating</button>
       </header>
 
-      {/* Hero */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 text-center pb-16">
-        <div className="w-16 h-16 rounded-2xl bg-[#111] border border-[rgba(255,255,255,0.08)] flex items-center justify-center mb-6">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="1.2">
-            <rect x="2" y="3" width="20" height="14" rx="2"/>
-            <polygon points="9,7 16,10.5 9,14" fill="rgba(255,255,255,0.15)" stroke="none"/>
-          </svg>
+      <main className="relative flex-1 flex flex-col px-5 pt-12 pb-10">
+        <div className="ui-rise">
+          <span className="inline-flex items-center gap-2 ui-chip ui-chip-muted !h-6 !px-3 mb-6">
+            <span className="w-1.5 h-1.5 rounded-full bg-white" />AI animation studio
+          </span>
+          <h1 className="text-[40px] font-semibold tracking-[-0.055em] leading-[0.98] mb-4">
+            Ideas in.<br /><span className="text-white/30">Animation out.</span>
+          </h1>
+          <p className="text-[15px] text-[var(--fg-3)] leading-relaxed max-w-[320px]">
+            Script, storyboard, voice and edit — generated end to end from a single prompt.
+          </p>
+          <button onClick={() => setShowWarning(true)} className="ui-btn ui-btn-primary ui-btn-lg w-full mt-8">
+            Start creating
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+          </button>
         </div>
-        <h1 className="text-[26px] font-bold tracking-[-0.8px] leading-tight mb-3">
-          Turn ideas into<br/>animations
-        </h1>
-        <p className="text-[14px] text-[rgba(255,255,255,0.4)] leading-relaxed max-w-[260px]">
-          AI-powered storytelling with voiceover, cinematic scenes and automatic editing.
-        </p>
-        <button
-          onClick={() => setShowWarning(true)}
-          className="mt-8 px-6 py-3 bg-white text-black text-[14px] font-semibold rounded-xl"
-        >
-          Start Creating →
-        </button>
-        <div className="flex flex-wrap gap-2 justify-center mt-8">
-          {['AI Voiceover', 'Ken Burns', 'Auto Export', 'Story Scripts'].map(f => (
-            <span key={f} className="text-[11px] text-[rgba(255,255,255,0.35)] border border-[rgba(255,255,255,0.08)] rounded-full px-3 py-1">
-              {f}
-            </span>
+
+        <div className="grid grid-cols-2 gap-2.5 mt-12 ui-rise ui-rise-2">
+          {FORMATS.slice(0, 4).map(f => (
+            <div key={f.key} className="rounded-2xl border border-[var(--line)] overflow-hidden bg-[#0a0a0a]">
+              <FormatArt k={f.key} className="aspect-[16/10]" />
+              <div className="px-3 py-2.5 border-t border-[var(--line)]">
+                <div className="text-[12.5px] font-medium">{f.title}</div>
+                <div className="text-[10.5px] text-[var(--fg-4)] truncate">{f.tagline}</div>
+              </div>
+            </div>
           ))}
         </div>
       </main>
 
-      {/* Warning bottom sheet */}
+      {/* Desktop-required sheet */}
       {showWarning && (
-        <div
-          className="fixed inset-0 bg-black/80 flex items-end justify-center z-50 px-4 pb-8"
-          onClick={() => setShowWarning(false)}
-        >
-          <div
-            className="w-full max-w-sm bg-[#111] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 text-center"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="w-10 h-10 rounded-full bg-[rgba(255,255,255,0.05)] flex items-center justify-center mx-auto mb-4">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5">
-                <rect x="2" y="3" width="20" height="14" rx="2"/>
-                <path d="M8 21h8M12 17v4"/>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end justify-center z-50 px-3 pb-3" onClick={() => setShowWarning(false)}>
+          <div className="w-full max-w-sm ui-card !bg-[#0c0c0c] !rounded-[24px] p-6 animate-[ui-rise_.45s_cubic-bezier(.22,1,.36,1)]" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 rounded-full bg-white/15 mx-auto -mt-2 mb-6" />
+            <div className="w-12 h-12 rounded-2xl bg-white text-black flex items-center justify-center mb-5">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8M12 17v4" />
               </svg>
             </div>
-            <h2 className="text-[16px] font-semibold mb-2">Desktop required</h2>
-            <p className="text-[13px] text-[rgba(255,255,255,0.4)] leading-relaxed mb-5">
-              AnimAI is built for desktop. Open{' '}
-              <span className="text-[rgba(255,255,255,0.7)]">animave.com</span>{' '}
-              on your computer to start creating.
+            <h2 className="text-[20px] font-semibold tracking-[-0.03em] mb-2">Best on desktop</h2>
+            <p className="text-[14px] text-[var(--fg-3)] leading-relaxed mb-6">
+              The Animave studio is built for larger screens. Open <span className="text-white font-medium">animave.com</span> on your computer to start creating.
             </p>
-            <button
-              onClick={() => setShowWarning(false)}
-              className="w-full py-2.5 bg-[rgba(255,255,255,0.07)] text-[rgba(255,255,255,0.6)] text-[13px] rounded-xl"
-            >
-              Got it
-            </button>
+            <button onClick={() => setShowWarning(false)} className="ui-btn ui-btn-secondary ui-btn-lg w-full">Got it</button>
           </div>
         </div>
       )}

@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo, useCallback, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { type Resolution, RESOLUTION_CREDITS, STORYBOOK_CREDITS_PER_SCENE } from '@/lib/types';
 import AnimatedStorytelling from './AnimatedStorytelling';
 import WhiteboardAnimation from './WhiteboardAnimation';
 import FruitDrama from './FruitDrama';
 import StudioGenerationView from './StudioGenerationView';
+import FormatArt, { FORMATS, type FormatKey } from '@/components/FormatArt';
 
 type AnimStyle = 'western-cartoon' | 'anime' | 'pixar' | 'comic' | 'retro' | 'custom';
 type AspectRatio = '16:9' | '9:16' | '1:1';
@@ -71,11 +72,11 @@ const THEME_GENRES: Record<StoryTheme, StoryGenre> = {
 };
 
 const STYLE_EXAMPLES: Record<AnimStyle, { gradient: string; desc: string }> = {
-  'anime': { gradient: 'from-[#1a1a2e] to-[#16213e]', desc: 'Japanese animation style with expressive characters' },
-  'pixar': { gradient: 'from-[#0d1b2a] to-[#1b4332]', desc: '3D rendered, vibrant and family-friendly' },
-  'western-cartoon': { gradient: 'from-[#2d1b00] to-[#4a2c00]', desc: 'Bold lines, flat colors, classic cartoon feel' },
-  'comic': { gradient: 'from-[#1a0a2e] to-[#2d1b4e]', desc: 'Comic book panels with halftone effects' },
-  'retro': { gradient: 'from-[#1a1200] to-[#2e2000]', desc: 'Vintage look, aged textures, warm palette' },
+  'anime': { gradient: 'from-[#1c1c1c] to-[#0b0b0b]', desc: 'Japanese animation style with expressive characters' },
+  'pixar': { gradient: 'from-[#242424] to-[#0e0e0e]', desc: '3D rendered, vibrant and family-friendly' },
+  'western-cartoon': { gradient: 'from-[#2a2a2a] to-[#111]', desc: 'Bold lines, flat colors, classic cartoon feel' },
+  'comic': { gradient: 'from-[#161616] to-[#262626]', desc: 'Comic book panels with halftone effects' },
+  'retro': { gradient: 'from-[#1f1f1f] to-[#2c2c2c]', desc: 'Vintage look, aged textures, warm palette' },
   'custom': { gradient: 'from-[#0a0a0a] to-[#1a1a1a]', desc: 'Photo-realistic scenes, cinematic lighting and lifelike detail' },
 };
 
@@ -198,6 +199,7 @@ function CreatePageInner() {
   const storyVideoRef = useRef<HTMLVideoElement | null>(null);
   const [storyVideoPlaying, setStoryVideoPlaying] = useState(false);
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   useEffect(() => {
     fetch('/api/voices').then(r => r.json()).then(setVoices).catch(() => {});
@@ -240,6 +242,16 @@ function CreatePageInner() {
       }
     })();
   }, []);
+
+  // ─── Deep-link into a format: /create?mode=story|cartoon|animated|whiteboard|fruit_drama ───
+  const modeParam = searchParams.get('mode');
+  const lastModeParam = useRef<string | null>(null);
+  useEffect(() => {
+    if (searchParams.get('projectId')) return;
+    if (modeParam) openFormat(modeParam as FormatKey);
+    else if (lastModeParam.current) setMode('selecting');
+    lastModeParam.current = modeParam;
+  }, [modeParam]);
 
   // ─── Auto-save project (debounced 2s) ───
   useEffect(() => {
@@ -632,6 +644,17 @@ function CreatePageInner() {
 
   useEffect(() => { return () => { if (pollRef.current) clearInterval(pollRef.current); }; }, []);
 
+  const goHome = () => {
+    setMode('selecting');
+    if (searchParams.get('mode')) router.replace('/create');
+  };
+
+  const openFormat = (k: FormatKey) => {
+    if (k === 'story') setMode('theme_select');
+    else if (k === 'cartoon') { setCartoonSetupDone(false); setMode('cartoon'); }
+    else if (k === 'animated' || k === 'whiteboard' || k === 'fruit_drama') setMode(k);
+  };
+
   const resetAll = () => {
     setStep(1); setChars([]); setScenes([]); setRes('720p');
     setCartoonSetupDone(false); setCTitle(''); setVideoBrief(''); setCAspect('16:9'); setCSceneDur(8); setCSceneCount(5);
@@ -856,106 +879,137 @@ function CreatePageInner() {
   return (<>
     {/* ═══ MODE SELECTION ═══ */}
     {mode === 'selecting' && (
-      <div className="flex flex-col h-screen bg-black items-center justify-center px-6 animate-[fadeIn_0.3s_ease]">
-        <h1 className="text-[18px] font-medium text-white mb-8">What do you want to create?</h1>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 max-w-[1360px] w-full">
-          <button onClick={() => setMode('theme_select')}
-            className="bg-[#0f0f0f] border-[1.5px] border-[rgba(255,255,255,0.12)] rounded-xl p-7 text-left hover:border-[rgba(255,255,255,0.3)] transition-all group">
-            <div className="flex items-start justify-between mb-4">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" className="group-hover:stroke-white transition-colors"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 8h20M2 16h20M7 4v16M17 4v16"/></svg>
-              <span className="text-[9px] font-medium bg-white text-black px-2 py-0.5 rounded-full">Most Popular</span>
-            </div>
-            <h3 className="text-[15px] font-medium text-white mb-0.5">Storytelling</h3>
-            <p className="text-[11px] text-[rgba(255,255,255,0.3)] mb-2">YouTube Story Videos</p>
-            <p className="text-[12px] text-[rgba(255,255,255,0.4)] leading-relaxed">AI-generated cinematic scenes with camera movement, narrator voice and sound effects</p>
-          </button>
-          <button onClick={() => { setCartoonSetupDone(false); setMode('cartoon'); }}
-            className="bg-[#0f0f0f] border border-[rgba(255,255,255,0.08)] rounded-xl p-7 text-left hover:border-[rgba(255,255,255,0.18)] transition-all group">
-            <div className="mb-4">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" className="group-hover:stroke-white transition-colors"><rect x="2" y="4" width="6" height="16" rx="1"/><rect x="9" y="4" width="6" height="16" rx="1"/><rect x="16" y="4" width="6" height="16" rx="1"/><circle cx="5" cy="10" r="1" fill="rgba(255,255,255,0.2)" stroke="none"/><circle cx="12" cy="10" r="1" fill="rgba(255,255,255,0.2)" stroke="none"/><circle cx="19" cy="10" r="1" fill="rgba(255,255,255,0.2)" stroke="none"/></svg>
-            </div>
-            <h3 className="text-[15px] font-medium text-white mb-0.5">2D Animation</h3>
-            <p className="text-[11px] text-[rgba(255,255,255,0.3)] mb-2">Cartoon Series & Films</p>
-            <p className="text-[12px] text-[rgba(255,255,255,0.4)] leading-relaxed">Build animated series with your own characters, scenes and dialogue</p>
-          </button>
-          <button onClick={() => setMode('animated')}
-            className="bg-[#0f0f0f] border border-[rgba(255,255,255,0.08)] rounded-xl p-7 text-left hover:border-[rgba(255,255,255,0.18)] transition-all group">
-            <div className="flex items-start justify-between mb-4">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" className="group-hover:stroke-white transition-colors"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              <span className="text-[9px] font-medium bg-white text-black px-2 py-0.5 rounded-full">New</span>
-            </div>
-            <h3 className="text-[15px] font-medium text-white mb-0.5">Animated Storytelling</h3>
-            <p className="text-[11px] text-[rgba(255,255,255,0.3)] mb-2">Character-driven animated stories</p>
-            <p className="text-[12px] text-[rgba(255,255,255,0.4)] leading-relaxed">Create a character, then auto-generate an animated story with narration and captions</p>
-          </button>
-          <button onClick={() => setMode('whiteboard')}
-            className="bg-[#0f0f0f] border border-[rgba(255,255,255,0.08)] rounded-xl p-7 text-left hover:border-[rgba(255,255,255,0.18)] transition-all group">
-            <div className="flex items-start justify-between mb-4">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" className="group-hover:stroke-white transition-colors"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><path d="M6 8l3 3 3-4 3 3 3-3" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              <span className="text-[9px] font-medium bg-white text-black px-2 py-0.5 rounded-full">New</span>
-            </div>
-            <h3 className="text-[15px] font-medium text-white mb-0.5">Whiteboard Animation</h3>
-            <p className="text-[11px] text-[rgba(255,255,255,0.3)] mb-2">Doodle explainer videos</p>
-            <p className="text-[12px] text-[rgba(255,255,255,0.4)] leading-relaxed">Turn any topic into a hand-drawn whiteboard explainer with narration and captions</p>
-          </button>
-          <button onClick={() => setMode('fruit_drama')}
-            className="bg-[#0f0f0f] border border-[rgba(255,255,255,0.08)] rounded-xl p-7 text-left hover:border-[rgba(255,255,255,0.18)] transition-all group">
-            <div className="flex items-start justify-between mb-4">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" className="group-hover:stroke-white transition-colors"><path d="M12 3c4 2 7 5 7 10a7 7 0 0 1-14 0c0-5 3-8 7-10Z"/><path d="M12 3c0 3-1 4-3 5"/><path d="M13 4c2-2 4-2 6-1"/></svg>
-              <span className="text-[9px] font-medium bg-white text-black px-2 py-0.5 rounded-full">New</span>
-            </div>
-            <h3 className="text-[15px] font-medium text-white mb-0.5">Fruit Drama</h3>
-            <p className="text-[11px] text-[rgba(255,255,255,0.3)] mb-2">Viral character shorts</p>
-            <p className="text-[12px] text-[rgba(255,255,255,0.4)] leading-relaxed">Create fruit characters, cinematic scenes and Veo 3.1 Lite videos with dialogue</p>
-          </button>
+      <div className="relative min-h-screen flex flex-col">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-[520px] overflow-hidden">
+          <div className="absolute inset-0 ui-grid-bg [mask-image:linear-gradient(to_bottom,black,transparent)]" />
+          <div className="absolute left-1/2 -top-48 -translate-x-1/2 w-[1000px] h-[480px] bg-[radial-gradient(ellipse,rgba(255,255,255,0.08),transparent_65%)]" />
         </div>
-        <p className="text-[11px] text-[rgba(255,255,255,0.2)] mt-6">Both modes support vertical and horizontal export</p>
-        <style jsx global>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+
+        <div className="relative flex-1 w-full max-w-[1240px] mx-auto px-5 md:px-10 pt-14 md:pt-20 pb-16">
+          <div className="text-center mb-12 ui-rise">
+            <div className="inline-flex items-center gap-2 ui-chip ui-chip-muted !h-6 !px-3 mb-6">
+              <span className="w-1.5 h-1.5 rounded-full bg-white" />5 formats · one studio
+            </div>
+            <h1 className="text-[36px] md:text-[48px] font-semibold tracking-[-0.05em] leading-[1.02] mb-4">
+              What do you want<br className="hidden sm:block" /> to create?
+            </h1>
+            <p className="text-[14.5px] text-[var(--fg-3)] max-w-[460px] mx-auto">
+              Choose a format. Animave writes, illustrates, voices and edits — you direct.
+            </p>
+          </div>
+
+          {/* Featured format */}
+          {(() => {
+            const f = FORMATS[0];
+            return (
+              <button onClick={() => openFormat(f.key)}
+                className="group w-full ui-card ui-card-hover overflow-hidden grid md:grid-cols-[1.25fr_1fr] text-left mb-3 ui-rise ui-rise-1">
+                <FormatArt k={f.key} className="aspect-[16/9] md:aspect-auto md:min-h-[260px] border-b md:border-b-0 md:border-r border-[var(--line)]" />
+                <div className="p-7 md:p-9 flex flex-col">
+                  <div className="flex items-center gap-2 mb-5">
+                    <span className="ui-chip ui-chip-solid">Most popular</span>
+                    <span className="ui-eyebrow">01</span>
+                  </div>
+                  <h3 className="text-[26px] font-semibold tracking-[-0.035em] leading-tight mb-1">{f.title}</h3>
+                  <p className="text-[13px] text-[var(--fg-4)] mb-4">{f.tagline}</p>
+                  <p className="text-[14px] text-[var(--fg-2)] leading-relaxed max-w-[360px]">{f.desc}</p>
+                  <div className="mt-auto pt-8 flex items-center gap-3">
+                    <span className="ui-btn ui-btn-primary">Start {f.title.toLowerCase()}
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-0.5"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                    </span>
+                    <span className="text-[12px] text-[var(--fg-4)]">Narration · Camera motion · SFX</span>
+                  </div>
+                </div>
+              </button>
+            );
+          })()}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {FORMATS.slice(1).map((f, i) => (
+              <button key={f.key} onClick={() => openFormat(f.key)}
+                className={`group ui-card ui-card-hover overflow-hidden flex flex-col text-left hover:-translate-y-0.5 ui-rise ui-rise-${Math.min(i + 2, 4)}`}>
+                <div className="relative">
+                  <FormatArt k={f.key} className="aspect-[16/10] border-b border-[var(--line)]" />
+                  {f.badge && <span className="absolute top-3 left-3 ui-chip">{f.badge}</span>}
+                  <span className="absolute top-3 right-3 ui-eyebrow">{String(i + 2).padStart(2, '0')}</span>
+                </div>
+                <div className="p-5 flex-1 flex flex-col">
+                  <div className="flex items-center justify-between gap-2 mb-0.5">
+                    <h3 className="text-[15px] font-semibold tracking-[-0.02em]">{f.title}</h3>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-white/20 group-hover:text-white group-hover:translate-x-0.5 transition-all flex-shrink-0"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                  </div>
+                  <p className="text-[11.5px] text-[var(--fg-4)] mb-3">{f.tagline}</p>
+                  <p className="text-[12.5px] text-[var(--fg-3)] leading-relaxed">{f.desc}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <p className="text-center text-[11.5px] text-[var(--fg-4)] mt-8">Every format supports vertical and horizontal export.</p>
+        </div>
       </div>
     )}
 
     {/* ═══ ANIMATED STORYTELLING ═══ */}
-    {mode === 'animated' && <AnimatedStorytelling onBack={() => setMode('selecting')} />}
+    {mode === 'animated' && <AnimatedStorytelling onBack={goHome} />}
 
     {/* ═══ WHITEBOARD ANIMATION ═══ */}
-    {mode === 'whiteboard' && <WhiteboardAnimation onBack={() => setMode('selecting')} />}
+    {mode === 'whiteboard' && <WhiteboardAnimation onBack={goHome} />}
 
     {/* ═══ FRUIT DRAMA ═══ */}
-    {mode === 'fruit_drama' && <FruitDrama onBack={() => setMode('selecting')} />}
+    {mode === 'fruit_drama' && <FruitDrama onBack={goHome} />}
 
     {/* ═══ THEME SELECTION ═══ */}
     {mode === 'theme_select' && (
-      <div className="flex flex-col min-h-screen bg-black px-6 py-8 animate-[fadeIn_0.3s_ease] overflow-y-auto">
-        <button onClick={() => setMode('selecting')} className="text-[11px] text-[rgba(255,255,255,0.3)] hover:text-white transition-colors mb-8 self-start">← Back</button>
-        <div className="max-w-[680px] mx-auto w-full flex flex-col gap-10">
-          <div>
-            <h1 className="text-[18px] font-medium text-white mb-1">Create a story</h1>
-            <p className="text-[12px] text-[rgba(255,255,255,0.35)]">Choose your genre and animation style</p>
+      <div className="relative min-h-screen">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-[360px] overflow-hidden">
+          <div className="absolute inset-0 ui-grid-bg [mask-image:linear-gradient(to_bottom,black,transparent)]" />
+        </div>
+
+        <div className="relative max-w-[760px] mx-auto w-full px-5 md:px-8 pt-8 pb-32">
+          <button onClick={goHome} className="ui-btn ui-btn-ghost ui-btn-sm !px-2 -ml-2 mb-10">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M11 18l-6-6 6-6" /></svg>
+            All formats
+          </button>
+
+          <div className="mb-12 ui-rise">
+            <div className="ui-eyebrow mb-3">Storytelling</div>
+            <h1 className="text-[34px] font-semibold tracking-[-0.045em] leading-[1.05] mb-2">Set the tone</h1>
+            <p className="text-[14px] text-[var(--fg-3)]">Choose a genre and a visual style. You can fine-tune everything in the next step.</p>
           </div>
 
           {/* Genre */}
-          <div>
-            <h2 className="text-[11px] font-medium text-[rgba(255,255,255,0.4)] uppercase tracking-[1.5px] mb-3">Genre</h2>
+          <section className="mb-12 ui-rise ui-rise-1">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="ui-mono text-[11px] text-[var(--fg-4)]">01</span>
+              <h2 className="text-[14px] font-medium">Genre</h2>
+              <div className="flex-1 h-px bg-[var(--line)]" />
+            </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {GENRE_EXAMPLES.map(g => {
                 const isSelected = customGenre === g.value;
                 return (
                   <button key={g.value} onClick={() => setCustomGenre(g.value)}
-                    className={`relative p-4 rounded-xl border text-left transition-all ${isSelected ? 'border-white bg-[rgba(255,255,255,0.06)]' : 'border-[rgba(255,255,255,0.08)] bg-[#0f0f0f] hover:border-[rgba(255,255,255,0.16)]'}`}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={isSelected ? 'white' : 'rgba(255,255,255,0.4)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d={g.icon}/></svg>
-                      <span className={`text-[13px] font-medium ${isSelected ? 'text-white' : 'text-[rgba(255,255,255,0.6)]'}`}>{g.label}</span>
+                    className={`relative p-4 rounded-[14px] border text-left transition-all duration-200 ${isSelected ? 'border-white bg-white text-black shadow-[0_8px_30px_-8px_rgba(255,255,255,0.35)]' : 'border-[var(--line)] bg-white/[0.02] hover:border-[var(--line-2)] hover:bg-white/[0.04]'}`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={isSelected ? 'text-black' : 'text-white/45'}><path d={g.icon}/></svg>
+                      {g.recommended && <span className={`text-[9.5px] font-mono uppercase tracking-wider ${isSelected ? 'text-black/50' : 'text-white/35'}`}>Top pick</span>}
                     </div>
-                    <p className="text-[11px] text-[rgba(255,255,255,0.3)] leading-relaxed">{g.desc}</p>
+                    <div className={`text-[13.5px] font-medium mb-1 ${isSelected ? 'text-black' : 'text-white'}`}>{g.label}</div>
+                    <p className={`text-[11.5px] leading-relaxed ${isSelected ? 'text-black/55' : 'text-[var(--fg-4)]'}`}>{g.desc}</p>
                   </button>
                 );
               })}
             </div>
-          </div>
+          </section>
 
           {/* Animation Style */}
-          <div>
-            <h2 className="text-[11px] font-medium text-[rgba(255,255,255,0.4)] uppercase tracking-[1.5px] mb-3">Animation Style</h2>
+          <section className="ui-rise ui-rise-2">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="ui-mono text-[11px] text-[var(--fg-4)]">02</span>
+              <h2 className="text-[14px] font-medium">Visual style</h2>
+              <div className="flex-1 h-px bg-[var(--line)]" />
+            </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {STYLES.map(s => {
                 const ex = STYLE_EXAMPLES[s.value];
@@ -963,30 +1017,46 @@ function CreatePageInner() {
                 const isRecommended = GENRE_RECOMMENDED_STYLE[customGenre] === s.value;
                 return (
                   <button key={s.value} onClick={() => setStoryStyle(s.value)}
-                    className={`relative rounded-xl border overflow-hidden text-left transition-all ${isSelected ? (isRecommended ? 'border-red-500' : 'border-white') : isRecommended ? 'border-red-500/40 hover:border-red-500' : 'border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.16)]'}`}>
-                    {isRecommended && (
-                      <span className="absolute top-2 right-2 z-10 text-[9px] font-medium bg-red-500 text-white px-1.5 py-0.5 rounded-full">Recommended</span>
-                    )}
-                    <div className={`h-16 bg-gradient-to-br ${ex.gradient} flex items-center justify-center`}>
-                      <span className="text-[22px] font-black text-white opacity-20 select-none">{s.label[0]}</span>
+                    className={`group relative rounded-[14px] border overflow-hidden text-left transition-all duration-200 ${isSelected ? 'border-white ring-1 ring-white shadow-[0_8px_30px_-8px_rgba(255,255,255,0.3)]' : 'border-[var(--line)] hover:border-[var(--line-2)]'}`}>
+                    <div className={`relative h-20 bg-gradient-to-br ${ex.gradient} flex items-center justify-center overflow-hidden`}>
+                      <div className="absolute inset-0 ui-dots-bg opacity-50" />
+                      <span className={`relative text-[34px] font-semibold tracking-[-0.06em] select-none transition-all duration-300 ${isSelected ? 'text-white' : 'text-white/15 group-hover:text-white/30'}`}>{s.label[0]}</span>
+                      {isRecommended && <span className="absolute top-2 left-2 ui-chip ui-chip-solid !h-[18px] !text-[9.5px]">Recommended</span>}
+                      {isSelected && (
+                        <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white text-black flex items-center justify-center">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 5 5L20 7" /></svg>
+                        </span>
+                      )}
                     </div>
-                    <div className="p-3 bg-[#0f0f0f]">
-                      <p className={`text-[13px] font-medium mb-0.5 ${isSelected ? (isRecommended ? 'text-red-400' : 'text-white') : 'text-[rgba(255,255,255,0.6)]'}`}>{s.label}</p>
-                      <p className="text-[10px] text-[rgba(255,255,255,0.3)] leading-relaxed">{ex.desc}</p>
+                    <div className="p-3.5 bg-[#0a0a0a]">
+                      <p className={`text-[13px] font-medium mb-0.5 ${isSelected ? 'text-white' : 'text-[var(--fg-2)]'}`}>{s.label}</p>
+                      <p className="text-[11px] text-[var(--fg-4)] leading-relaxed">{ex.desc}</p>
                     </div>
                   </button>
                 );
               })}
             </div>
-          </div>
-
-          <button
-            onClick={() => { setStoryTheme('custom'); setMode('story'); }}
-            className="w-full py-3 rounded-xl bg-white text-black text-[14px] font-medium hover:bg-[rgba(255,255,255,0.9)] transition-colors">
-            Continue
-          </button>
+          </section>
         </div>
-        <style jsx global>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+
+        {/* Sticky action bar */}
+        <div className="fixed bottom-20 md:bottom-0 left-0 md:left-[240px] right-0 z-30 pointer-events-none">
+          <div className="max-w-[760px] mx-auto px-5 md:px-8 pb-5 md:pb-6">
+            <div className="pointer-events-auto flex items-center justify-between gap-4 p-2 pl-4 rounded-2xl bg-[#0a0a0a]/85 backdrop-blur-xl border border-[var(--line-2)] shadow-[0_20px_60px_rgba(0,0,0,0.7)]">
+              <div className="text-[12.5px] text-[var(--fg-3)] truncate">
+                <span className="text-white font-medium">{GENRE_EXAMPLES.find(g => g.value === customGenre)?.label}</span>
+                <span className="mx-2 text-white/20">/</span>
+                <span className="text-white font-medium">{STYLES.find(x => x.value === storyStyle)?.label}</span>
+              </div>
+              <button
+                onClick={() => { setStoryTheme('custom'); setMode('story'); }}
+                className="ui-btn ui-btn-primary">
+                Continue
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     )}
 

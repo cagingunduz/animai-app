@@ -73,7 +73,7 @@ export const CREDIT_PACKS: CreditPack[] = [
 
 export interface Plan { name: string; price: number; period: string; description: string; credits: string; features: string[]; highlighted?: boolean; cta: string; }
 export const PLANS: Plan[] = [
-  { name: 'Free', price: 0, period: '', description: 'Try AnimAI with no commitment.', credits: '500 credits included', features: ['500 free credits on signup', '480p resolution', 'Watermark on exports', 'Community voices'], cta: 'Current Plan' },
+  { name: 'Free', price: 0, period: '', description: 'Try Animave with no commitment.', credits: '500 credits included', features: ['500 free credits on signup', '480p resolution', 'Watermark on exports', 'Community voices'], cta: 'Current Plan' },
   { name: 'Starter', price: 15, period: '/ month', description: 'For creators just getting started.', credits: '5,000 credits / month', features: ['5,000 credits per month', 'Up to 720p resolution', 'No watermark', 'All voices', 'Credits never expire'], highlighted: true, cta: 'Upgrade' },
   { name: 'Pro', price: 49, period: '/ month', description: 'For serious creators and small studios.', credits: '20,000 credits / month', features: ['20,000 credits per month', 'Up to 1080p resolution', 'No watermark', 'Lip sync (premium)', 'Priority rendering', 'All voices'], cta: 'Upgrade' },
   { name: 'Studio', price: 149, period: '/ month', description: 'For studios and power users.', credits: '40,000 credits / month', features: ['40,000 credits per month', '1080p resolution', 'No watermark', 'Lip sync included', 'Priority rendering', 'Dedicated support'], cta: 'Contact Sales' },

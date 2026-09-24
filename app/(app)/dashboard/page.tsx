@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import FormatArt, { FORMATS } from '@/components/FormatArt';
+
 interface ProjectRow {
   id: string; title: string; genre: string | null; style: string | null;
   scenes_count: number; has_videos: boolean; thumbnail_url: string | null;
@@ -13,6 +15,8 @@ interface RecentItem {
   id: string; title: string; video_url: string; created_at: string;
   resolution?: string | null; thumbnail_url?: string | null;
 }
+
+type Filter = 'all' | 'drafts' | 'exported';
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -26,6 +30,52 @@ function timeAgo(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 5) return 'Working late';
+  if (h < 12) return 'Good morning';
+  if (h < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
+const I = {
+  plus: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>,
+  download: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 4v11M7 10l5 5 5-5" /><path d="M4 20h16" /></svg>,
+  arrow: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>,
+  trash: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></svg>,
+  play: <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z" /></svg>,
+  doc: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5M9 13h6M9 17h4" /></svg>,
+};
+
+function Thumb({ src, video, fallback }: { src?: string | null; video?: string | null; fallback: React.ReactNode }) {
+  if (src) return <img src={src} alt="" className="w-full h-full object-cover transition-transform duration-700 ease-[cubic-bezier(.22,1,.36,1)] group-hover:scale-[1.035]" />;
+  if (video) return (
+    <video src={`${video}#t=0.1`} className="w-full h-full object-cover" muted playsInline preload="metadata"
+      onMouseEnter={e => { (e.currentTarget as HTMLVideoElement).play().catch(() => {}); }}
+      onMouseLeave={e => { const v = e.currentTarget as HTMLVideoElement; v.pause(); v.currentTime = 0.1; }} />
+  );
+  return (
+    <div className="w-full h-full relative flex items-center justify-center text-white/15">
+      <div className="absolute inset-0 ui-dots-bg opacity-50 ui-fade-mask" />
+      <div className="relative">{fallback}</div>
+    </div>
+  );
+}
+
+function Meta({ parts }: { parts: (string | null | undefined | false)[] }) {
+  const clean = parts.filter(Boolean) as string[];
+  return (
+    <div className="flex items-center gap-1.5 text-[11.5px] text-[var(--fg-4)] min-w-0">
+      {clean.map((p, i) => (
+        <span key={i} className="flex items-center gap-1.5 min-w-0">
+          {i > 0 && <span className="w-[3px] h-[3px] rounded-full bg-white/15 flex-shrink-0" />}
+          <span className="truncate">{p}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const supabase = createClient();
   const [projects, setProjects] = useState<ProjectRow[]>([]);
@@ -34,6 +84,14 @@ export default function DashboardPage() {
   const [plan, setPlan] = useState('free');
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<Filter>('all');
+  const [hello, setHello] = useState('Welcome back');
+  const [today, setToday] = useState('');
+
+  useEffect(() => {
+    setHello(greeting());
+    setToday(new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }));
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -109,181 +167,231 @@ export default function DashboardPage() {
     window.location.href = `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(name)}`;
   };
 
+  const drafts = projects.filter(p => !p.final_video_url);
+  const exported = projects.filter(p => p.final_video_url);
+  const visible = filter === 'drafts' ? drafts : filter === 'exported' ? exported : projects;
+
+  const stats = [
+    { label: 'Credits', value: credits.toLocaleString(), sub: <span className="ui-chip ui-chip-muted capitalize">{plan} plan</span>, href: '/billing' },
+    { label: 'In progress', value: String(drafts.length), sub: <span className="text-[var(--fg-4)]">draft projects</span> },
+    { label: 'Exported', value: String(exported.length), sub: <span className="text-[var(--fg-4)]">finished videos</span> },
+    { label: 'Last 24h', value: String(recent.length), sub: <span className="text-[var(--fg-4)]">new renders</span> },
+  ];
+
+  const deleteBtn = (id: string) => (
+    <button onClick={(e) => deleteProject(id, e)} aria-label="Delete project" title="Delete"
+      className="absolute top-2.5 right-2.5 w-7 h-7 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/70 opacity-0 group-hover:opacity-100 hover:text-white hover:bg-black/80 transition-all">
+      {deletingId === id ? <div className="w-3 h-3 rounded-full border border-white/30 border-t-white animate-spin" /> : I.trash}
+    </button>
+  );
+
   return (
-    <div className="px-5 md:px-8 py-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-[20px] font-semibold tracking-[-0.5px]">Dashboard</h1>
-        <Link href="/create"
-          className="px-3.5 py-2 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1.5">
-          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 1v12M1 7h12"/></svg>
-          New
-        </Link>
+    <div className="relative min-h-screen">
+      {/* Ambient top glow */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] overflow-hidden">
+        <div className="absolute inset-0 ui-grid-bg [mask-image:linear-gradient(to_bottom,black,transparent)]" />
+        <div className="absolute left-1/2 -top-40 -translate-x-1/2 w-[900px] h-[400px] bg-[radial-gradient(ellipse,rgba(255,255,255,0.07),transparent_65%)]" />
       </div>
 
-      {/* Credit bar */}
-      <div className="border border-[rgba(255,255,255,0.07)] rounded-xl p-4 mb-8 flex items-center justify-between bg-[#0a0a0a]">
-        <div className="flex items-center gap-4">
+      <div className="relative px-5 md:px-10 pt-10 pb-16 max-w-[1320px] mx-auto">
+        {/* ── Header ── */}
+        <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-10 ui-rise">
           <div>
-            <div className="text-[11px] text-[rgba(255,255,255,0.3)] mb-0.5">Credits</div>
-            <span className="text-[22px] font-semibold tracking-[-1px]">{credits.toLocaleString()}</span>
+            <div className="ui-eyebrow mb-3 min-h-[14px]">{today}</div>
+            <h1 className="text-[34px] md:text-[40px] font-semibold tracking-[-0.045em] leading-[1.05]">
+              {hello}.<br />
+              <span className="text-[var(--fg-4)]">What are we making today?</span>
+            </h1>
           </div>
-          <span className="text-[11px] text-[rgba(255,255,255,0.25)] border border-[rgba(255,255,255,0.06)] rounded-full px-2 py-0.5 capitalize">{plan}</span>
-        </div>
-        <div className="flex flex-col items-end gap-1.5">
-          <Link href="/billing" className="px-3 py-1.5 text-[12px] border border-[rgba(255,255,255,0.08)] rounded-lg text-[rgba(255,255,255,0.5)] hover:text-white hover:border-[rgba(255,255,255,0.15)] transition-all">
-            Buy Credits
-          </Link>
-          <span className="text-[10px] text-[rgba(255,255,255,0.2)]">Videos expire after 30 days</span>
-        </div>
-      </div>
+          <div className="flex items-center gap-2">
+            <Link href="/billing" className="ui-btn ui-btn-secondary">Buy credits</Link>
+            <Link href="/create" className="ui-btn ui-btn-primary">{I.plus}New video</Link>
+          </div>
+        </header>
 
-      {loading ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="border border-[rgba(255,255,255,0.05)] rounded-xl overflow-hidden bg-[#0a0a0a] animate-pulse">
-              <div className="aspect-video bg-[#111]" />
-              <div className="p-3"><div className="h-3 bg-[rgba(255,255,255,0.04)] rounded w-2/3 mb-2" /><div className="h-2 bg-[rgba(255,255,255,0.03)] rounded w-1/2" /></div>
+        {/* ── Stats ── */}
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-[var(--line)] border border-[var(--line)] rounded-2xl overflow-hidden mb-14 ui-rise ui-rise-1">
+          {stats.map(s => {
+            const body = (
+              <>
+                <div className="ui-eyebrow mb-4">{s.label}</div>
+                <div className="text-[30px] font-semibold tracking-[-0.045em] leading-none tabular-nums mb-3">
+                  {loading ? <span className="inline-block w-16 h-7 rounded-md ui-shimmer align-middle" /> : s.value}
+                </div>
+                <div className="text-[11.5px] h-5 flex items-center">{s.sub}</div>
+              </>
+            );
+            return s.href
+              ? <Link key={s.label} href={s.href} className="bg-black p-5 md:p-6 hover:bg-[#070707] transition-colors group relative">
+                  {body}
+                  <span className="absolute top-5 right-5 text-white/20 group-hover:text-white group-hover:translate-x-0.5 transition-all">{I.arrow}</span>
+                </Link>
+              : <div key={s.label} className="bg-black p-5 md:p-6">{body}</div>;
+          })}
+        </section>
+
+        {/* ── Start something new ── */}
+        <section className="mb-16 ui-rise ui-rise-2">
+          <div className="flex items-end justify-between mb-5">
+            <div>
+              <h2 className="text-[17px] font-semibold tracking-[-0.02em]">Start something new</h2>
+              <p className="text-[13px] text-[var(--fg-3)] mt-1">Pick a format — every one exports vertical and horizontal.</p>
             </div>
-          ))}
-        </div>
-      ) : (
-        <>
-          {/* ── Last 24 Hours ── */}
-          {recent.length > 0 && (
-            <div className="mb-8">
-              <h2 className="text-[11px] font-medium text-[rgba(255,255,255,0.35)] uppercase tracking-[1.5px] mb-3">
-                Last 24 Hours · {recent.length}
-              </h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {recent.map(item => (
-                  <div key={item.id} className="relative border border-[rgba(255,255,255,0.08)] rounded-xl overflow-hidden bg-[#0a0a0a] group">
-                    <div className="aspect-video bg-black relative flex items-center justify-center overflow-hidden">
-                      {item.thumbnail_url
-                        ? <img src={item.thumbnail_url} alt="" className="w-full h-full object-cover" />
-                        : <video src={`${item.video_url}#t=0.1`} className="w-full h-full object-cover" muted playsInline preload="metadata"
-                            onMouseEnter={e => { (e.currentTarget as HTMLVideoElement).play().catch(() => {}); }}
-                            onMouseLeave={e => { const v = e.currentTarget as HTMLVideoElement; v.pause(); v.currentTime = 0.1; }} />
-                      }
-                      <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 pointer-events-none">
+            <Link href="/create" className="hidden sm:flex items-center gap-1.5 text-[12.5px] text-[var(--fg-3)] hover:text-white transition-colors">
+              All formats {I.arrow}
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+            {FORMATS.map(f => (
+              <Link key={f.key} href={`/create?mode=${f.key}`}
+                className="group ui-card ui-card-hover overflow-hidden flex flex-col hover:-translate-y-0.5">
+                <div className="relative">
+                  <FormatArt k={f.key} className="aspect-[16/10] border-b border-[var(--line)]" />
+                  {f.badge && (
+                    <span className={`absolute top-2.5 left-2.5 ui-chip ${f.badge === 'Popular' ? 'ui-chip-solid' : ''}`}>{f.badge}</span>
+                  )}
+                </div>
+                <div className="p-4 flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="text-[13.5px] font-medium tracking-[-0.01em] truncate">{f.title}</div>
+                    <div className="text-[11.5px] text-[var(--fg-4)] mt-0.5 truncate">{f.tagline}</div>
+                  </div>
+                  <span className="text-white/20 group-hover:text-white group-hover:translate-x-0.5 transition-all mt-0.5 flex-shrink-0">{I.arrow}</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {loading ? (
+          <section>
+            <div className="h-5 w-40 rounded ui-shimmer mb-5" />
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-7">
+              {[...Array(8)].map((_, i) => (
+                <div key={i}>
+                  <div className="aspect-video rounded-xl ui-shimmer mb-3" />
+                  <div className="h-3 rounded ui-shimmer w-2/3 mb-2" />
+                  <div className="h-2.5 rounded ui-shimmer w-1/3" />
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : (
+          <>
+            {/* ── Just rendered ── */}
+            {recent.length > 0 && (
+              <section className="mb-16">
+                <div className="flex items-center gap-3 mb-5">
+                  <span className="relative flex w-2 h-2">
+                    <span className="absolute inset-0 rounded-full bg-white animate-ping opacity-40" />
+                    <span className="relative w-2 h-2 rounded-full bg-white" />
+                  </span>
+                  <h2 className="text-[17px] font-semibold tracking-[-0.02em]">Just rendered</h2>
+                  <span className="ui-mono text-[11px] text-[var(--fg-4)]">{String(recent.length).padStart(2, '0')}</span>
+                  <span className="ml-auto text-[11.5px] text-[var(--fg-4)] hidden sm:block">Videos expire after 30 days</span>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-7">
+                  {recent.map(item => (
+                    <article key={item.id} className="group">
+                      <div className="relative aspect-video rounded-xl overflow-hidden bg-[#070707] border border-[var(--line)] group-hover:border-[var(--line-3)] transition-colors mb-3">
+                        <Thumb src={item.thumbnail_url} video={item.video_url} fallback={I.play} />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                        <span className="absolute top-2.5 left-2.5 ui-chip ui-chip-solid">New</span>
                         <button onClick={e => downloadVideo(e, item.video_url, item.title)}
-                          className="pointer-events-auto px-3 py-1.5 bg-white text-black text-[11px] font-medium rounded-lg flex items-center gap-1.5">
-                          <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 1v8M3 6l4 4 4-4"/><path d="M1 11h12"/></svg>
-                          Download
+                          className="absolute bottom-2.5 right-2.5 ui-btn ui-btn-sm ui-btn-primary opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0">
+                          {I.download}Download
                         </button>
                       </div>
-                      <div className="absolute top-2 left-2">
-                        <span className="text-[9px] font-medium bg-[rgba(74,222,128,0.15)] text-[rgba(74,222,128,0.8)] px-1.5 py-0.5 rounded-full">New</span>
-                      </div>
-                    </div>
-                    <div className="px-3 py-2.5">
-                      <h3 className="text-[12px] font-medium truncate mb-1 text-[rgba(255,255,255,0.8)]">{item.title}</h3>
-                      <div className="flex items-center gap-1.5 text-[10px] text-[rgba(255,255,255,0.25)]">
-                        {item.resolution && <span>{item.resolution}</span>}
-                        {item.resolution && <span className="w-0.5 h-0.5 rounded-full bg-[rgba(255,255,255,0.12)]" />}
-                        <span>{timeAgo(item.created_at)}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+                      <h3 className="text-[13px] font-medium tracking-[-0.01em] truncate mb-1">{item.title}</h3>
+                      <Meta parts={[item.resolution, timeAgo(item.created_at)]} />
+                    </article>
+                  ))}
+                </div>
+              </section>
+            )}
 
-          {/* ── Draft Projects ── */}
-          {projects.filter(p => !p.final_video_url).length > 0 && (
-            <div className="mb-8">
-              <h2 className="text-[11px] font-medium text-[rgba(255,255,255,0.35)] uppercase tracking-[1.5px] mb-3">Continue</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {projects.filter(p => !p.final_video_url).map(p => (
-                  <Link key={p.id} href={`/create?projectId=${p.id}`}
-                    className="relative border border-[rgba(255,255,255,0.08)] rounded-xl overflow-hidden bg-[#0a0a0a] hover:border-[rgba(255,255,255,0.15)] hover:-translate-y-[1px] transition-all group block">
-                    <div className="aspect-video bg-gradient-to-br from-[#0f0f0f] to-[#1a1a1a] relative flex items-center justify-center overflow-hidden">
-                      {p.thumbnail_url
-                        ? <img src={p.thumbnail_url} alt="" className="w-full h-full object-cover" />
-                        : <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10,9 9,9 8,9"/></svg>
-                      }
-                      <div className="absolute top-2 left-2">
-                        {p.has_videos
-                          ? <span className="text-[9px] font-medium bg-[rgba(74,222,128,0.12)] text-[rgba(74,222,128,0.7)] px-1.5 py-0.5 rounded-full">{p.scenes_count} scenes ready</span>
-                          : p.scenes_count > 0
-                          ? <span className="text-[9px] font-medium bg-[rgba(250,204,21,0.1)] text-[rgba(250,204,21,0.6)] px-1.5 py-0.5 rounded-full">{p.scenes_count} scenes</span>
-                          : <span className="text-[9px] font-medium bg-[rgba(255,255,255,0.05)] text-[rgba(255,255,255,0.3)] px-1.5 py-0.5 rounded-full">Draft</span>
-                        }
-                      </div>
-                      <button onClick={(e) => deleteProject(p.id, e)} className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[rgba(0,0,0,0.6)] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[rgba(239,68,68,0.3)]">
-                        {deletingId === p.id ? <div className="w-3 h-3 rounded-full border border-white/30 border-t-white animate-spin" /> : <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2"><path d="M1 1l12 12M13 1L1 13"/></svg>}
+            {/* ── Projects ── */}
+            {projects.length > 0 && (
+              <section>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+                  <h2 className="text-[17px] font-semibold tracking-[-0.02em]">Projects</h2>
+                  <div className="inline-flex p-[3px] rounded-[11px] bg-white/[0.03] border border-[var(--line)] self-start">
+                    {([['all', 'All', projects.length], ['drafts', 'In progress', drafts.length], ['exported', 'Exported', exported.length]] as const).map(([k, label, n]) => (
+                      <button key={k} onClick={() => setFilter(k)}
+                        className={`h-7 px-3 rounded-[8px] text-[12px] font-medium flex items-center gap-2 transition-all ${filter === k ? 'bg-white text-black shadow-[0_1px_8px_rgba(255,255,255,0.15)]' : 'text-[var(--fg-3)] hover:text-white'}`}>
+                        {label}
+                        <span className={`ui-mono text-[10px] ${filter === k ? 'text-black/45' : 'text-[var(--fg-4)]'}`}>{n}</span>
                       </button>
-                    </div>
-                    <div className="px-3 py-2.5">
-                      <h3 className="text-[12px] font-medium truncate mb-1 group-hover:text-white text-[rgba(255,255,255,0.8)]">{p.title}</h3>
-                      <div className="flex items-center gap-1.5 text-[10px] text-[rgba(255,255,255,0.25)]">
-                        {p.genre && <span className="capitalize">{p.genre}</span>}
-                        {p.genre && p.style && <span className="w-0.5 h-0.5 rounded-full bg-[rgba(255,255,255,0.12)]" />}
-                        {p.style && <span className="capitalize">{p.style === 'custom' ? 'Realistic' : p.style}</span>}
-                        {(p.genre || p.style) && <span className="w-0.5 h-0.5 rounded-full bg-[rgba(255,255,255,0.12)]" />}
-                        <span>{timeAgo(p.updated_at)}</span>
-                      </div>
-                    </div>
-                    <div className="absolute bottom-2.5 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5"><path d="M1 7h12M8 2l5 5-5 5"/></svg>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ── Completed ── */}
-          {projects.filter(p => p.final_video_url).length > 0 && (
-            <div className="mb-8">
-              <h2 className="text-[11px] font-medium text-[rgba(255,255,255,0.35)] uppercase tracking-[1.5px] mb-3">Completed</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {projects.filter(p => p.final_video_url).map(p => (
-                  <div key={p.id} className="relative border border-[rgba(255,255,255,0.08)] rounded-xl overflow-hidden bg-[#0a0a0a] group">
-                    <div className="aspect-video bg-gradient-to-br from-[#0f0f0f] to-[#1a1a1a] relative flex items-center justify-center overflow-hidden">
-                      {p.thumbnail_url
-                        ? <img src={p.thumbnail_url} alt="" className="w-full h-full object-cover" />
-                        : <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1"><rect x="2" y="3" width="20" height="14" rx="2"/><polygon points="9,7 16,10 9,13" fill="rgba(255,255,255,0.04)" stroke="none"/></svg>
-                      }
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                        <button onClick={e => downloadVideo(e, p.final_video_url!, p.title)}
-                          className="px-3 py-1.5 bg-white text-black text-[11px] font-medium rounded-lg flex items-center gap-1.5">
-                          <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 1v8M3 6l4 4 4-4"/><path d="M1 11h12"/></svg>
-                          Download
-                        </button>
-                      </div>
-                      <div className="absolute top-2 left-2">
-                        <span className="text-[9px] font-medium bg-[rgba(74,222,128,0.15)] text-[rgba(74,222,128,0.8)] px-1.5 py-0.5 rounded-full">✓ Exported</span>
-                      </div>
-                      <button onClick={(e) => deleteProject(p.id, e)} className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[rgba(0,0,0,0.6)] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[rgba(239,68,68,0.3)]">
-                        {deletingId === p.id ? <div className="w-3 h-3 rounded-full border border-white/30 border-t-white animate-spin" /> : <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2"><path d="M1 1l12 12M13 1L1 13"/></svg>}
-                      </button>
-                    </div>
-                    <div className="px-3 py-2.5">
-                      <h3 className="text-[12px] font-medium truncate mb-1 text-[rgba(255,255,255,0.8)]">{p.title}</h3>
-                      <div className="flex items-center gap-1.5 text-[10px] text-[rgba(255,255,255,0.25)]">
-                        {p.genre && <span className="capitalize">{p.genre}</span>}
-                        {p.genre && <span className="w-0.5 h-0.5 rounded-full bg-[rgba(255,255,255,0.12)]" />}
-                        <span>{timeAgo(p.updated_at)}</span>
-                      </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
+                </div>
 
-          {/* Empty state */}
-          {projects.length === 0 && recent.length === 0 && (
-            <div className="border border-[rgba(255,255,255,0.06)] rounded-xl py-16 flex flex-col items-center">
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1"><rect x="2" y="3" width="20" height="14" rx="2"/><polygon points="10,7 16,10 10,13" fill="rgba(255,255,255,0.05)" stroke="none"/></svg>
-              <p className="text-[13px] text-[rgba(255,255,255,0.3)] mt-3 mb-3">No projects yet</p>
-              <Link href="/create" className="px-4 py-2 bg-white text-black text-[13px] font-medium rounded-lg hover:bg-gray-200 transition-colors">Create your first</Link>
-            </div>
-          )}
-        </>
-      )}
+                {visible.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-[var(--line-2)] py-14 text-center text-[13px] text-[var(--fg-3)]">
+                    Nothing here yet.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-7">
+                    {visible.map(p => {
+                      const done = !!p.final_video_url;
+                      const cap = (x: string | null) => x ? x.charAt(0).toUpperCase() + x.slice(1) : null;
+                      const style = p.style ? (p.style === 'custom' ? 'Realistic' : cap(p.style)) : null;
+                      const chip = done
+                        ? <span className="ui-chip ui-chip-solid"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 5 5L20 7" /></svg>Exported</span>
+                        : p.has_videos
+                        ? <span className="ui-chip">{p.scenes_count} scenes ready</span>
+                        : p.scenes_count > 0
+                        ? <span className="ui-chip">{p.scenes_count} scenes</span>
+                        : <span className="ui-chip ui-chip-muted">Draft</span>;
+
+                      const media = (
+                        <div className="relative aspect-video rounded-xl overflow-hidden bg-[#070707] border border-[var(--line)] group-hover:border-[var(--line-3)] transition-colors mb-3">
+                          <Thumb src={p.thumbnail_url} fallback={I.doc} />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                          <span className="absolute top-2.5 left-2.5">{chip}</span>
+                          {deleteBtn(p.id)}
+                          {done ? (
+                            <button onClick={e => downloadVideo(e, p.final_video_url!, p.title)}
+                              className="absolute bottom-2.5 right-2.5 ui-btn ui-btn-sm ui-btn-primary opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0">
+                              {I.download}Download
+                            </button>
+                          ) : (
+                            <span className="absolute bottom-2.5 right-2.5 ui-btn ui-btn-sm ui-btn-primary opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 pointer-events-none">
+                              Continue {I.arrow}
+                            </span>
+                          )}
+                        </div>
+                      );
+                      const text = (
+                        <>
+                          <h3 className="text-[13px] font-medium tracking-[-0.01em] truncate mb-1">{p.title}</h3>
+                          <Meta parts={[cap(p.genre), style, timeAgo(p.updated_at)]} />
+                        </>
+                      );
+                      return done
+                        ? <article key={p.id} className="group">{media}{text}</article>
+                        : <Link key={p.id} href={`/create?projectId=${p.id}`} className="group block rounded-xl">{media}{text}</Link>;
+                    })}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* ── Empty state ── */}
+            {projects.length === 0 && recent.length === 0 && (
+              <section className="relative rounded-3xl border border-[var(--line)] overflow-hidden py-20 px-6 flex flex-col items-center text-center">
+                <div className="absolute inset-0 ui-grid-bg ui-fade-mask" />
+                <div className="relative w-14 h-14 rounded-2xl ui-card flex items-center justify-center mb-6 text-white">
+                  {I.play}
+                </div>
+                <h3 className="relative text-[22px] font-semibold tracking-[-0.03em] mb-2">Your first video is one prompt away</h3>
+                <p className="relative text-[13.5px] text-[var(--fg-3)] max-w-[380px] mb-7">Write an idea, pick a style, and Animave handles the script, visuals, voice and edit.</p>
+                <Link href="/create" className="relative ui-btn ui-btn-primary ui-btn-lg">{I.plus}Create your first video</Link>
+              </section>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
