@@ -122,7 +122,7 @@ export default function WhiteboardAnimation({ onBack }: { onBack: () => void }) 
         }),
       });
       const d = await r.json();
-      if (r.status === 402) { setGenStatus('failed'); setGenErr(d.error || 'Yetersiz kredi.'); return; }
+      if (r.status === 402) { setGenStatus('failed'); setGenErr(d.error || 'Not enough credits.'); return; }
       if (d.job_id) {
         pollRef.current = setInterval(() => pollStatus(d.job_id), 3000);
         pollStatus(d.job_id);

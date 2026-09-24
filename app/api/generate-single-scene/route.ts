@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     // Auth check
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-      return NextResponse.json({ error: 'Giriş yapmanız gerekiyor.' }, { status: 401 });
+      return NextResponse.json({ error: 'Please sign in to continue.' }, { status: 401 });
     }
 
     // Load user profile
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
       .single();
 
     if (profileError || !profile) {
-      return NextResponse.json({ error: 'Kullanıcı profili bulunamadı.' }, { status: 404 });
+      return NextResponse.json({ error: 'User profile not found.' }, { status: 404 });
     }
 
     const body = await request.json();
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     if (!profile.is_admin) {
       if (profile.credits < cost) {
         return NextResponse.json({
-          error: `Yetersiz kredi. Bu sahne ${cost} kredi gerektiriyor, ${profile.credits} krediniz var.`,
+          error: `Not enough credits. This scene needs ${cost} credits and you have ${profile.credits}.`,
           required: cost,
           available: profile.credits,
           status: 402,
@@ -45,14 +45,14 @@ export async function POST(request: Request) {
         .eq('id', user.id);
 
       if (deductError) {
-        return NextResponse.json({ error: 'Kredi düşülemedi.' }, { status: 500 });
+        return NextResponse.json({ error: 'Could not deduct credits.' }, { status: 500 });
       }
 
       // Log transaction
       await supabase.from('credit_transactions').insert({
         user_id: user.id,
         amount: -cost,
-        description: isRegeneration ? 'Storybook sahne yeniden üretimi' : 'Storybook sahne önizlemesi',
+        description: isRegeneration ? 'Storytelling scene regeneration' : 'Storytelling scene preview',
       });
     }
 

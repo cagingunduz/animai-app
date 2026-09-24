@@ -770,8 +770,8 @@ function CreatePageInner() {
     setGeneratedScript(prev => prev.map(s => s.id === sceneId ? { ...s, generating: true, error: null, imageUrl: null, videoUrl: null } : s));
     try {
       const d = await callGenerateSingleScene(sc, isRegen);
-      if (d.status === 402 || d.error?.includes('kredi')) {
-        updateScriptScene(sceneId, { generating: false, error: d.error || 'Yetersiz kredi' });
+      if (d.status === 402 || /credit|kredi/i.test(d.error || '')) {
+        updateScriptScene(sceneId, { generating: false, error: d.error || 'Not enough credits.' });
         return;
       }
       setGeneratedScript(prev => prev.map(s => s.id === sceneId ? { ...s, generating: false, imageUrl: d.image_url || null, videoUrl: d.video_url || null } : s));
@@ -816,7 +816,7 @@ function CreatePageInner() {
       setJobId(null);
       setGenStatus('processing');
       setGenProgress(0);
-      setGenMessage('Videolar birleştiriliyor...');
+      setGenMessage('Merging your scenes...');
       setGenScenes(scenesToExport.map((_, i) => ({ scene_number: i + 1, status: 'completed', video_url: scenesToExport[i].videoUrl || undefined })));
       setMode('cartoon');
       setStep(4);
@@ -833,7 +833,7 @@ function CreatePageInner() {
         if (d.final_video_url) {
           setGenStatus('completed');
           setFinalVideoUrl(d.final_video_url);
-          setGenMessage('Tamamlandı!');
+          setGenMessage('Done!');
           if (projectId) {
             const sb = createClient();
             await sb.from('projects').update({ final_video_url: d.final_video_url }).eq('id', projectId);
@@ -1191,8 +1191,8 @@ function CreatePageInner() {
                     options={(['480p', '720p', '1080p'] as Resolution[]).map(r => ({ value: r, label: r, sub: `${RESOLUTION_CREDITS[r]} cr` }))} />
                   <div className="text-[12.5px] text-[var(--fg-3)] my-5 flex items-center gap-2">
                     {generatedScript.filter(s => s.sceneDescription.trim()).every(s => s.videoUrl)
-                      ? <><span className="w-1.5 h-1.5 rounded-full bg-white" /><span className="text-white">Tüm sahneler hazır — export ücretsiz</span></>
-                      : <><span className="w-1.5 h-1.5 rounded-full bg-white/30" /><span>Eksik sahneler üretilecek · {generatedScript.filter(s => s.sceneDescription.trim() && !s.videoUrl).length} sahne kaldı</span></>}
+                      ? <><span className="w-1.5 h-1.5 rounded-full bg-white" /><span className="text-white">All scenes are ready — export is free</span></>
+                      : <><span className="w-1.5 h-1.5 rounded-full bg-white/30" /><span>Missing scenes will be generated · {generatedScript.filter(s => s.sceneDescription.trim() && !s.videoUrl).length} left</span></>}
                   </div>
                   <div className="flex gap-2">
                     <button onClick={() => setShowExport(false)} className="ui-btn ui-btn-secondary flex-1">Cancel</button>

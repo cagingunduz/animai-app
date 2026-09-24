@@ -171,7 +171,7 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
       console.log('[animated-story] start response:', d);
       if (r.status === 402) {
         setGenStatus('failed');
-        setGenErr(d.error || 'Yetersiz kredi.');
+        setGenErr(d.error || 'Not enough credits.');
         return;
       }
       if (d.job_id) {
