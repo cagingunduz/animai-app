@@ -8,7 +8,7 @@ import AnimatedStorytelling from './AnimatedStorytelling';
 import WhiteboardAnimation from './WhiteboardAnimation';
 import FruitDrama from './FruitDrama';
 import StudioGenerationView from './StudioGenerationView';
-import FormatArt, { FORMATS, type FormatKey } from '@/components/FormatArt';
+import { FORMATS, FormatIcon, type FormatKey } from '@/components/FormatArt';
 import { EditorHeader, EditorPage, Intro, Section, Label, Segmented, StyleCard, ToggleRow, TextArea, VoiceGrid, ActionBar, Credits, Modal, ErrorNote, Spinner, AspectGlyph, Ico, StatusDot } from '@/components/editor/kit';
 
 type AnimStyle = 'western-cartoon' | 'anime' | 'pixar' | 'comic' | 'retro' | 'custom';
@@ -880,73 +880,29 @@ function CreatePageInner() {
   return (<>
     {/* ═══ MODE SELECTION ═══ */}
     {mode === 'selecting' && (
-      <div className="relative min-h-screen flex flex-col">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-[520px] overflow-hidden">
-          <div className="absolute inset-0 ui-grid-bg [mask-image:linear-gradient(to_bottom,black,transparent)]" />
-          <div className="absolute left-1/2 -top-48 -translate-x-1/2 w-[1000px] h-[480px] bg-[radial-gradient(ellipse,rgba(255,255,255,0.08),transparent_65%)]" />
-        </div>
-
-        <div className="relative flex-1 w-full max-w-[1240px] mx-auto px-5 md:px-10 pt-14 md:pt-20 pb-16">
-          <div className="text-center mb-12 ui-rise">
-            <div className="inline-flex items-center gap-2 ui-chip ui-chip-muted !h-6 !px-3 mb-6">
-              <span className="w-1.5 h-1.5 rounded-full bg-white" />5 formats · one studio
-            </div>
-            <h1 className="text-[36px] md:text-[48px] font-semibold tracking-[-0.05em] leading-[1.02] mb-4">
-              What do you want<br className="hidden sm:block" /> to create?
-            </h1>
-            <p className="text-[14.5px] text-[var(--fg-3)] max-w-[460px] mx-auto">
-              Choose a format. Animave writes, illustrates, voices and edits — you direct.
-            </p>
-          </div>
-
-          {/* Featured format */}
-          {(() => {
-            const f = FORMATS[0];
-            return (
-              <button onClick={() => openFormat(f.key)}
-                className="group w-full ui-card ui-card-hover overflow-hidden grid md:grid-cols-[1.25fr_1fr] text-left mb-3 ui-rise ui-rise-1">
-                <FormatArt k={f.key} className="aspect-[16/9] md:aspect-auto md:min-h-[260px] border-b md:border-b-0 md:border-r border-[var(--line)]" />
-                <div className="p-7 md:p-9 flex flex-col">
-                  <div className="flex items-center gap-2 mb-5">
-                    <span className="ui-chip ui-chip-solid">Most popular</span>
-                    <span className="ui-eyebrow">01</span>
-                  </div>
-                  <h3 className="text-[26px] font-semibold tracking-[-0.035em] leading-tight mb-1">{f.title}</h3>
-                  <p className="text-[13px] text-[var(--fg-4)] mb-4">{f.tagline}</p>
-                  <p className="text-[14px] text-[var(--fg-2)] leading-relaxed max-w-[360px]">{f.desc}</p>
-                  <div className="mt-auto pt-8 flex items-center gap-3">
-                    <span className="ui-btn ui-btn-primary">Start {f.title.toLowerCase()}
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-0.5"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-                    </span>
-                    <span className="text-[12px] text-[var(--fg-4)]">Narration · Camera motion · SFX</span>
-                  </div>
-                </div>
-              </button>
-            );
-          })()}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {FORMATS.slice(1).map((f, i) => (
-              <button key={f.key} onClick={() => openFormat(f.key)}
-                className={`group ui-card ui-card-hover overflow-hidden flex flex-col text-left hover:-translate-y-0.5 ui-rise ui-rise-${Math.min(i + 2, 4)}`}>
-                <div className="relative">
-                  <FormatArt k={f.key} className="aspect-[16/10] border-b border-[var(--line)]" />
-                  {f.badge && <span className="absolute top-3 left-3 ui-chip">{f.badge}</span>}
-                  <span className="absolute top-3 right-3 ui-eyebrow">{String(i + 2).padStart(2, '0')}</span>
-                </div>
-                <div className="p-5 flex-1 flex flex-col">
-                  <div className="flex items-center justify-between gap-2 mb-0.5">
-                    <h3 className="text-[15px] font-semibold tracking-[-0.02em]">{f.title}</h3>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-white/20 group-hover:text-white group-hover:translate-x-0.5 transition-all flex-shrink-0"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-                  </div>
-                  <p className="text-[11.5px] text-[var(--fg-4)] mb-3">{f.tagline}</p>
-                  <p className="text-[12.5px] text-[var(--fg-3)] leading-relaxed">{f.desc}</p>
-                </div>
-              </button>
-            ))}
-          </div>
-
-          <p className="text-center text-[11.5px] text-[var(--fg-4)] mt-8">Every format supports vertical and horizontal export.</p>
+      <div className="px-5 md:px-8 py-6 max-w-[960px] mx-auto">
+        <header className="mb-6">
+          <h1 className="text-[20px] font-semibold tracking-[-0.02em]">Create</h1>
+          <p className="text-[13px] text-[var(--fg-3)] mt-0.5">Choose a format. Every format exports vertical and horizontal.</p>
+        </header>
+        <div className="flex flex-col rounded-[10px] border border-[var(--line)] divide-y divide-[var(--line)] overflow-hidden">
+          {FORMATS.map(f => (
+            <button key={f.key} onClick={() => openFormat(f.key)}
+              className="group flex items-center gap-4 px-4 py-3.5 text-left bg-black hover:bg-[var(--surface)] transition-colors">
+              <span className="w-9 h-9 rounded-md bg-[var(--surface-3)] border border-[var(--line)] flex items-center justify-center text-[var(--fg-2)] flex-shrink-0">
+                <FormatIcon k={f.key} size={17} />
+              </span>
+              <span className="flex-1 min-w-0">
+                <span className="flex items-center gap-2">
+                  <span className="text-[13px] font-medium">{f.title}</span>
+                  {f.badge && <span className={`ui-chip ${f.badge === 'Popular' ? 'ui-chip-solid' : 'ui-chip-muted'}`}>{f.badge}</span>}
+                </span>
+                <span className="block text-[12px] text-[var(--fg-3)] truncate mt-0.5">{f.desc}</span>
+              </span>
+              <span className="hidden sm:block text-[12px] text-[var(--fg-4)] w-[160px] text-right">{f.tagline}</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--fg-4)] group-hover:text-white transition-colors flex-shrink-0"><path d="m9 6 6 6-6 6" /></svg>
+            </button>
+          ))}
         </div>
       </div>
     )}
@@ -962,102 +918,40 @@ function CreatePageInner() {
 
     {/* ═══ THEME SELECTION ═══ */}
     {mode === 'theme_select' && (
-      <div className="relative min-h-screen">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-[360px] overflow-hidden">
-          <div className="absolute inset-0 ui-grid-bg [mask-image:linear-gradient(to_bottom,black,transparent)]" />
-        </div>
-
-        <div className="relative max-w-[760px] mx-auto w-full px-5 md:px-8 pt-8 pb-32">
-          <button onClick={goHome} className="ui-btn ui-btn-ghost ui-btn-sm !px-2 -ml-2 mb-10">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M11 18l-6-6 6-6" /></svg>
-            All formats
-          </button>
-
-          <div className="mb-12 ui-rise">
-            <div className="ui-eyebrow mb-3">Storytelling</div>
-            <h1 className="text-[34px] font-semibold tracking-[-0.045em] leading-[1.05] mb-2">Set the tone</h1>
-            <p className="text-[14px] text-[var(--fg-3)]">Choose a genre and a visual style. You can fine-tune everything in the next step.</p>
-          </div>
-
-          {/* Genre */}
-          <section className="mb-12 ui-rise ui-rise-1">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="ui-mono text-[11px] text-[var(--fg-4)]">01</span>
-              <h2 className="text-[14px] font-medium">Genre</h2>
-              <div className="flex-1 h-px bg-[var(--line)]" />
-            </div>
+      <div className="flex flex-col h-screen">
+        <EditorHeader format="Storytelling" onBack={goHome} steps={['Tone', 'Setup', 'Structure', 'Timeline']} current={0} />
+        <EditorPage width={760}>
+          <Intro title="Set the tone" desc="Choose a genre and a visual style. You can fine-tune everything in the next step." />
+          <Section title="Genre">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {GENRE_EXAMPLES.map(g => {
-                const isSelected = customGenre === g.value;
+                const on = customGenre === g.value;
                 return (
                   <button key={g.value} onClick={() => setCustomGenre(g.value)}
-                    className={`relative p-4 rounded-[14px] border text-left transition-all duration-200 ${isSelected ? 'border-white bg-white text-black shadow-[0_8px_30px_-8px_rgba(255,255,255,0.35)]' : 'border-[var(--line)] bg-white/[0.02] hover:border-[var(--line-2)] hover:bg-white/[0.04]'}`}>
-                    <div className="flex items-center justify-between mb-3">
-                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={isSelected ? 'text-black' : 'text-white/45'}><path d={g.icon}/></svg>
-                      {g.recommended && <span className={`text-[9.5px] font-mono uppercase tracking-wider ${isSelected ? 'text-black/50' : 'text-white/35'}`}>Top pick</span>}
+                    className={`p-3 rounded-lg border text-left transition-colors ${on ? 'border-[var(--line-3)] bg-white/[0.06]' : 'border-[var(--line)] hover:border-[var(--line-2)] hover:bg-white/[0.02]'}`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={on ? 'text-white' : 'text-[var(--fg-3)]'}><path d={g.icon}/></svg>
+                      <span className="text-[13px] font-medium">{g.label}</span>
+                      {g.recommended && <span className="ml-auto text-[11px] text-[var(--fg-4)]">Top pick</span>}
                     </div>
-                    <div className={`text-[13.5px] font-medium mb-1 ${isSelected ? 'text-black' : 'text-white'}`}>{g.label}</div>
-                    <p className={`text-[11.5px] leading-relaxed ${isSelected ? 'text-black/55' : 'text-[var(--fg-4)]'}`}>{g.desc}</p>
+                    <p className="text-[12px] text-[var(--fg-3)] leading-snug">{g.desc}</p>
                   </button>
                 );
               })}
             </div>
-          </section>
-
-          {/* Animation Style */}
-          <section className="ui-rise ui-rise-2">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="ui-mono text-[11px] text-[var(--fg-4)]">02</span>
-              <h2 className="text-[14px] font-medium">Visual style</h2>
-              <div className="flex-1 h-px bg-[var(--line)]" />
-            </div>
+          </Section>
+          <Section title="Visual style">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {STYLES.map(s => {
-                const ex = STYLE_EXAMPLES[s.value];
-                const isSelected = storyStyle === s.value;
-                const isRecommended = GENRE_RECOMMENDED_STYLE[customGenre] === s.value;
-                return (
-                  <button key={s.value} onClick={() => setStoryStyle(s.value)}
-                    className={`group relative rounded-[14px] border overflow-hidden text-left transition-all duration-200 ${isSelected ? 'border-white ring-1 ring-white shadow-[0_8px_30px_-8px_rgba(255,255,255,0.3)]' : 'border-[var(--line)] hover:border-[var(--line-2)]'}`}>
-                    <div className={`relative h-20 bg-gradient-to-br ${ex.gradient} flex items-center justify-center overflow-hidden`}>
-                      <div className="absolute inset-0 ui-dots-bg opacity-50" />
-                      <span className={`relative text-[34px] font-semibold tracking-[-0.06em] select-none transition-all duration-300 ${isSelected ? 'text-white' : 'text-white/15 group-hover:text-white/30'}`}>{s.label[0]}</span>
-                      {isRecommended && <span className="absolute top-2 left-2 ui-chip ui-chip-solid !h-[18px] !text-[9.5px]">Recommended</span>}
-                      {isSelected && (
-                        <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white text-black flex items-center justify-center">
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 5 5L20 7" /></svg>
-                        </span>
-                      )}
-                    </div>
-                    <div className="p-3.5 bg-[#0a0a0a]">
-                      <p className={`text-[13px] font-medium mb-0.5 ${isSelected ? 'text-white' : 'text-[var(--fg-2)]'}`}>{s.label}</p>
-                      <p className="text-[11px] text-[var(--fg-4)] leading-relaxed">{ex.desc}</p>
-                    </div>
-                  </button>
-                );
-              })}
+              {STYLES.map(s => (
+                <StyleCard key={s.value} label={s.label} desc={STYLE_EXAMPLES[s.value].desc} active={storyStyle === s.value}
+                  onClick={() => setStoryStyle(s.value)} badge={GENRE_RECOMMENDED_STYLE[customGenre] === s.value ? 'Recommended' : undefined} />
+              ))}
             </div>
-          </section>
-        </div>
-
-        {/* Sticky action bar */}
-        <div className="fixed bottom-20 md:bottom-0 left-0 md:left-[240px] right-0 z-30 pointer-events-none">
-          <div className="max-w-[760px] mx-auto px-5 md:px-8 pb-5 md:pb-6">
-            <div className="pointer-events-auto flex items-center justify-between gap-4 p-2 pl-4 rounded-2xl bg-[#0a0a0a]/85 backdrop-blur-xl border border-[var(--line-2)] shadow-[0_20px_60px_rgba(0,0,0,0.7)]">
-              <div className="text-[12.5px] text-[var(--fg-3)] truncate">
-                <span className="text-white font-medium">{GENRE_EXAMPLES.find(g => g.value === customGenre)?.label}</span>
-                <span className="mx-2 text-white/20">/</span>
-                <span className="text-white font-medium">{STYLES.find(x => x.value === storyStyle)?.label}</span>
-              </div>
-              <button
-                onClick={() => { setStoryTheme('custom'); setMode('story'); }}
-                className="ui-btn ui-btn-primary">
-                Continue
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-              </button>
-            </div>
-          </div>
-        </div>
+          </Section>
+        </EditorPage>
+        <ActionBar left={<span><span className="text-[var(--fg)]">{GENRE_EXAMPLES.find(g => g.value === customGenre)?.label}</span> · {STYLES.find(x => x.value === storyStyle)?.label}</span>}>
+          <button onClick={() => { setStoryTheme('custom'); setMode('story'); }} className="ui-btn ui-btn-primary">Continue</button>
+        </ActionBar>
       </div>
     )}
 
@@ -1067,9 +961,9 @@ function CreatePageInner() {
         <EditorHeader
           format="Storytelling"
           onBack={() => setMode('theme_select')}
-          steps={['Setup', 'Structure', 'Timeline']}
-          current={storyStep - 1}
-          onStep={i => { if (i + 1 <= storyStep) setStoryStep((i + 1) as 1 | 2 | 3); }}
+          steps={['Tone', 'Setup', 'Structure', 'Timeline']}
+          current={storyStep}
+          onStep={i => { if (i === 0) setMode('theme_select'); else if (i <= storyStep) setStoryStep(i as 1 | 2 | 3); }}
           meta={<>
             <span className="ui-chip ui-chip-muted">{GENRE_EXAMPLES.find(g => g.value === customGenre)?.label}</span>
             <span className="ui-chip ui-chip-muted">{STYLES.find(x => x.value === storyStyle)?.label}</span>
@@ -1081,7 +975,7 @@ function CreatePageInner() {
         {storyStep === 1 && (
           <>
             <EditorPage width={1080}>
-              <Intro eyebrow="Step 1 · Setup" title="Tell the story" desc="Your topic, the frame and a narrator. Everything can be tweaked scene by scene later." />
+              <Intro title="Tell the story" desc="Your topic, the frame and a narrator. Everything can be tweaked scene by scene later." />
               <div className="grid lg:grid-cols-2 gap-x-10">
                 <div>
                   <Section n={1} title="Topic">
@@ -1096,7 +990,7 @@ function CreatePageInner() {
                       ]} />
                   </Section>
                   <Section n={3} title="Production">
-                    <div className="flex flex-col gap-2">
+                    <div className="rounded-lg border border-[var(--line)] divide-y divide-[var(--line)] overflow-hidden">
                       <ToggleRow icon={Ico.camera} label="Camera movement" desc="Ken Burns zoom effect" on={globalCameraMove} onChange={setGlobalCameraMove} />
                       <ToggleRow icon={Ico.mic} label="Narrator voice" desc="AI voice reads the script" on={globalNarrator} onChange={setGlobalNarrator} />
                       <ToggleRow icon={Ico.captions} label="Subtitles" desc="Word-by-word captions" on={globalSubtitles} onChange={setGlobalSubtitles} />
@@ -1124,15 +1018,15 @@ function CreatePageInner() {
         {storyStep === 2 && (
           <>
             <EditorPage width={820}>
-              <Intro eyebrow="Step 2 · Structure" title="How should we build it?" desc="Let Animave write a full cinematic script, or start from a blank timeline." />
+              <Intro title="How should we build it?" desc="Let Animave write a full cinematic script, or start from a blank timeline." />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div onClick={() => setStoryStructure('auto')}
-                  className={`relative p-6 rounded-[18px] border text-left cursor-pointer transition-all ${storyStructure === 'auto' ? 'border-white ring-1 ring-white bg-white/[0.04]' : 'border-[var(--line)] hover:border-[var(--line-2)] bg-white/[0.015]'}`}>
-                  <div className="flex items-center justify-between mb-6">
-                    <span className={`w-10 h-10 rounded-[12px] flex items-center justify-center ${storyStructure === 'auto' ? 'bg-white text-black' : 'bg-white/[0.06] text-white'}`}>{Ico.sparkle}</span>
+                  className={`relative p-4 rounded-[10px] border text-left cursor-pointer transition-all ${storyStructure === 'auto' ? 'border-[var(--line-3)] bg-white/[0.05]' : 'border-[var(--line)] hover:border-[var(--line-2)] bg-white/[0.015]'}`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className={`w-8 h-8 rounded-md border border-[var(--line)] bg-[var(--surface-3)] flex items-center justify-center ${storyStructure === 'auto' ? 'text-white' : 'text-[var(--fg-3)]'}`}>{Ico.sparkle}</span>
                     <span className="ui-chip ui-chip-muted">Recommended</span>
                   </div>
-                  <h3 className="text-[16px] font-semibold tracking-[-0.02em] mb-1.5">Build it for me</h3>
+                  <h3 className="text-[14px] font-medium mb-1">Build it for me</h3>
                   <p className="text-[12.5px] text-[var(--fg-3)] leading-relaxed mb-6">A full script with hook, rising action, climax and resolution.</p>
                   <Label right={<span className="ui-mono text-[10.5px] text-[var(--fg-4)]">{durationSceneNote(storyDuration)}</span>}>Video length</Label>
                   <div onClick={e => e.stopPropagation()}>
@@ -1141,11 +1035,11 @@ function CreatePageInner() {
                   </div>
                 </div>
                 <div onClick={() => setStoryStructure('manual')}
-                  className={`relative p-6 rounded-[18px] border text-left cursor-pointer transition-all ${storyStructure === 'manual' ? 'border-white ring-1 ring-white bg-white/[0.04]' : 'border-[var(--line)] hover:border-[var(--line-2)] bg-white/[0.015]'}`}>
-                  <div className="flex items-center justify-between mb-6">
-                    <span className={`w-10 h-10 rounded-[12px] flex items-center justify-center ${storyStructure === 'manual' ? 'bg-white text-black' : 'bg-white/[0.06] text-white'}`}>{Ico.plus}</span>
+                  className={`relative p-4 rounded-[10px] border text-left cursor-pointer transition-all ${storyStructure === 'manual' ? 'border-[var(--line-3)] bg-white/[0.05]' : 'border-[var(--line)] hover:border-[var(--line-2)] bg-white/[0.015]'}`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className={`w-8 h-8 rounded-md border border-[var(--line)] bg-[var(--surface-3)] flex items-center justify-center ${storyStructure === 'manual' ? 'text-white' : 'text-[var(--fg-3)]'}`}>{Ico.plus}</span>
                   </div>
-                  <h3 className="text-[16px] font-semibold tracking-[-0.02em] mb-1.5">I'll write my own</h3>
+                  <h3 className="text-[14px] font-medium mb-1">I'll write my own</h3>
                   <p className="text-[12.5px] text-[var(--fg-3)] leading-relaxed">Start with a blank timeline and build scenes manually.</p>
                 </div>
               </div>
@@ -1165,12 +1059,8 @@ function CreatePageInner() {
           <div className="flex flex-col flex-1 min-h-0">
             {storyGenerating && (
               <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
-                <div className="relative w-16 h-16 mb-6">
-                  <div className="absolute inset-0 rounded-full border border-[var(--line-2)]" />
-                  <Spinner size={64} className="!border-transparent !border-t-white absolute inset-0" />
-                  <span className="absolute inset-0 flex items-center justify-center">{Ico.sparkle}</span>
-                </div>
-                <h2 className="text-[22px] font-semibold tracking-[-0.03em] mb-2">Writing your script…</h2>
+                <Spinner size={18} className="mb-4" />
+                <h2 className="text-[15px] font-medium mb-1">Writing your script…</h2>
                 <p className="text-[13px] text-[var(--fg-3)]">{durationSceneNote(storyDuration)} · hook, rising action, climax, resolution</p>
               </div>
             )}
@@ -1185,7 +1075,7 @@ function CreatePageInner() {
               {showExport && (
                 <Modal onClose={() => setShowExport(false)} width={400}>
                   <div className="ui-eyebrow mb-2">Export</div>
-                  <h3 className="text-[20px] font-semibold tracking-[-0.03em] mb-5">Ready to generate video</h3>
+                  <h3 className="text-[15px] font-semibold mb-4">Ready to generate video</h3>
                   <Label>Resolution</Label>
                   <Segmented full value={exportRes} onChange={setExportRes}
                     options={(['480p', '720p', '1080p'] as Resolution[]).map(r => ({ value: r, label: r, sub: `${RESOLUTION_CREDITS[r]} cr` }))} />
@@ -1204,7 +1094,6 @@ function CreatePageInner() {
               <div className="flex-1 flex min-h-0 overflow-hidden">
                 {/* PREVIEW */}
                 <div className="relative flex-1 flex flex-col min-w-0 p-4 md:p-6">
-                  <div className="absolute inset-0 ui-dots-bg opacity-30 pointer-events-none" />
                   <div className="relative flex items-center justify-between mb-4 flex-shrink-0">
                     <div className="flex items-center gap-2.5">
                       <span className="ui-chip !h-6 !px-2.5 ui-mono">SC {String(selectedSceneIdx + 1).padStart(2, '0')}</span>
@@ -1213,7 +1102,7 @@ function CreatePageInner() {
                     {selectedScene?.approved && <span className="ui-chip ui-chip-solid">{Ico.check}Approved</span>}
                   </div>
                   <div className="relative flex-1 flex items-center justify-center min-h-0">
-                    <div className={`relative rounded-[16px] border border-[var(--line-2)] bg-[#0b0b0b] overflow-hidden flex items-center justify-center shadow-[0_30px_80px_-20px_rgba(0,0,0,0.9)] ${storyAspectRatio === '9:16' ? 'aspect-[9/16] h-full max-h-[62vh]' : 'aspect-video w-full max-w-[820px]'}`}>
+                    <div className={`relative rounded-[10px] border border-[var(--line-2)] bg-[#0b0b0b] overflow-hidden flex items-center justify-center ${storyAspectRatio === '9:16' ? 'aspect-[9/16] h-full max-h-[62vh]' : 'aspect-video w-full max-w-[820px]'}`}>
                       {selectedScene?.videoUrl ? (
                         <video ref={storyVideoRef} src={selectedScene.videoUrl} loop playsInline
                           onPlay={() => setStoryVideoPlaying(true)} onPause={() => setStoryVideoPlaying(false)}
@@ -1222,7 +1111,7 @@ function CreatePageInner() {
                       ) : selectedScene?.imageUrl ? (
                         <img src={selectedScene.imageUrl} alt="" className="w-full h-full object-cover" />
                       ) : selectedScene?.generating ? (
-                        <div className="flex flex-col items-center gap-3"><Spinner size={26} /><span className="text-[12px] text-[var(--fg-3)]">Generating preview…</span></div>
+                        <div className="flex flex-col items-center gap-3"><Spinner size={18} /><span className="text-[12px] text-[var(--fg-3)]">Generating preview…</span></div>
                       ) : (
                         <div className="flex flex-col items-center gap-3 px-8 text-center text-white/20">
                           {Ico.film}
@@ -1231,7 +1120,7 @@ function CreatePageInner() {
                       )}
                       {selectedScene?.videoUrl && (
                         <button onClick={() => { const v = storyVideoRef.current; if (!v) return; storyVideoPlaying ? v.pause() : v.play(); }}
-                          className="absolute bottom-3 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full bg-white text-black flex items-center justify-center shadow-lg hover:scale-105 transition-transform">
+                          className="absolute bottom-3 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-black/70 border border-white/20 text-white flex items-center justify-center">
                           {storyVideoPlaying ? Ico.pause : Ico.play}
                         </button>
                       )}
@@ -1246,7 +1135,7 @@ function CreatePageInner() {
                       <div>
                         <div className="ui-eyebrow mb-2">Scene {selectedSceneIdx + 1} of {generatedScript.length}</div>
                         <input value={selectedScene.title} onChange={e => updateScriptScene(selectedScene.id, { title: e.target.value })}
-                          className="w-full bg-transparent text-[18px] font-semibold tracking-[-0.02em] text-white outline-none border-b border-transparent focus:border-[var(--line-2)] pb-1 transition-colors" />
+                          className="w-full bg-transparent text-[14px] font-medium text-white outline-none border-b border-transparent focus:border-[var(--line-2)] pb-1 transition-colors" />
                       </div>
                       <div>
                         <Label>Narration</Label>
@@ -1263,13 +1152,13 @@ function CreatePageInner() {
                           ['includeSubtitles', 'Subtitles', Ico.captions],
                         ] as const).map(([key, label, icon]) => (
                           <button key={key} onClick={() => updateScriptScene(selectedScene.id, { [key]: !selectedScene[key] } as Partial<ScriptScene>)}
-                            className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-full border text-[11.5px] transition-all ${selectedScene[key] ? 'border-white bg-white text-black font-medium' : 'border-[var(--line-2)] text-[var(--fg-3)] hover:text-white'}`}>
+                            className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md border text-[12px] transition-colors ${selectedScene[key] ? 'border-[var(--line-3)] bg-white/[0.08] text-white' : 'border-[var(--line)] text-[var(--fg-3)] hover:text-white'}`}>
                             {icon}{label}
                           </button>
                         ))}
                       </div>
 
-                      <div className="rounded-[14px] border border-[var(--line)] p-3.5 flex flex-col gap-3">
+                      <div className="rounded-[10px] border border-[var(--line)] p-3.5 flex flex-col gap-3">
                         <div className="flex items-center justify-between">
                           <span className="flex items-center gap-2 text-[12px] text-[var(--fg-2)]">
                             <StatusDot status={selectedScene.approved ? 'completed' : selectedScene.generating ? 'processing' : selectedScene.error ? 'failed' : 'queued'} />
@@ -1307,12 +1196,12 @@ function CreatePageInner() {
                       <div key={ss.id} className="relative group flex-shrink-0"
                         draggable onDragStart={() => { storyDragI.current = idx; }} onDragEnter={() => { storyDragO.current = idx; }} onDragEnd={onStoryDragEnd} onDragOver={e => e.preventDefault()}>
                         <button onClick={() => setSelectedSceneId(ss.id)}
-                          className={`relative block ${storyAspectRatio === '9:16' ? 'w-[52px]' : 'w-[112px]'} rounded-[10px] border overflow-hidden transition-all ${isActive ? 'border-white ring-2 ring-white/20' : 'border-[var(--line-2)] hover:border-[var(--line-3)] opacity-80 hover:opacity-100'} ${ss.generating ? 'animate-pulse' : ''}`}>
+                          className={`relative block ${storyAspectRatio === '9:16' ? 'w-[52px]' : 'w-[112px]'} rounded-[10px] border overflow-hidden transition-all ${isActive ? 'border-white' : 'border-[var(--line-2)] hover:border-[var(--line-3)] opacity-80 hover:opacity-100'} ${ss.generating ? 'animate-pulse' : ''}`}>
                           <div className={`${storyAspectRatio === '9:16' ? 'aspect-[9/16]' : 'aspect-video'} bg-[#111] flex items-center justify-center`}>
                             {ss.videoUrl ? <video src={ss.videoUrl} muted loop autoPlay playsInline className="w-full h-full object-cover" /> : ss.imageUrl ? <img src={ss.imageUrl} alt="" className="w-full h-full object-cover" /> : null}
                           </div>
                           <span className="absolute top-1 left-1 ui-mono text-[9px] text-white bg-black/70 px-1 rounded">{String(idx + 1).padStart(2, '0')}</span>
-                          {ss.approved && <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-white text-black flex items-center justify-center scale-90">{Ico.check}</span>}
+                          {ss.approved && <span className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-[#ededed] text-black flex items-center justify-center">{Ico.check}</span>}
                         </button>
                         {generatedScript.length > 1 && (
                           <button onClick={() => removeStoryScene(ss.id)} aria-label="Remove scene"
@@ -1343,7 +1232,7 @@ function CreatePageInner() {
       <div className="flex flex-col h-screen">
         <EditorHeader format="2D Animation" onBack={goHome} steps={['Setup', 'Characters', 'Studio']} current={0} />
         <EditorPage>
-          <Intro eyebrow="Step 1 · Setup" title="Set up your episode" desc="A premise, a look and the shape of the cut. You'll build the cast next." />
+          <Intro title="Set up your episode" desc="A premise, a look and the shape of the cut. You'll build the cast next." />
 
           <Section n={1} title="Premise">
             <TextArea big value={cTitle} onChange={e => setCTitle(e.target.value)} rows={3}
@@ -1410,19 +1299,19 @@ function CreatePageInner() {
               <Modal width={400}>
                 {genLoading ? (
                   <div className="flex flex-col items-center py-10">
-                    <Spinner size={30} className="mb-5" />
+                    <Spinner size={18} className="mb-5" />
                     <p className="text-[14px] font-medium">Designing your character…</p>
                     <p className="text-[12px] text-[var(--fg-4)] mt-1">{STYLES.find(x => x.value === style)?.label} style</p>
                   </div>
                 ) : (
                   <div>
                     <div className="ui-eyebrow mb-2">{editingChar ? editingChar.name : `Character ${chars.length + 1}`}</div>
-                    <h3 className="text-[18px] font-semibold tracking-[-0.03em] mb-4">Use this character?</h3>
-                    <div className="relative aspect-[3/4] bg-[#0a0a0a] rounded-[14px] border border-[var(--line)] overflow-hidden mb-5">
+                    <h3 className="text-[15px] font-semibold mb-3">Use this character?</h3>
+                    <div className="relative aspect-[3/4] bg-[#0a0a0a] rounded-[10px] border border-[var(--line)] overflow-hidden mb-5">
                       {pendingChar?.imageUrl ? (
                         <img src={pendingChar.imageUrl} alt="Generated character" className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-white/15 scale-[2]">{Ico.user}</div>
+                        <div className="w-full h-full flex items-center justify-center text-white/15">{Ico.user}</div>
                       )}
                     </div>
                     <div className="flex gap-2">
@@ -1439,7 +1328,7 @@ function CreatePageInner() {
             )}
 
             <EditorPage width={1080}>
-              <Intro eyebrow="Step 2 · Characters" title="Build your cast" desc="Describe each character once — they stay consistent in every scene. Add as many as the story needs." />
+              <Intro title="Build your cast" desc="Describe each character once — they stay consistent in every scene. Add as many as the story needs." />
               <div className="grid lg:grid-cols-[1fr_360px] gap-8 items-start">
                 <div>
                   <Section n={1} title={editingChar ? `Edit ${editingChar.name}` : `Character ${chars.length + 1}`}>
@@ -1448,14 +1337,14 @@ function CreatePageInner() {
                     <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
                     <div className="mt-3">
                       {photoUrl ? (
-                        <div className="relative h-28 rounded-[14px] border border-[var(--line)] overflow-hidden">
+                        <div className="relative h-28 rounded-[10px] border border-[var(--line)] overflow-hidden">
                           <img src={photoUrl} alt="" className="w-full h-full object-cover" />
                           <span className="absolute bottom-2 left-2 ui-chip">Likeness reference</span>
-                          <button onClick={clearPhoto} aria-label="Remove photo" className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/70 backdrop-blur flex items-center justify-center text-white/80 hover:text-white">{Ico.x}</button>
+                          <button onClick={clearPhoto} aria-label="Remove photo" className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/70 flex items-center justify-center text-white/80 hover:text-white">{Ico.x}</button>
                         </div>
                       ) : (
                         <button onClick={() => fileRef.current?.click()}
-                          className="w-full h-[72px] rounded-[14px] border border-dashed border-[var(--line-2)] flex items-center justify-center gap-3 text-[var(--fg-4)] hover:text-white hover:border-[var(--line-3)] transition-colors">
+                          className="w-full h-[72px] rounded-[10px] border border-dashed border-[var(--line-2)] flex items-center justify-center gap-3 text-[var(--fg-4)] hover:text-white hover:border-[var(--line-3)] transition-colors">
                           {Ico.image}
                           <span className="text-[12.5px]">Upload a photo for likeness</span>
                           <span className="ui-chip ui-chip-muted">Optional</span>
@@ -1531,7 +1420,7 @@ function CreatePageInner() {
           const sc = scenes.find(s => s.id === activeSceneId) ?? scenes[0];
           if (!sc) {
             return (
-              <div className="flex-1 flex flex-col items-center justify-center gap-4 animate-[fadeIn_0.3s_ease]">
+              <div className="flex-1 flex flex-col items-center justify-center gap-4">
                 <p className="text-[13px] text-[rgba(255,255,255,0.4)]">No scenes yet.</p>
                 <button onClick={addScene} className="px-4 py-2 bg-white text-black text-[12px] font-medium rounded-lg hover:bg-gray-200 transition-all">+ Create your first scene</button>
               </div>
@@ -1548,7 +1437,7 @@ function CreatePageInner() {
             : 'aspect-video w-full max-w-[760px]';
 
           return (
-            <div className="flex-1 flex flex-col min-h-0 animate-[fadeIn_0.3s_ease]">
+            <div className="flex-1 flex flex-col min-h-0">
 
               {/* ── MAIN: preview (left) + inspector (right) ── */}
               <div className="flex-1 flex min-h-0 overflow-hidden">
@@ -1735,7 +1624,7 @@ function CreatePageInner() {
         {/* Legacy review step is disabled for the cleaned 2D flow. */}
         {false && step === 3 && (
           <div className="flex-1 overflow-y-auto">
-            <div className="max-w-[820px] mx-auto px-5 md:px-7 py-7 animate-[fadeIn_0.3s_ease]">
+            <div className="max-w-[820px] mx-auto px-5 md:px-7 py-7">
               <h2 className="text-[12px] font-medium text-[rgba(255,255,255,0.55)] uppercase tracking-[1.5px] mb-5">Review your scenes</h2>
               <div className="flex flex-col gap-2.5 mb-8">
                 {scenes.filter(s => s.approved).map((sc, idx) => (
@@ -1808,7 +1697,7 @@ function CreatePageInner() {
 
         {false && step === 4 && (
           <div className="flex-1 overflow-y-auto">
-            <div className="max-w-[860px] mx-auto px-5 md:px-7 py-7 animate-[fadeIn_0.3s_ease]">
+            <div className="max-w-[860px] mx-auto px-5 md:px-7 py-7">
               <div className="flex items-center gap-3.5 mb-7">
                 {genStatus === 'completed' ? <div className="w-10 h-10 rounded-full bg-[rgba(74,222,128,0.08)] flex items-center justify-center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(74,222,128,0.7)" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg></div>
                   : genStatus === 'failed' ? <div className="w-10 h-10 rounded-full bg-[rgba(248,113,113,0.08)] flex items-center justify-center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(248,113,113,0.7)" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg></div>
@@ -1869,7 +1758,6 @@ function CreatePageInner() {
         )}
       </div>
 
-      <style jsx global>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
     </div>
     )}
   </>);

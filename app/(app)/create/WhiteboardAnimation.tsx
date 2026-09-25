@@ -140,13 +140,13 @@ export default function WhiteboardAnimation({ onBack }: { onBack: () => void }) 
         onBack={onBack}
         steps={['Setup', 'Render']}
         current={stepIndex}
-        right={<Credits n={cost} suffix="" />}
+        right={<Credits n={cost} suffix="credits est." />}
       />
 
       {step === 'setup' && (
         <>
           <EditorPage>
-            <Intro eyebrow="Step 1 · Setup" title="What should we explain?" desc="A hand-drawn doodle is sketched for each beat on a whiteboard, with narration and captions." />
+            <Intro title="What should we explain?" desc="A hand-drawn doodle is sketched for each beat on a whiteboard, with narration and captions." />
 
             <Section n={1} title="Topic">
               <TextArea big value={title} onChange={e => setTitle(e.target.value)} rows={3}
@@ -162,7 +162,7 @@ export default function WhiteboardAnimation({ onBack }: { onBack: () => void }) 
                   const on = colored === o.v;
                   return (
                     <button key={String(o.v)} onClick={() => setColored(o.v)}
-                      className={`group relative flex items-center gap-4 p-3 rounded-[14px] border text-left transition-all ${on ? 'border-white ring-1 ring-white bg-white/[0.04]' : 'border-[var(--line)] hover:border-[var(--line-2)]'}`}>
+                      className={`group relative flex items-center gap-4 p-3 rounded-[10px] border text-left transition-all ${on ? 'border-[var(--line-3)] bg-white/[0.05]' : 'border-[var(--line)] hover:border-[var(--line-2)]'}`}>
                       <span className="relative w-[92px] h-[60px] rounded-[10px] bg-[#f4f4f2] overflow-hidden flex-shrink-0">
                         <svg viewBox="0 0 92 60" className="absolute inset-0 w-full h-full" fill="none">
                           <path d="M10 44c8-16 16-20 24-12s14 10 20-4 14-14 22-2" stroke="#111" strokeWidth="2" strokeLinecap="round" />
@@ -174,7 +174,7 @@ export default function WhiteboardAnimation({ onBack }: { onBack: () => void }) 
                         <span className="block text-[13.5px] font-medium">{o.label}</span>
                         <span className="block text-[11.5px] text-[var(--fg-4)] leading-relaxed">{o.sub}</span>
                       </span>
-                      {on && <span className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-white text-black flex items-center justify-center">{Ico.check}</span>}
+                      
                     </button>
                   );
                 })}
@@ -217,7 +217,7 @@ export default function WhiteboardAnimation({ onBack }: { onBack: () => void }) 
                   </div>
                 </>
               ) : (
-                <div className="rounded-[14px] border border-dashed border-[var(--line-2)] py-8 text-center text-[12.5px] text-[var(--fg-4)]">Narration disabled</div>
+                <div className="rounded-[10px] border border-dashed border-[var(--line-2)] py-8 text-center text-[12.5px] text-[var(--fg-4)]">Narration disabled</div>
               )}
             </Section>
           </EditorPage>

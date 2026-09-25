@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import FormatArt, { FORMATS } from '@/components/FormatArt';
+import { FORMATS, FormatIcon } from '@/components/FormatArt';
 
 interface ProjectRow {
   id: string; title: string; genre: string | null; style: string | null;
@@ -30,14 +30,6 @@ function timeAgo(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function greeting() {
-  const h = new Date().getHours();
-  if (h < 5) return 'Working late';
-  if (h < 12) return 'Good morning';
-  if (h < 18) return 'Good afternoon';
-  return 'Good evening';
-}
-
 const I = {
   plus: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>,
   download: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 4v11M7 10l5 5 5-5" /><path d="M4 20h16" /></svg>,
@@ -48,24 +40,21 @@ const I = {
 };
 
 function Thumb({ src, video, fallback }: { src?: string | null; video?: string | null; fallback: React.ReactNode }) {
-  if (src) return <img src={src} alt="" className="w-full h-full object-cover transition-transform duration-700 ease-[cubic-bezier(.22,1,.36,1)] group-hover:scale-[1.035]" />;
+  if (src) return <img src={src} alt="" className="w-full h-full object-cover" />;
   if (video) return (
     <video src={`${video}#t=0.1`} className="w-full h-full object-cover" muted playsInline preload="metadata"
       onMouseEnter={e => { (e.currentTarget as HTMLVideoElement).play().catch(() => {}); }}
       onMouseLeave={e => { const v = e.currentTarget as HTMLVideoElement; v.pause(); v.currentTime = 0.1; }} />
   );
   return (
-    <div className="w-full h-full relative flex items-center justify-center text-white/15">
-      <div className="absolute inset-0 ui-dots-bg opacity-50 ui-fade-mask" />
-      <div className="relative">{fallback}</div>
-    </div>
+    <div className="w-full h-full flex items-center justify-center text-white/15">{fallback}</div>
   );
 }
 
 function Meta({ parts }: { parts: (string | null | undefined | false)[] }) {
   const clean = parts.filter(Boolean) as string[];
   return (
-    <div className="flex items-center gap-1.5 text-[11.5px] text-[var(--fg-4)] min-w-0">
+    <div className="flex items-center gap-1.5 text-[12px] text-[var(--fg-4)] min-w-0">
       {clean.map((p, i) => (
         <span key={i} className="flex items-center gap-1.5 min-w-0">
           {i > 0 && <span className="w-[3px] h-[3px] rounded-full bg-white/15 flex-shrink-0" />}
@@ -85,13 +74,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
-  const [hello, setHello] = useState('Welcome back');
-  const [today, setToday] = useState('');
-
-  useEffect(() => {
-    setHello(greeting());
-    setToday(new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }));
-  }, []);
 
   useEffect(() => {
     (async () => {
@@ -172,226 +154,176 @@ export default function DashboardPage() {
   const visible = filter === 'drafts' ? drafts : filter === 'exported' ? exported : projects;
 
   const stats = [
-    { label: 'Credits', value: credits.toLocaleString(), sub: <span className="ui-chip ui-chip-muted capitalize">{plan} plan</span>, href: '/billing' },
-    { label: 'In progress', value: String(drafts.length), sub: <span className="text-[var(--fg-4)]">draft projects</span> },
-    { label: 'Exported', value: String(exported.length), sub: <span className="text-[var(--fg-4)]">finished videos</span> },
-    { label: 'Last 24h', value: String(recent.length), sub: <span className="text-[var(--fg-4)]">new renders</span> },
+    { label: 'Credits', value: credits.toLocaleString(), sub: <span className="capitalize">{plan} plan</span>, href: '/billing' },
+    { label: 'In progress', value: String(drafts.length), sub: 'Draft projects' },
+    { label: 'Exported', value: String(exported.length), sub: 'Finished videos' },
+    { label: 'Last 24 hours', value: String(recent.length), sub: 'New renders' },
   ];
 
   const deleteBtn = (id: string) => (
     <button onClick={(e) => deleteProject(id, e)} aria-label="Delete project" title="Delete"
-      className="absolute top-2.5 right-2.5 w-7 h-7 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center text-white/70 opacity-0 group-hover:opacity-100 hover:text-white hover:bg-black/80 transition-all">
+      className="absolute top-2 right-2 w-6 h-6 rounded-md bg-black/70 border border-white/10 flex items-center justify-center text-white/70 opacity-0 group-hover:opacity-100 hover:text-white transition-opacity">
       {deletingId === id ? <div className="w-3 h-3 rounded-full border border-white/30 border-t-white animate-spin" /> : I.trash}
     </button>
   );
 
+  const card = 'group block';
+  const media = 'relative aspect-video rounded-lg overflow-hidden bg-[var(--surface)] border border-[var(--line)] group-hover:border-[var(--line-3)] transition-colors mb-2.5';
+
   return (
-    <div className="relative min-h-screen">
-      {/* Ambient top glow */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] overflow-hidden">
-        <div className="absolute inset-0 ui-grid-bg [mask-image:linear-gradient(to_bottom,black,transparent)]" />
-        <div className="absolute left-1/2 -top-40 -translate-x-1/2 w-[900px] h-[400px] bg-[radial-gradient(ellipse,rgba(255,255,255,0.07),transparent_65%)]" />
-      </div>
+    <div className="px-5 md:px-8 py-6 max-w-[1280px] mx-auto">
+      {/* ── Header ── */}
+      <header className="flex items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-[20px] font-semibold tracking-[-0.02em]">Home</h1>
+          <p className="text-[13px] text-[var(--fg-3)] mt-0.5">Your projects and recent renders.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link href="/billing" className="ui-btn ui-btn-secondary">Buy credits</Link>
+          <Link href="/create" className="ui-btn ui-btn-primary">{I.plus}New video</Link>
+        </div>
+      </header>
 
-      <div className="relative px-5 md:px-10 pt-10 pb-16 max-w-[1320px] mx-auto">
-        {/* ── Header ── */}
-        <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-10 ui-rise">
-          <div>
-            <div className="ui-eyebrow mb-3 min-h-[14px]">{today}</div>
-            <h1 className="text-[34px] md:text-[40px] font-semibold tracking-[-0.045em] leading-[1.05]">
-              {hello}.<br />
-              <span className="text-[var(--fg-4)]">What are we making today?</span>
-            </h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link href="/billing" className="ui-btn ui-btn-secondary">Buy credits</Link>
-            <Link href="/create" className="ui-btn ui-btn-primary">{I.plus}New video</Link>
-          </div>
-        </header>
+      {/* ── Stats ── */}
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-[var(--line)] border border-[var(--line)] rounded-[10px] overflow-hidden mb-8">
+        {stats.map(s => {
+          const body = (
+            <>
+              <div className="text-[12px] text-[var(--fg-3)] mb-1.5">{s.label}</div>
+              <div className="text-[20px] font-semibold tracking-[-0.02em] tabular-nums leading-tight">
+                {loading ? <span className="inline-block w-12 h-5 rounded ui-shimmer align-middle" /> : s.value}
+              </div>
+              <div className="text-[12px] text-[var(--fg-4)] mt-0.5">{s.sub}</div>
+            </>
+          );
+          return s.href
+            ? <Link key={s.label} href={s.href} className="bg-black px-4 py-3.5 hover:bg-[var(--surface)] transition-colors">{body}</Link>
+            : <div key={s.label} className="bg-black px-4 py-3.5">{body}</div>;
+        })}
+      </section>
 
-        {/* ── Stats ── */}
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-[var(--line)] border border-[var(--line)] rounded-2xl overflow-hidden mb-14 ui-rise ui-rise-1">
-          {stats.map(s => {
-            const body = (
-              <>
-                <div className="ui-eyebrow mb-4">{s.label}</div>
-                <div className="text-[30px] font-semibold tracking-[-0.045em] leading-none tabular-nums mb-3">
-                  {loading ? <span className="inline-block w-16 h-7 rounded-md ui-shimmer align-middle" /> : s.value}
-                </div>
-                <div className="text-[11.5px] h-5 flex items-center">{s.sub}</div>
-              </>
-            );
-            return s.href
-              ? <Link key={s.label} href={s.href} className="bg-black p-5 md:p-6 hover:bg-[#070707] transition-colors group relative">
-                  {body}
-                  <span className="absolute top-5 right-5 text-white/20 group-hover:text-white group-hover:translate-x-0.5 transition-all">{I.arrow}</span>
-                </Link>
-              : <div key={s.label} className="bg-black p-5 md:p-6">{body}</div>;
-          })}
-        </section>
-
-        {/* ── Start something new ── */}
-        <section className="mb-16 ui-rise ui-rise-2">
-          <div className="flex items-end justify-between mb-5">
-            <div>
-              <h2 className="text-[17px] font-semibold tracking-[-0.02em]">Start something new</h2>
-              <p className="text-[13px] text-[var(--fg-3)] mt-1">Pick a format — every one exports vertical and horizontal.</p>
-            </div>
-            <Link href="/create" className="hidden sm:flex items-center gap-1.5 text-[12.5px] text-[var(--fg-3)] hover:text-white transition-colors">
-              All formats {I.arrow}
+      {/* ── Start ── */}
+      <section className="mb-10">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-[14px] font-medium">Start a new video</h2>
+          <Link href="/create" className="text-[12px] text-[var(--fg-3)] hover:text-white transition-colors">All formats</Link>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+          {FORMATS.map(f => (
+            <Link key={f.key} href={`/create?mode=${f.key}`} className="ui-card ui-card-hover flex items-center gap-3 px-3 py-2.5">
+              <span className="w-8 h-8 rounded-md bg-[var(--surface-3)] border border-[var(--line)] flex items-center justify-center text-[var(--fg-2)] flex-shrink-0">
+                <FormatIcon k={f.key} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[13px] font-medium truncate">{f.title}</span>
+                <span className="block text-[12px] text-[var(--fg-4)] truncate">{f.tagline}</span>
+              </span>
             </Link>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
-            {FORMATS.map(f => (
-              <Link key={f.key} href={`/create?mode=${f.key}`}
-                className="group ui-card ui-card-hover overflow-hidden flex flex-col hover:-translate-y-0.5">
-                <div className="relative">
-                  <FormatArt k={f.key} className="aspect-[16/10] border-b border-[var(--line)]" />
-                  {f.badge && (
-                    <span className={`absolute top-2.5 left-2.5 ui-chip ${f.badge === 'Popular' ? 'ui-chip-solid' : ''}`}>{f.badge}</span>
-                  )}
-                </div>
-                <div className="p-4 flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="text-[13.5px] font-medium tracking-[-0.01em] truncate">{f.title}</div>
-                    <div className="text-[11.5px] text-[var(--fg-4)] mt-0.5 truncate">{f.tagline}</div>
-                  </div>
-                  <span className="text-white/20 group-hover:text-white group-hover:translate-x-0.5 transition-all mt-0.5 flex-shrink-0">{I.arrow}</span>
-                </div>
-              </Link>
+          ))}
+        </div>
+      </section>
+
+      {loading ? (
+        <section>
+          <div className="h-4 w-24 rounded ui-shimmer mb-3" />
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-6">
+            {[...Array(8)].map((_, i) => (
+              <div key={i}>
+                <div className="aspect-video rounded-lg ui-shimmer mb-2.5" />
+                <div className="h-3 rounded ui-shimmer w-2/3 mb-1.5" />
+                <div className="h-2.5 rounded ui-shimmer w-1/3" />
+              </div>
             ))}
           </div>
         </section>
+      ) : (
+        <>
+          {/* ── Recent renders ── */}
+          {recent.length > 0 && (
+            <section className="mb-10">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-[14px] font-medium">Recent renders <span className="text-[var(--fg-4)] font-normal ml-1">{recent.length}</span></h2>
+                <span className="text-[12px] text-[var(--fg-4)] hidden sm:block">Videos expire after 30 days</span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-6">
+                {recent.map(item => (
+                  <article key={item.id} className={card}>
+                    <div className={media}>
+                      <Thumb src={item.thumbnail_url} video={item.video_url} fallback={I.play} />
+                      <button onClick={e => downloadVideo(e, item.video_url, item.title)}
+                        className="absolute bottom-2 right-2 ui-btn ui-btn-sm ui-btn-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                        {I.download}Download
+                      </button>
+                    </div>
+                    <h3 className="text-[13px] font-medium truncate mb-0.5">{item.title}</h3>
+                    <Meta parts={[item.resolution, timeAgo(item.created_at)]} />
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
 
-        {loading ? (
-          <section>
-            <div className="h-5 w-40 rounded ui-shimmer mb-5" />
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-7">
-              {[...Array(8)].map((_, i) => (
-                <div key={i}>
-                  <div className="aspect-video rounded-xl ui-shimmer mb-3" />
-                  <div className="h-3 rounded ui-shimmer w-2/3 mb-2" />
-                  <div className="h-2.5 rounded ui-shimmer w-1/3" />
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : (
-          <>
-            {/* ── Just rendered ── */}
-            {recent.length > 0 && (
-              <section className="mb-16">
-                <div className="flex items-center gap-3 mb-5">
-                  <span className="relative flex w-2 h-2">
-                    <span className="absolute inset-0 rounded-full bg-white animate-ping opacity-40" />
-                    <span className="relative w-2 h-2 rounded-full bg-white" />
-                  </span>
-                  <h2 className="text-[17px] font-semibold tracking-[-0.02em]">Just rendered</h2>
-                  <span className="ui-mono text-[11px] text-[var(--fg-4)]">{String(recent.length).padStart(2, '0')}</span>
-                  <span className="ml-auto text-[11.5px] text-[var(--fg-4)] hidden sm:block">Videos expire after 30 days</span>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-7">
-                  {recent.map(item => (
-                    <article key={item.id} className="group">
-                      <div className="relative aspect-video rounded-xl overflow-hidden bg-[#070707] border border-[var(--line)] group-hover:border-[var(--line-3)] transition-colors mb-3">
-                        <Thumb src={item.thumbnail_url} video={item.video_url} fallback={I.play} />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                        <span className="absolute top-2.5 left-2.5 ui-chip ui-chip-solid">New</span>
-                        <button onClick={e => downloadVideo(e, item.video_url, item.title)}
-                          className="absolute bottom-2.5 right-2.5 ui-btn ui-btn-sm ui-btn-primary opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0">
-                          {I.download}Download
-                        </button>
-                      </div>
-                      <h3 className="text-[13px] font-medium tracking-[-0.01em] truncate mb-1">{item.title}</h3>
-                      <Meta parts={[item.resolution, timeAgo(item.created_at)]} />
-                    </article>
+          {/* ── Projects ── */}
+          {projects.length > 0 && (
+            <section>
+              <div className="flex items-center justify-between gap-4 mb-3">
+                <h2 className="text-[14px] font-medium">Projects</h2>
+                <div className="flex items-center gap-1">
+                  {([['all', 'All', projects.length], ['drafts', 'In progress', drafts.length], ['exported', 'Exported', exported.length]] as const).map(([k, label, n]) => (
+                    <button key={k} onClick={() => setFilter(k)}
+                      className={`h-7 px-2.5 rounded-md text-[12px] transition-colors ${filter === k ? 'bg-white/[0.08] text-white' : 'text-[var(--fg-3)] hover:text-white'}`}>
+                      {label} <span className="text-[var(--fg-4)] tabular-nums ml-0.5">{n}</span>
+                    </button>
                   ))}
                 </div>
-              </section>
-            )}
+              </div>
 
-            {/* ── Projects ── */}
-            {projects.length > 0 && (
-              <section>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
-                  <h2 className="text-[17px] font-semibold tracking-[-0.02em]">Projects</h2>
-                  <div className="inline-flex p-[3px] rounded-[11px] bg-white/[0.03] border border-[var(--line)] self-start">
-                    {([['all', 'All', projects.length], ['drafts', 'In progress', drafts.length], ['exported', 'Exported', exported.length]] as const).map(([k, label, n]) => (
-                      <button key={k} onClick={() => setFilter(k)}
-                        className={`h-7 px-3 rounded-[8px] text-[12px] font-medium flex items-center gap-2 transition-all ${filter === k ? 'bg-white text-black shadow-[0_1px_8px_rgba(255,255,255,0.15)]' : 'text-[var(--fg-3)] hover:text-white'}`}>
-                        {label}
-                        <span className={`ui-mono text-[10px] ${filter === k ? 'text-black/45' : 'text-[var(--fg-4)]'}`}>{n}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {visible.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-[var(--line-2)] py-14 text-center text-[13px] text-[var(--fg-3)]">
-                    Nothing here yet.
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-7">
-                    {visible.map(p => {
-                      const done = !!p.final_video_url;
-                      const cap = (x: string | null) => x ? x.charAt(0).toUpperCase() + x.slice(1) : null;
-                      const style = p.style ? (p.style === 'custom' ? 'Realistic' : cap(p.style)) : null;
-                      const chip = done
-                        ? <span className="ui-chip ui-chip-solid"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 5 5L20 7" /></svg>Exported</span>
-                        : p.has_videos
-                        ? <span className="ui-chip">{p.scenes_count} scenes ready</span>
-                        : p.scenes_count > 0
-                        ? <span className="ui-chip">{p.scenes_count} scenes</span>
-                        : <span className="ui-chip ui-chip-muted">Draft</span>;
-
-                      const media = (
-                        <div className="relative aspect-video rounded-xl overflow-hidden bg-[#070707] border border-[var(--line)] group-hover:border-[var(--line-3)] transition-colors mb-3">
+              {visible.length === 0 ? (
+                <div className="rounded-[10px] border border-dashed border-[var(--line-2)] py-10 text-center text-[13px] text-[var(--fg-3)]">Nothing here yet.</div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-6">
+                  {visible.map(p => {
+                    const done = !!p.final_video_url;
+                    const cap = (x: string | null) => x ? x.charAt(0).toUpperCase() + x.slice(1) : null;
+                    const style = p.style ? (p.style === 'custom' ? 'Realistic' : cap(p.style)) : null;
+                    const status = done ? 'Exported' : p.has_videos ? `${p.scenes_count} scenes ready` : p.scenes_count > 0 ? `${p.scenes_count} scenes` : 'Draft';
+                    const inner = (
+                      <>
+                        <div className={media}>
                           <Thumb src={p.thumbnail_url} fallback={I.doc} />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                          <span className="absolute top-2.5 left-2.5">{chip}</span>
+                          <span className={`absolute top-2 left-2 ui-chip ${done ? 'ui-chip-solid' : ''}`}>{status}</span>
                           {deleteBtn(p.id)}
-                          {done ? (
+                          {done && (
                             <button onClick={e => downloadVideo(e, p.final_video_url!, p.title)}
-                              className="absolute bottom-2.5 right-2.5 ui-btn ui-btn-sm ui-btn-primary opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0">
+                              className="absolute bottom-2 right-2 ui-btn ui-btn-sm ui-btn-primary opacity-0 group-hover:opacity-100 transition-opacity">
                               {I.download}Download
                             </button>
-                          ) : (
-                            <span className="absolute bottom-2.5 right-2.5 ui-btn ui-btn-sm ui-btn-primary opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 pointer-events-none">
-                              Continue {I.arrow}
-                            </span>
                           )}
                         </div>
-                      );
-                      const text = (
-                        <>
-                          <h3 className="text-[13px] font-medium tracking-[-0.01em] truncate mb-1">{p.title}</h3>
-                          <Meta parts={[cap(p.genre), style, timeAgo(p.updated_at)]} />
-                        </>
-                      );
-                      return done
-                        ? <article key={p.id} className="group">{media}{text}</article>
-                        : <Link key={p.id} href={`/create?projectId=${p.id}`} className="group block rounded-xl">{media}{text}</Link>;
-                    })}
-                  </div>
-                )}
-              </section>
-            )}
-
-            {/* ── Empty state ── */}
-            {projects.length === 0 && recent.length === 0 && (
-              <section className="relative rounded-3xl border border-[var(--line)] overflow-hidden py-20 px-6 flex flex-col items-center text-center">
-                <div className="absolute inset-0 ui-grid-bg ui-fade-mask" />
-                <div className="relative w-14 h-14 rounded-2xl ui-card flex items-center justify-center mb-6 text-white">
-                  {I.play}
+                        <h3 className="text-[13px] font-medium truncate mb-0.5">{p.title}</h3>
+                        <Meta parts={[cap(p.genre), style, timeAgo(p.updated_at)]} />
+                      </>
+                    );
+                    return done
+                      ? <article key={p.id} className={card}>{inner}</article>
+                      : <Link key={p.id} href={`/create?projectId=${p.id}`} className={card}>{inner}</Link>;
+                  })}
                 </div>
-                <h3 className="relative text-[22px] font-semibold tracking-[-0.03em] mb-2">Your first video is one prompt away</h3>
-                <p className="relative text-[13.5px] text-[var(--fg-3)] max-w-[380px] mb-7">Write an idea, pick a style, and Animave handles the script, visuals, voice and edit.</p>
-                <Link href="/create" className="relative ui-btn ui-btn-primary ui-btn-lg">{I.plus}Create your first video</Link>
-              </section>
-            )}
-          </>
-        )}
-      </div>
+              )}
+            </section>
+          )}
+
+          {/* ── Empty state ── */}
+          {projects.length === 0 && recent.length === 0 && (
+            <section className="rounded-[10px] border border-[var(--line)] py-16 px-6 flex flex-col items-center text-center">
+              <div className="w-10 h-10 rounded-lg bg-[var(--surface-3)] border border-[var(--line)] flex items-center justify-center mb-4 text-[var(--fg-2)]">{I.play}</div>
+              <h3 className="text-[14px] font-medium mb-1">No videos yet</h3>
+              <p className="text-[13px] text-[var(--fg-3)] max-w-[340px] mb-5">Pick a format, write an idea, and Animave handles the script, visuals, voice and edit.</p>
+              <Link href="/create" className="ui-btn ui-btn-primary">{I.plus}Create your first video</Link>
+            </section>
+          )}
+        </>
+      )}
     </div>
   );
 }

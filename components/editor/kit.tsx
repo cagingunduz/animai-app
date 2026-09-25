@@ -41,38 +41,33 @@ export function AspectGlyph({ a }: { a: string }) {
   );
 }
 
-export function Spinner({ size = 16, className = '' }: { size?: number; className?: string }) {
-  return <span className={`inline-block rounded-full border-2 border-white/10 border-t-white animate-spin ${className}`} style={{ width: size, height: size }} />;
+export function Spinner({ size = 14, className = '' }: { size?: number; className?: string }) {
+  return <span className={`inline-block rounded-full border-[1.5px] border-white/15 border-t-white animate-spin ${className}`} style={{ width: size, height: size }} />;
 }
 
 /* ─────────────────────────── Shell ─────────────────────────── */
 
 export function Stepper({ steps, current, onStep }: { steps: string[]; current: number; onStep?: (i: number) => void }) {
   return (
-    <div className="flex items-center gap-1.5">
+    <ol className="flex items-center gap-1">
       {steps.map((label, i) => {
         const done = i < current;
         const active = i === current;
         const clickable = !!onStep && i < current;
         return (
-          <div key={label} className="flex items-center gap-1.5">
+          <li key={label} className="flex items-center gap-1">
             <button type="button" disabled={!clickable} onClick={() => onStep?.(i)}
-              className={`flex items-center gap-2 h-8 pl-1 pr-3 rounded-full transition-colors ${active ? 'bg-white/[0.07]' : ''} ${clickable ? 'hover:bg-white/[0.05] cursor-pointer' : 'cursor-default'}`}>
-              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10.5px] font-semibold ui-mono transition-all duration-300
-                ${active ? 'bg-white text-black shadow-[0_0_0_4px_rgba(255,255,255,0.08)]' : done ? 'bg-white/90 text-black' : 'border border-[var(--line-2)] text-[var(--fg-4)]'}`}>
+              className={`flex items-center gap-1.5 h-7 px-2 rounded-md text-[12px] transition-colors ${clickable ? 'hover:bg-white/[0.05] cursor-pointer' : 'cursor-default'} ${active ? 'text-white' : done ? 'text-[var(--fg-2)]' : 'text-[var(--fg-4)]'}`}>
+              <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-medium ${active ? 'bg-[#ededed] text-black' : done ? 'bg-white/[0.15] text-white' : 'border border-[var(--line-2)]'}`}>
                 {done ? Ico.check : i + 1}
               </span>
-              <span className={`text-[12.5px] hidden sm:inline ${active ? 'text-white font-medium' : done ? 'text-[var(--fg-2)]' : 'text-[var(--fg-4)]'}`}>{label}</span>
+              <span className="hidden sm:inline">{label}</span>
             </button>
-            {i < steps.length - 1 && (
-              <span className="relative w-6 lg:w-10 h-px bg-[var(--line-2)] overflow-hidden">
-                <span className={`absolute inset-y-0 left-0 bg-white/70 transition-all duration-500 ${done ? 'w-full' : 'w-0'}`} />
-              </span>
-            )}
-          </div>
+            {i < steps.length - 1 && <span className="w-4 h-px bg-[var(--line-2)]" />}
+          </li>
         );
       })}
-    </div>
+    </ol>
   );
 }
 
@@ -80,18 +75,17 @@ export function EditorHeader({ format, onBack, steps, current, onStep, right, me
   format: string; onBack: () => void; steps?: string[]; current?: number; onStep?: (i: number) => void; right?: ReactNode; meta?: ReactNode;
 }) {
   return (
-    <header className="flex-shrink-0 sticky top-0 z-30 h-[60px] bg-black/80 backdrop-blur-xl border-b border-[var(--line)]">
-      <div className="h-full px-4 md:px-6 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-        <div className="flex items-center gap-3 min-w-0">
+    <header className="flex-shrink-0 sticky top-0 z-30 h-12 bg-black border-b border-[var(--line)]">
+      <div className="h-full px-4 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+        <div className="flex items-center gap-2 min-w-0">
           <button onClick={onBack} aria-label="Back"
-            className="w-8 h-8 rounded-[10px] flex items-center justify-center text-[var(--fg-3)] hover:text-white hover:bg-white/[0.06] border border-[var(--line)] transition-colors flex-shrink-0">
+            className="w-7 h-7 rounded-md flex items-center justify-center text-[var(--fg-3)] hover:text-white hover:bg-white/[0.05] transition-colors flex-shrink-0">
             {Ico.back}
           </button>
-          <div className="min-w-0">
-            <div className="ui-eyebrow !text-[9.5px] leading-none mb-1">Create</div>
-            <div className="text-[13.5px] font-semibold tracking-[-0.02em] truncate leading-none">{format}</div>
-          </div>
-          {meta && <div className="hidden lg:flex items-center gap-2 ml-2">{meta}</div>}
+          <span className="text-[13px] text-[var(--fg-4)]">Create</span>
+          <span className="text-[13px] text-[var(--fg-4)]">/</span>
+          <span className="text-[13px] font-medium truncate">{format}</span>
+          {meta && <div className="hidden lg:flex items-center gap-1.5 ml-2">{meta}</div>}
         </div>
         <div className="justify-self-center">
           {steps && steps.length > 1 && <Stepper steps={steps} current={current ?? 0} onStep={onStep} />}
@@ -102,38 +96,36 @@ export function EditorHeader({ format, onBack, steps, current, onStep, right, me
   );
 }
 
-export function EditorPage({ children, width = 820 }: { children: ReactNode; width?: number }) {
+export function EditorPage({ children, width = 720 }: { children: ReactNode; width?: number }) {
   return (
-    <div className="relative flex-1 overflow-y-auto">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[300px] ui-grid-bg [mask-image:linear-gradient(to_bottom,black,transparent)] opacity-70" />
-      <div className="relative mx-auto px-5 md:px-8 pt-10 pb-36 ui-rise" style={{ maxWidth: width }}>{children}</div>
+    <div className="flex-1 overflow-y-auto">
+      <div className="mx-auto px-5 md:px-8 pt-8 pb-24" style={{ maxWidth: width }}>{children}</div>
     </div>
   );
 }
 
 export function Intro({ eyebrow, title, desc, right }: { eyebrow?: string; title: string; desc?: ReactNode; right?: ReactNode }) {
   return (
-    <div className="flex items-end justify-between gap-6 mb-10">
+    <div className="flex items-end justify-between gap-6 mb-8">
       <div>
-        {eyebrow && <div className="ui-eyebrow mb-3">{eyebrow}</div>}
-        <h1 className="text-[30px] md:text-[34px] font-semibold tracking-[-0.045em] leading-[1.05]">{title}</h1>
-        {desc && <p className="text-[14px] text-[var(--fg-3)] mt-2 max-w-[560px] leading-relaxed">{desc}</p>}
+        {eyebrow && <div className="text-[12px] text-[var(--fg-4)] mb-1">{eyebrow}</div>}
+        <h1 className="text-[20px] font-semibold tracking-[-0.02em]">{title}</h1>
+        {desc && <p className="text-[13px] text-[var(--fg-3)] mt-1 max-w-[560px]">{desc}</p>}
       </div>
       {right}
     </div>
   );
 }
 
-export function Section({ n, title, hint, right, children, className = '' }: {
+export function Section({ title, hint, right, children, className = '' }: {
   n?: number; title: string; hint?: ReactNode; right?: ReactNode; children: ReactNode; className?: string;
 }) {
   return (
-    <section className={`mb-10 ${className}`}>
-      <div className="flex items-center gap-3 mb-4">
-        {n !== undefined && <span className="ui-mono text-[11px] text-[var(--fg-4)]">{String(n).padStart(2, '0')}</span>}
-        <h2 className="text-[14px] font-medium">{title}</h2>
+    <section className={`mb-8 ${className}`}>
+      <div className="flex items-center gap-2 mb-2.5 min-h-[20px]">
+        <h2 className="text-[13px] font-medium">{title}</h2>
         {hint && <span className="text-[12px] text-[var(--fg-4)] hidden sm:inline">{hint}</span>}
-        <div className="flex-1 h-px bg-[var(--line)]" />
+        <div className="flex-1" />
         {right}
       </div>
       {children}
@@ -143,8 +135,8 @@ export function Section({ n, title, hint, right, children, className = '' }: {
 
 export function Label({ children, right }: { children: ReactNode; right?: ReactNode }) {
   return (
-    <div className="flex items-center justify-between mb-2.5">
-      <span className="text-[12px] font-medium text-[var(--fg-2)]">{children}</span>
+    <div className="flex items-center justify-between mb-1.5">
+      <span className="text-[12px] text-[var(--fg-3)]">{children}</span>
       {right}
     </div>
   );
@@ -158,15 +150,15 @@ export function Segmented<T extends string | number>({ options, value, onChange,
   options: SegOption<T>[]; value: T; onChange: (v: T) => void; full?: boolean; size?: 'sm' | 'md';
 }) {
   return (
-    <div className={`${full ? 'flex w-full' : 'inline-flex'} p-[3px] gap-[2px] rounded-[12px] bg-white/[0.03] border border-[var(--line)]`}>
+    <div className={`${full ? 'flex w-full' : 'inline-flex'} p-0.5 gap-0.5 rounded-lg bg-[var(--surface)] border border-[var(--line)]`}>
       {options.map(o => {
         const on = o.value === value;
         return (
           <button key={String(o.value)} type="button" onClick={() => onChange(o.value)} disabled={o.disabled} title={o.title}
-            className={`${full ? 'flex-1' : ''} ${size === 'sm' ? 'min-h-[28px] px-2.5 text-[11.5px]' : 'min-h-[34px] px-3.5 text-[12.5px]'} rounded-[9px] font-medium flex flex-col items-center justify-center leading-tight transition-all duration-200 disabled:opacity-25 disabled:cursor-not-allowed
-              ${on ? 'bg-white text-black shadow-[0_1px_10px_rgba(255,255,255,0.14)]' : 'text-[var(--fg-3)] hover:text-white hover:bg-white/[0.04]'}`}>
+            className={`${full ? 'flex-1' : ''} ${size === 'sm' ? 'h-6 px-2 text-[12px]' : o.sub !== undefined ? 'h-10 px-3 text-[12.5px]' : 'h-7 px-3 text-[12.5px]'} rounded-md flex flex-col items-center justify-center leading-tight transition-colors disabled:opacity-30 disabled:cursor-not-allowed
+              ${on ? 'bg-white/[0.1] text-white' : 'text-[var(--fg-3)] hover:text-[var(--fg)]'}`}>
             <span className="flex items-center gap-1.5 whitespace-nowrap">{o.icon}{o.label}</span>
-            {o.sub !== undefined && <span className={`ui-mono text-[9.5px] mt-0.5 ${on ? 'text-black/45' : 'text-[var(--fg-4)]'}`}>{o.sub}</span>}
+            {o.sub !== undefined && <span className="text-[11px] text-[var(--fg-4)] mt-0.5">{o.sub}</span>}
           </button>
         );
       })}
@@ -177,20 +169,19 @@ export function Segmented<T extends string | number>({ options, value, onChange,
 export function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label?: string }) {
   return (
     <button type="button" role="switch" aria-checked={on} aria-label={label} onClick={() => onChange(!on)}
-      className={`relative w-9 h-[22px] rounded-full transition-colors duration-200 flex-shrink-0 ${on ? 'bg-white' : 'bg-white/[0.1] border border-[var(--line-2)]'}`}>
-      <span className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full transition-all duration-200 ${on ? 'left-[18px] bg-black' : 'left-[2px] bg-white/50'}`} />
+      className={`relative w-7 h-4 rounded-full transition-colors flex-shrink-0 ${on ? 'bg-[#ededed]' : 'bg-white/[0.15]'}`}>
+      <span className={`absolute top-0.5 w-3 h-3 rounded-full transition-[left] ${on ? 'left-[14px] bg-black' : 'left-0.5 bg-white/70'}`} />
     </button>
   );
 }
 
 export function ToggleRow({ on, onChange, label, desc, icon }: { on: boolean; onChange: (v: boolean) => void; label: string; desc?: string; icon?: ReactNode }) {
   return (
-    <div onClick={() => onChange(!on)}
-      className={`flex items-center gap-3 px-4 h-[58px] rounded-[14px] border cursor-pointer transition-all ${on ? 'border-[var(--line-3)] bg-white/[0.04]' : 'border-[var(--line)] hover:border-[var(--line-2)]'}`}>
-      {icon && <span className={`w-8 h-8 rounded-[10px] flex items-center justify-center flex-shrink-0 ${on ? 'bg-white text-black' : 'bg-white/[0.05] text-[var(--fg-3)]'}`}>{icon}</span>}
-      <div className="flex-1 min-w-0">
-        <div className="text-[13px] font-medium">{label}</div>
-        {desc && <div className="text-[11.5px] text-[var(--fg-4)] truncate">{desc}</div>}
+    <div onClick={() => onChange(!on)} className="flex items-center gap-3 px-3 h-11 cursor-pointer hover:bg-white/[0.02] transition-colors">
+      {icon && <span className="text-[var(--fg-3)] flex-shrink-0">{icon}</span>}
+      <div className="flex-1 min-w-0 flex items-baseline gap-2">
+        <span className="text-[13px]">{label}</span>
+        {desc && <span className="text-[12px] text-[var(--fg-4)] truncate">{desc}</span>}
       </div>
       <span onClick={e => e.stopPropagation()}><Toggle on={on} onChange={onChange} label={label} /></span>
     </div>
@@ -200,7 +191,7 @@ export function ToggleRow({ on, onChange, label, desc, icon }: { on: boolean; on
 export function Chip({ on, onClick, children, disabled }: { on: boolean; onClick: () => void; children: ReactNode; disabled?: boolean }) {
   return (
     <button type="button" onClick={onClick} disabled={disabled}
-      className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-full border text-[12px] transition-all disabled:opacity-40 disabled:cursor-not-allowed ${on ? 'border-white bg-white text-black font-medium' : 'border-[var(--line-2)] text-[var(--fg-3)] hover:text-white hover:border-[var(--line-3)]'}`}>
+      className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md border text-[12px] transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${on ? 'border-[var(--line-3)] bg-white/[0.08] text-white' : 'border-[var(--line)] text-[var(--fg-3)] hover:text-white hover:border-[var(--line-2)]'}`}>
       {children}
     </button>
   );
@@ -209,50 +200,45 @@ export function Chip({ on, onClick, children, disabled }: { on: boolean; onClick
 export function TextArea({ className = '', big = false, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { big?: boolean }) {
   return (
     <textarea {...props}
-      className={`w-full rounded-[14px] bg-white/[0.025] border border-[var(--line)] px-4 py-3.5 ${big ? 'text-[16px] min-h-[132px]' : 'text-[13.5px]'} text-white leading-relaxed outline-none resize-none placeholder:text-[var(--fg-4)] hover:border-[var(--line-2)] focus:border-white/40 focus:bg-white/[0.04] focus:shadow-[0_0_0_4px_rgba(255,255,255,0.05)] transition-all disabled:opacity-50 ${className}`} />
+      className={`w-full rounded-lg bg-[var(--surface)] border border-[var(--line-2)] px-3 py-2.5 ${big ? 'text-[14px] min-h-[104px]' : 'text-[13px]'} text-[var(--fg)] leading-relaxed outline-none resize-none placeholder:text-[var(--fg-4)] hover:border-[var(--line-3)] focus:border-white/40 transition-colors disabled:opacity-50 ${className}`} />
   );
 }
 
-const STYLE_TONES = ['from-[#262626] to-[#0c0c0c]', 'from-[#1c1c1c] to-[#2a2a2a]', 'from-[#303030] to-[#101010]', 'from-[#141414] to-[#262626]', 'from-[#2a2a2a] to-[#121212]', 'from-[#1a1a1a] to-[#070707]'];
-
-export function StyleCard({ label, desc, active, onClick, index = 0, badge }: {
+export function StyleCard({ label, desc, active, onClick, badge }: {
   label: string; desc?: string; active: boolean; onClick: () => void; index?: number; badge?: string;
 }) {
   return (
     <button type="button" onClick={onClick}
-      className={`group relative rounded-[14px] border overflow-hidden text-left transition-all duration-200 ${active ? 'border-white ring-1 ring-white shadow-[0_10px_30px_-10px_rgba(255,255,255,0.3)]' : 'border-[var(--line)] hover:border-[var(--line-2)]'}`}>
-      <div className={`relative h-[84px] bg-gradient-to-br ${STYLE_TONES[index % STYLE_TONES.length]} flex items-center justify-center overflow-hidden`}>
-        <div className="absolute inset-0 ui-dots-bg opacity-50" />
-        <span className={`relative text-[36px] font-semibold tracking-[-0.06em] select-none transition-all duration-300 ${active ? 'text-white' : 'text-white/15 group-hover:text-white/30'}`}>{label[0]}</span>
-        {badge && <span className="absolute top-2 left-2 ui-chip ui-chip-solid !h-[18px] !text-[9.5px]">{badge}</span>}
-        {active && <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white text-black flex items-center justify-center">{Ico.check}</span>}
-      </div>
-      <div className="px-3.5 py-3 bg-[#0a0a0a]">
-        <div className={`text-[13px] font-medium ${active ? 'text-white' : 'text-[var(--fg-2)]'}`}>{label}</div>
-        {desc && <div className="text-[11px] text-[var(--fg-4)] leading-relaxed mt-0.5">{desc}</div>}
-      </div>
+      className={`flex items-start gap-2.5 p-3 rounded-lg border text-left transition-colors ${active ? 'border-[var(--line-3)] bg-white/[0.06]' : 'border-[var(--line)] hover:border-[var(--line-2)] hover:bg-white/[0.02]'}`}>
+      <span className={`mt-0.5 w-3.5 h-3.5 rounded-full border flex items-center justify-center flex-shrink-0 ${active ? 'border-white' : 'border-[var(--line-3)]'}`}>
+        {active && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+      </span>
+      <span className="min-w-0">
+        <span className="flex items-center gap-1.5">
+          <span className="text-[13px] font-medium">{label}</span>
+          {badge && <span className="text-[11px] text-[var(--fg-4)]">· {badge}</span>}
+        </span>
+        {desc && <span className="block text-[12px] text-[var(--fg-3)] leading-snug mt-0.5">{desc}</span>}
+      </span>
     </button>
   );
 }
 
 export function Credits({ n, suffix = 'credits' }: { n: number; suffix?: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-[12px] text-[var(--fg-3)]">
-      <span className="text-white/60">{Ico.bolt}</span>
-      <span className="text-white font-medium tabular-nums">{n.toLocaleString()}</span>{suffix}
+    <span className="inline-flex items-center gap-1 text-[12px] text-[var(--fg-3)]">
+      <span className="text-[var(--fg)] tabular-nums">{n.toLocaleString()}</span>{suffix ? ` ${suffix.trim()}` : ' credits'}
     </span>
   );
 }
 
-/* Floating action bar pinned to the bottom of the editor viewport. */
+/* Footer bar pinned to the bottom of the editor viewport. */
 export function ActionBar({ left, children }: { left?: ReactNode; children: ReactNode }) {
   return (
-    <div className="fixed bottom-20 md:bottom-0 left-0 md:left-[240px] right-0 z-30 pointer-events-none">
-      <div className="max-w-[860px] mx-auto px-4 md:px-8 pb-4 md:pb-6">
-        <div className="pointer-events-auto flex items-center justify-between gap-4 min-h-[56px] p-2 pl-4 rounded-[18px] bg-[#0b0b0b]/85 backdrop-blur-xl border border-[var(--line-2)] shadow-[0_24px_70px_rgba(0,0,0,0.75)]">
-          <div className="min-w-0 flex items-center gap-3 text-[12.5px] text-[var(--fg-3)]">{left}</div>
-          <div className="flex items-center gap-2 flex-shrink-0">{children}</div>
-        </div>
+    <div className="fixed bottom-14 md:bottom-0 left-0 md:left-[220px] right-0 z-30 h-14 bg-black border-t border-[var(--line)]">
+      <div className="h-full px-5 md:px-8 flex items-center justify-between gap-4">
+        <div className="min-w-0 flex items-center gap-2 text-[12.5px] text-[var(--fg-3)]">{left}</div>
+        <div className="flex items-center gap-2 flex-shrink-0">{children}</div>
       </div>
     </div>
   );
@@ -260,9 +246,8 @@ export function ActionBar({ left, children }: { left?: ReactNode; children: Reac
 
 export function Modal({ children, onClose, width = 420 }: { children: ReactNode; onClose?: () => void; width?: number }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md px-4" onClick={onClose}>
-      <div className="w-full ui-card !bg-[#0c0c0c] !rounded-[22px] p-6 shadow-[0_40px_120px_rgba(0,0,0,0.8)] animate-[ui-rise_.4s_cubic-bezier(.22,1,.36,1)]"
-        style={{ maxWidth: width }} onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4" onClick={onClose}>
+      <div className="w-full rounded-xl bg-[var(--surface)] border border-[var(--line-2)] p-5" style={{ maxWidth: width }} onClick={e => e.stopPropagation()}>
         {children}
       </div>
     </div>
@@ -270,7 +255,7 @@ export function Modal({ children, onClose, width = 420 }: { children: ReactNode;
 }
 
 export function ErrorNote({ children }: { children: ReactNode }) {
-  return <p className="text-[12.5px] text-[#ff8a8a] bg-[rgba(255,90,90,0.06)] border border-[rgba(255,90,90,0.15)] px-3 py-2.5 rounded-[10px]">{children}</p>;
+  return <p className="text-[12.5px] text-[#ff8a8a] bg-[rgba(255,90,90,0.06)] border border-[rgba(255,90,90,0.15)] px-3 py-2 rounded-lg">{children}</p>;
 }
 
 /* ─────────────────────────── Narrator voices ─────────────────────────── */
@@ -280,17 +265,10 @@ export interface KitVoice {
   labels?: { gender?: string; accent?: string; age?: string; use_case?: string; descriptive?: string };
 }
 
-export function VoiceAvatar({ name, gender, size = 34 }: { name: string; gender?: string; size?: number }) {
-  const female = gender?.toLowerCase() === 'female';
+export function VoiceAvatar({ name, size = 26 }: { name: string; gender?: string; size?: number }) {
   return (
-    <span className="relative rounded-full flex-shrink-0 flex items-center justify-center text-[12px] font-semibold text-black/70"
-      style={{
-        width: size, height: size,
-        background: female
-          ? 'radial-gradient(circle at 30% 25%, #fff 0%, #e6e6e6 35%, #9a9a9a 100%)'
-          : 'radial-gradient(circle at 30% 25%, #d9d9d9 0%, #8a8a8a 45%, #3a3a3a 100%)',
-        boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.6), inset 0 -3px 6px rgba(0,0,0,0.25)',
-      }}>
+    <span className="rounded-full flex-shrink-0 flex items-center justify-center text-[11px] font-medium text-[var(--fg-2)] bg-[var(--surface-3)] border border-[var(--line-2)]"
+      style={{ width: size, height: size }}>
       {name.charAt(0)}
     </span>
   );
@@ -305,7 +283,7 @@ const FILTER_DIMS = [
 const pretty = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 const labelOf = (v: KitVoice, key: string) => (v.labels as Record<string, string | undefined> | undefined)?.[key];
 
-export function VoiceGrid({ voices, value, onChange, previewing, onPreview, maxHeight = 272, columns = 3 }: {
+export function VoiceGrid({ voices, value, onChange, previewing, onPreview, maxHeight = 264, columns = 3 }: {
   voices: KitVoice[]; value: string | null; onChange: (id: string | null) => void;
   previewing?: string | null; onPreview?: (v: KitVoice) => void; maxHeight?: number; columns?: 2 | 3;
 }) {
@@ -318,7 +296,7 @@ export function VoiceGrid({ voices, value, onChange, previewing, onPreview, maxH
 
   return (
     <div>
-      <div className="flex items-center gap-1.5 flex-wrap mb-3">
+      <div className="flex items-center gap-1 flex-wrap mb-2">
         {FILTER_DIMS.map(d => {
           const opts = options(d.key);
           if (opts.length < 2) return null;
@@ -327,17 +305,16 @@ export function VoiceGrid({ voices, value, onChange, previewing, onPreview, maxH
           return (
             <div key={d.key} className="relative">
               <button type="button" onClick={() => setOpen(isOpen ? null : d.key)}
-                className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full border text-[11.5px] transition-all ${sel ? 'border-white bg-white text-black font-medium' : 'border-[var(--line-2)] text-[var(--fg-3)] hover:text-white hover:border-[var(--line-3)]'}`}>
-                {sel ? pretty(sel) : d.label}
-                <span className={`transition-transform ${isOpen ? 'rotate-180' : ''}`}>{Ico.chevron}</span>
+                className={`inline-flex items-center gap-1 h-6 px-2 rounded-md border text-[12px] transition-colors ${sel ? 'border-[var(--line-3)] bg-white/[0.08] text-white' : 'border-[var(--line)] text-[var(--fg-3)] hover:text-white'}`}>
+                {sel ? pretty(sel) : d.label}{Ico.chevron}
               </button>
               {isOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setOpen(null)} />
-                  <div className="absolute z-20 mt-1.5 left-0 min-w-[160px] max-h-[240px] overflow-y-auto rounded-[12px] p-1 bg-[#111] border border-[var(--line-2)] shadow-[0_16px_40px_rgba(0,0,0,0.6)]">
+                  <div className="absolute z-20 mt-1 left-0 min-w-[150px] max-h-[220px] overflow-y-auto rounded-lg p-1 bg-[var(--surface-2)] border border-[var(--line-2)]">
                     {['', ...opts].map(o => (
                       <button key={o || 'all'} type="button" onClick={() => { setFilter(d.key, o); setOpen(null); }}
-                        className={`w-full flex items-center justify-between text-left px-2.5 h-8 rounded-[8px] text-[12px] ${(sel || '') === o ? 'bg-white/[0.08] text-white' : 'text-[var(--fg-2)] hover:bg-white/[0.05]'}`}>
+                        className={`w-full flex items-center justify-between text-left px-2 h-7 rounded-md text-[12px] ${(sel || '') === o ? 'bg-white/[0.08] text-white' : 'text-[var(--fg-2)] hover:bg-white/[0.05]'}`}>
                         {o ? pretty(o) : 'All'}
                         {(sel || '') === o && Ico.check}
                       </button>
@@ -349,33 +326,33 @@ export function VoiceGrid({ voices, value, onChange, previewing, onPreview, maxH
           );
         })}
         {Object.keys(filters).length > 0 && (
-          <button type="button" onClick={() => setFilters({})} className="text-[11.5px] text-[var(--fg-4)] hover:text-white px-1.5 transition-colors">Clear</button>
+          <button type="button" onClick={() => setFilters({})} className="text-[12px] text-[var(--fg-4)] hover:text-white px-1.5">Clear</button>
         )}
-        <span className="ml-auto ui-mono text-[10.5px] text-[var(--fg-4)]">{filtered.length} voices</span>
+        <span className="ml-auto text-[12px] text-[var(--fg-4)]">{filtered.length} voices</span>
       </div>
 
       {voices.length === 0 ? (
-        <div className={`grid grid-cols-2 ${columns === 3 ? 'lg:grid-cols-3' : ''} gap-2`}>
-          {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-[54px] rounded-[12px] ui-shimmer" />)}
+        <div className={`grid grid-cols-2 ${columns === 3 ? 'lg:grid-cols-3' : ''} gap-1.5`}>
+          {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-11 rounded-lg ui-shimmer" />)}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-[12px] text-[var(--fg-4)] py-6 text-center rounded-[12px] border border-dashed border-[var(--line-2)]">No voices match these filters.</div>
+        <div className="text-[12px] text-[var(--fg-4)] py-5 text-center rounded-lg border border-dashed border-[var(--line-2)]">No voices match these filters.</div>
       ) : (
-        <div className={`grid grid-cols-2 ${columns === 3 ? 'lg:grid-cols-3' : ''} gap-2 overflow-y-auto pr-1 -mr-1`} style={{ maxHeight }}>
+        <div className={`grid grid-cols-2 ${columns === 3 ? 'lg:grid-cols-3' : ''} gap-1.5 overflow-y-auto`} style={{ maxHeight }}>
           {filtered.map(v => {
             const on = v.voice_id === value;
             const playing = previewing === v.voice_id;
             return (
               <div key={v.voice_id} onClick={() => onChange(on ? null : v.voice_id)}
-                className={`group flex items-center gap-2.5 pl-2 pr-1.5 h-[54px] rounded-[12px] border cursor-pointer transition-all ${on ? 'border-white bg-white/[0.07]' : 'border-[var(--line)] hover:border-[var(--line-2)] hover:bg-white/[0.02]'}`}>
-                <VoiceAvatar name={v.name} gender={v.labels?.gender} />
+                className={`flex items-center gap-2.5 pl-2 pr-1.5 h-11 rounded-lg border cursor-pointer transition-colors ${on ? 'border-[var(--line-3)] bg-white/[0.06]' : 'border-[var(--line)] hover:border-[var(--line-2)]'}`}>
+                <VoiceAvatar name={v.name} />
                 <div className="min-w-0 flex-1">
-                  <div className="text-[12.5px] font-medium truncate flex items-center gap-1.5">{v.name}{on && <span className="text-white">{Ico.check}</span>}</div>
-                  <div className="text-[10.5px] text-[var(--fg-4)] truncate capitalize">{[v.labels?.accent, v.labels?.descriptive].filter(Boolean).join(' · ') || v.labels?.gender}</div>
+                  <div className="text-[12.5px] font-medium truncate">{v.name}</div>
+                  <div className="text-[11px] text-[var(--fg-4)] truncate capitalize">{[v.labels?.accent, v.labels?.descriptive].filter(Boolean).join(' · ') || v.labels?.gender}</div>
                 </div>
                 {onPreview && (
                   <button type="button" title={playing ? 'Stop' : 'Preview voice'} onClick={e => { e.stopPropagation(); onPreview(v); }}
-                    className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-colors ${playing ? 'bg-white text-black' : 'bg-white/[0.07] text-white hover:bg-white/[0.16]'}`}>
+                    className={`shrink-0 w-6 h-6 rounded-md flex items-center justify-center transition-colors ${playing ? 'bg-[#ededed] text-black' : 'text-[var(--fg-3)] hover:text-white hover:bg-white/[0.08]'}`}>
                     {playing ? Ico.stop : Ico.play}
                   </button>
                 )}
@@ -394,13 +371,11 @@ export function StudioPanel({ title, sub, right, children, className = '', bodyC
   title?: ReactNode; sub?: ReactNode; right?: ReactNode; children: ReactNode; className?: string; bodyClass?: string;
 }) {
   return (
-    <div className={`rounded-[16px] bg-[#070707] border border-[var(--line)] overflow-hidden flex flex-col ${className}`}>
+    <div className={`rounded-[10px] bg-[var(--surface)] border border-[var(--line)] overflow-hidden flex flex-col ${className}`}>
       {title !== undefined && (
-        <div className="flex items-center justify-between gap-3 px-4 h-12 border-b border-[var(--line)] flex-shrink-0">
-          <div className="min-w-0">
-            <div className="text-[12.5px] font-semibold tracking-[-0.01em] truncate">{title}</div>
-          </div>
-          {sub && <div className="ui-mono text-[10px] text-[var(--fg-4)] truncate">{sub}</div>}
+        <div className="flex items-center justify-between gap-3 px-3.5 h-10 border-b border-[var(--line)] flex-shrink-0">
+          <div className="text-[12.5px] font-medium truncate min-w-0">{title}</div>
+          {sub && <div className="text-[12px] text-[var(--fg-4)] truncate">{sub}</div>}
           {right}
         </div>
       )}
@@ -411,15 +386,15 @@ export function StudioPanel({ title, sub, right, children, className = '', bodyC
 
 export function statusLabel(status: string): string {
   const map: Record<string, string> = {
-    queued: 'Queued', processing: 'Working', rendering_image: 'Image', animating: 'Animate',
-    regenerating: 'Redo', completed: 'Done', failed: 'Failed',
+    queued: 'Queued', processing: 'Working', rendering_image: 'Image', animating: 'Animating',
+    regenerating: 'Redoing', completed: 'Done', failed: 'Failed',
   };
   return map[status] || status || 'Queued';
 }
 
 export function StatusDot({ status }: { status: string }) {
   const busy = ['processing', 'rendering_image', 'animating', 'regenerating'].includes(status);
-  const cls = status === 'completed' ? 'bg-white' : status === 'failed' ? 'bg-[#ff6b6b]' : busy ? 'bg-white animate-[ui-blink_1.2s_ease-in-out_infinite]' : 'bg-white/25';
+  const cls = status === 'completed' ? 'bg-[#ededed]' : status === 'failed' ? 'bg-[#ff6b6b]' : busy ? 'bg-white/60' : 'bg-white/20';
   return <span className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${cls}`} />;
 }
 
@@ -429,23 +404,22 @@ export function ChatPanel({ messages, value, onChange, onSubmit, disabled, place
   messages: ChatMsg[]; value: string; onChange: (v: string) => void; onSubmit: () => void; disabled?: boolean; placeholder?: string;
 }) {
   return (
-    <StudioPanel title={<span className="flex items-center gap-2"><span className="w-5 h-5 rounded-md bg-white text-black flex items-center justify-center">{Ico.sparkle}</span>Mave · AI editor</span>} className="h-full">
+    <StudioPanel title="AI editor" className="h-full">
       <div className="h-full flex flex-col">
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
           {messages.map((m, i) => (
-            <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[88%] px-3 py-2 text-[12px] leading-relaxed rounded-[14px] ${m.role === 'user' ? 'bg-white text-black rounded-br-[4px]' : 'bg-white/[0.05] border border-[var(--line)] text-[var(--fg-2)] rounded-bl-[4px]'}`}>
-                {m.text}
-              </div>
+            <div key={i}>
+              <div className="text-[11px] text-[var(--fg-4)] mb-0.5">{m.role === 'user' ? 'You' : 'Mave'}</div>
+              <div className={`text-[12.5px] leading-relaxed ${m.role === 'user' ? 'text-[var(--fg)]' : 'text-[var(--fg-2)]'}`}>{m.text}</div>
             </div>
           ))}
         </div>
-        <div className="p-3 border-t border-[var(--line)]">
-          <div className="flex items-center gap-2 h-10 pl-3.5 pr-1 rounded-full bg-white/[0.03] border border-[var(--line-2)] focus-within:border-white/40 transition-colors">
+        <div className="p-2.5 border-t border-[var(--line)]">
+          <div className="flex items-center gap-1.5 h-8 pl-2.5 pr-1 rounded-lg bg-black border border-[var(--line-2)] focus-within:border-white/35 transition-colors">
             <input value={value} onChange={e => onChange(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') onSubmit(); }}
               placeholder={placeholder} className="flex-1 bg-transparent text-[12.5px] outline-none placeholder:text-[var(--fg-4)] min-w-0" />
             <button onClick={onSubmit} disabled={disabled || !value.trim()} aria-label="Send"
-              className="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center disabled:opacity-20 transition-opacity">{Ico.send}</button>
+              className="w-6 h-6 rounded-md bg-[#ededed] text-black flex items-center justify-center disabled:opacity-20">{Ico.send}</button>
           </div>
         </div>
       </div>
@@ -462,65 +436,57 @@ export function StudioTimeline({ clips, selected, onSelect, onResizeStart, pxPer
 }) {
   const ticks = Array.from({ length: Math.max(8, Math.ceil(totalDuration / 5) + 2) }, (_, i) => i * 5);
   const width = Math.max(980, totalDuration * pxPerSecond + 100);
+  const trackW = totalDuration * pxPerSecond;
   return (
-    <section className="rounded-[16px] bg-[#060606] border border-[var(--line)] overflow-hidden flex flex-col min-h-[196px]">
-      <div className="flex items-center justify-between h-10 px-4 border-b border-[var(--line)] flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <span className="ui-eyebrow">Timeline</span>
-          <span className="ui-mono text-[10.5px] text-[var(--fg-4)]">{clips.length} clips · {formatTime(totalDuration)}</span>
+    <section className="rounded-[10px] bg-[var(--surface)] border border-[var(--line)] overflow-hidden flex flex-col flex-shrink-0">
+      <div className="flex items-center justify-between h-9 px-3.5 border-b border-[var(--line)]">
+        <div className="flex items-center gap-2 text-[12px]">
+          <span className="font-medium">Timeline</span>
+          <span className="text-[var(--fg-4)]">{clips.length} clips · {formatTime(totalDuration)}</span>
         </div>
         <div className="flex items-center gap-2">{right}</div>
       </div>
-      <div className="flex-1 grid grid-cols-[92px_minmax(0,1fr)] min-h-0">
-        <div className="border-r border-[var(--line)] bg-[#080808]">
-          <div className="h-8 border-b border-[var(--line)]" />
-          <div className="h-[60px] border-b border-[var(--line)] flex items-center gap-2 px-4 text-[11.5px] text-white"><span className="w-[3px] h-4 rounded bg-white" />Video</div>
-          <div className="h-[52px] flex items-center gap-2 px-4 text-[11.5px] text-[var(--fg-4)]"><span className="w-[3px] h-4 rounded bg-white/20" />Audio</div>
+      <div className="grid grid-cols-[72px_minmax(0,1fr)]">
+        <div className="border-r border-[var(--line)] text-[12px] text-[var(--fg-3)]">
+          <div className="h-6 border-b border-[var(--line)]" />
+          <div className="h-12 border-b border-[var(--line)] flex items-center px-3">Video</div>
+          <div className="h-9 flex items-center px-3 text-[var(--fg-4)]">Audio</div>
         </div>
         <div className="overflow-x-auto overflow-y-hidden">
-          <div className="relative h-full" style={{ width }}>
-            <div className="h-8 border-b border-[var(--line)] relative">
+          <div className="relative" style={{ width }}>
+            <div className="h-6 border-b border-[var(--line)] relative">
               {ticks.map(t => (
                 <div key={t} className="absolute top-0 h-full" style={{ left: t * pxPerSecond }}>
-                  <div className="ui-mono text-[9.5px] text-[var(--fg-4)] mt-2 ml-1.5">{formatTime(t)}</div>
-                  <div className="absolute bottom-0 left-0 h-2 w-px bg-white/20" />
+                  <div className="text-[10px] text-[var(--fg-4)] tabular-nums mt-1 ml-1">{formatTime(t)}</div>
+                  <div className="absolute bottom-0 left-0 h-1.5 w-px bg-white/15" />
                 </div>
               ))}
             </div>
-            <div className="h-[60px] border-b border-[var(--line)] relative">
-              <div className="absolute left-0 top-[10px] flex">
+            <div className="h-12 border-b border-[var(--line)] relative">
+              <div className="absolute left-0 top-1.5 flex">
                 {clips.map(c => {
                   const on = selected === c.n;
                   return (
                     <div key={c.n} onClick={() => onSelect(c.n)} style={{ width: c.duration * pxPerSecond }}
-                      className={`group relative h-10 rounded-[10px] border flex items-center gap-2 pl-1.5 pr-4 mr-1 cursor-pointer overflow-hidden transition-colors ${on ? 'bg-white text-black border-white' : 'bg-[#161616] border-[var(--line-2)] text-white hover:border-[var(--line-3)]'}`}>
+                      className={`relative h-9 rounded-md border flex items-center gap-2 pl-1 pr-3 mr-px cursor-pointer overflow-hidden transition-colors ${on ? 'border-white/70 bg-white/[0.1]' : 'border-[var(--line-2)] bg-[var(--surface-3)] hover:border-[var(--line-3)]'}`}>
                       {c.image
-                        ? <img src={c.image} alt="" className="w-7 h-7 rounded-[6px] object-cover flex-shrink-0" />
-                        : <span className={`w-7 h-7 rounded-[6px] flex-shrink-0 ${on ? 'bg-black/10' : 'bg-white/[0.05]'}`} />}
-                      <span className="ui-mono text-[10px] truncate">S{String(c.n).padStart(2, '0')} · {c.duration}s</span>
-                      <span className={`ml-auto flex items-center gap-1.5 text-[9.5px] ${on ? 'text-black/55' : 'text-[var(--fg-4)]'}`}>
-                        {!on && <StatusDot status={c.status} />}{statusLabel(c.status)}
+                        ? <img src={c.image} alt="" className="w-7 h-7 rounded object-cover flex-shrink-0" />
+                        : <span className="w-7 h-7 rounded bg-white/[0.04] flex-shrink-0" />}
+                      <span className="text-[11px] tabular-nums truncate">Scene {c.n} · {c.duration}s</span>
+                      <span className="ml-auto flex items-center gap-1.5 text-[11px] text-[var(--fg-4)]">
+                        <StatusDot status={c.status} />{statusLabel(c.status)}
                       </span>
                       {onResizeStart && (
                         <div onMouseDown={e => { e.stopPropagation(); onResizeStart(c.n, e); }}
-                          className={`absolute right-0 top-0 h-full w-2.5 cursor-ew-resize flex items-center justify-center ${on ? 'bg-black/10' : 'bg-white/[0.06] group-hover:bg-white/20'}`}>
-                          <span className={`w-px h-3 ${on ? 'bg-black/40' : 'bg-white/40'}`} />
-                        </div>
+                          className="absolute right-0 top-0 h-full w-2 cursor-ew-resize hover:bg-white/15" />
                       )}
                     </div>
                   );
                 })}
               </div>
             </div>
-            <div className="h-[52px] relative">
-              <div className="absolute left-0 right-10 top-3 h-7 rounded-[8px] bg-white/[0.03] border border-[var(--line)] overflow-hidden flex items-center gap-[2px] px-1">
-                {Array.from({ length: Math.floor(width / 5) }).map((_, i) => (
-                  <span key={i} className="w-[2px] rounded-full bg-white/30 flex-shrink-0" style={{ height: `${20 + Math.abs(Math.sin(i * 0.9) * 55 + Math.sin(i * 0.23) * 20)}%` }} />
-                ))}
-              </div>
-            </div>
-            <div className="absolute top-0 bottom-0 left-8 w-px bg-white pointer-events-none">
-              <div className="absolute -top-px -left-[5px] w-[11px] h-2.5 rounded-b-[3px] bg-white" />
+            <div className="h-9 relative">
+              {trackW > 0 && <div className="absolute left-0 top-2 h-5 rounded bg-white/[0.05] border border-[var(--line)]" style={{ width: trackW }} />}
             </div>
           </div>
         </div>
@@ -534,12 +500,11 @@ export function Stage({ aspect, children, progress, processing, maxH = 'max-h-[4
 }) {
   const box = aspect === '9:16' ? `aspect-[9/16] h-full ${maxH}` : aspect === '1:1' ? `aspect-square h-full ${maxH}` : 'aspect-video w-full';
   return (
-    <div className={`relative ${box} rounded-[12px] overflow-hidden bg-[#0d0d0d] border border-[var(--line)] flex items-center justify-center`}>
-      <div className="absolute inset-0 ui-dots-bg opacity-30 pointer-events-none" />
-      <div className="relative w-full h-full flex items-center justify-center">{children}</div>
+    <div className={`relative ${box} rounded-lg overflow-hidden bg-black border border-[var(--line)] flex items-center justify-center`}>
+      {children}
       {processing && (
-        <div className="absolute left-3 right-3 bottom-3 h-1 rounded-full bg-white/10 overflow-hidden">
-          <div className="h-full bg-white transition-all duration-700" style={{ width: `${Math.max(4, progress || 0)}%` }} />
+        <div className="absolute left-0 right-0 bottom-0 h-0.5 bg-white/10">
+          <div className="h-full bg-white/80 transition-[width] duration-500" style={{ width: `${Math.max(3, progress || 0)}%` }} />
         </div>
       )}
     </div>
@@ -548,9 +513,9 @@ export function Stage({ aspect, children, progress, processing, maxH = 'max-h-[4
 
 export function StageEmpty({ label, busy = true }: { label: string; busy?: boolean }) {
   return (
-    <div className="text-center px-6">
-      {busy ? <Spinner size={28} className="mb-4" /> : <span className="inline-flex text-white/20 mb-3">{Ico.film}</span>}
-      <div className="text-[12px] text-[var(--fg-3)] max-w-[260px]">{label}</div>
+    <div className="text-center px-6 flex flex-col items-center gap-3">
+      {busy ? <Spinner size={18} /> : <span className="text-white/20">{Ico.film}</span>}
+      <div className="text-[12.5px] text-[var(--fg-3)] max-w-[260px]">{label}</div>
     </div>
   );
 }

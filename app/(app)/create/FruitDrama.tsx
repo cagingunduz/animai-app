@@ -315,7 +315,7 @@ export default function FruitDrama({ onBack }: { onBack: () => void }) {
               {genStatus === 'processing' ? <Spinner size={12} /> : <StatusDot status={genStatus === 'failed' ? 'failed' : 'completed'} />}
               <span className="truncate">{genErr || genMsg || 'Ready'}</span>
             </span>
-          : <Credits n={cost} suffix="" />}
+          : <Credits n={cost} suffix="credits est." />}
       />
 
       {step === 'setup' && (
@@ -341,7 +341,7 @@ export default function FruitDrama({ onBack }: { onBack: () => void }) {
       )}
 
       {step === 'editor' && (
-        <div className="flex flex-col gap-3 p-3 md:p-4 min-h-[calc(100vh-60px)] lg:h-[calc(100vh-60px)]">
+        <div className="flex flex-col gap-3 p-3 md:p-4 min-h-[calc(100vh-48px)] lg:h-[calc(100vh-48px)]">
           <div className="grid grid-cols-1 lg:grid-cols-[272px_minmax(0,1fr)_300px] gap-3 flex-1 min-h-[420px]">
             <ScenePanel scene={selectedScene} finalSelected={selectedSceneIndex === 0} totalDuration={totalDuration} regenCost={regenCost} />
             <PreviewPanel
@@ -394,7 +394,7 @@ function SetupView(props: {
   return (
     <>
       <EditorPage>
-        <Intro eyebrow="Step 1 · Setup" title="Set up your drama" desc="A premise, a look and the shape of the cut. Characters come next." />
+        <Intro title="Set up your drama" desc="A premise, a look and the shape of the cut. Characters come next." />
 
         <Section n={1} title="Premise">
           <TextArea big value={props.title} onChange={e => props.setTitle(e.target.value)} rows={3}
@@ -453,7 +453,7 @@ function CharacterView(props: {
   return (
     <>
       <EditorPage>
-        <Intro eyebrow="Step 2 · Characters" title="Cast your fruit" desc="Pick the two characters at the heart of the drama." />
+        <Intro title="Cast your fruit" desc="Pick the two characters at the heart of the drama." />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <CharacterPicker n={1} title="Main character" fruit={props.mainFruit} gender={props.mainGender} onFruit={props.setMainFruit} onGender={props.setMainGender} genders={['girl', 'boy'] as const} />
           <CharacterPicker n={2} title="Second character" fruit={props.secondFruit} gender={props.secondGender} onFruit={props.setSecondFruit} onGender={props.setSecondGender} genders={['boy', 'girl'] as const} />
@@ -545,23 +545,16 @@ function CharacterPicker({ n, title, fruit, gender, genders, onFruit, onGender }
   onFruit: (value: string) => void; onGender: (value: Gender) => void;
 }) {
   return (
-    <div className="ui-card p-5">
-      <div className="flex items-center justify-between mb-4">
+    <div className="ui-card p-4">
+      <div className="flex items-center justify-between mb-3">
         <span className="text-[13px] font-medium">{title}</span>
-        <span className="ui-mono text-[10.5px] text-[var(--fg-4)]">{String(n).padStart(2, '0')}</span>
-      </div>
-      <div className="relative mb-4">
-        <div className="flex items-center justify-center h-[120px] rounded-[12px] bg-[#070707] border border-[var(--line)] overflow-hidden relative">
-          <div className="absolute inset-0 ui-dots-bg opacity-40" />
-          <span className="relative text-[44px] font-semibold tracking-[-0.06em] capitalize text-white/90">{fruit.slice(0, 1)}</span>
-          <span className="absolute bottom-2.5 left-3 text-[11.5px] text-[var(--fg-3)] capitalize">{fruit} · {gender}</span>
-        </div>
+        <span className="text-[12px] text-[var(--fg-3)] capitalize">{fruit} · {gender}</span>
       </div>
       <Label>Fruit</Label>
       <div className="flex flex-wrap gap-1.5 mb-4">
         {FRUITS.map(f => (
           <button key={f} type="button" onClick={() => onFruit(f)}
-            className={`h-7 px-2.5 rounded-full border text-[11.5px] capitalize transition-all ${fruit === f ? 'border-white bg-white text-black font-medium' : 'border-[var(--line-2)] text-[var(--fg-3)] hover:text-white hover:border-[var(--line-3)]'}`}>
+            className={`h-7 px-2.5 rounded-md border text-[12px] capitalize transition-colors ${fruit === f ? 'border-[var(--line-3)] bg-white/[0.08] text-white' : 'border-[var(--line)] text-[var(--fg-3)] hover:text-white hover:border-[var(--line-2)]'}`}>
             {f}
           </button>
         ))}
