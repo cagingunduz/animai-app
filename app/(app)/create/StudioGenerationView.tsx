@@ -138,22 +138,22 @@ export default function StudioGenerationView({
   const headline = status === 'completed' ? 'Your video is ready' : status === 'failed' ? 'Generation failed' : 'Rendering';
 
   return (
-    <div className="flex flex-col gap-3 min-h-[calc(100vh-60px)] lg:h-[calc(100vh-60px)] p-3 md:p-4">
+    <div className="flex flex-col gap-3 min-h-[calc(100vh-48px)] lg:h-[calc(100vh-48px)] p-3 md:p-4">
       {/* Status strip */}
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-3 px-4 min-h-[58px] rounded-[16px] border border-[var(--line)] bg-[#070707]">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-3 px-3.5 min-h-[48px] rounded-[10px] border border-[var(--line)] bg-[var(--surface)]">
         <div className="flex items-center gap-3 min-w-0">
-          <span className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${status === 'completed' ? 'bg-white text-black' : status === 'failed' ? 'bg-[rgba(255,90,90,0.12)] text-[#ff8a8a]' : 'bg-white/[0.06]'}`}>
+          <span className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${status === 'completed' ? 'bg-[#ededed] text-black' : status === 'failed' ? 'bg-[rgba(255,90,90,0.12)] text-[#ff8a8a]' : 'bg-white/[0.06]'}`}>
             {status === 'completed' ? Ico.check : status === 'failed' ? Ico.x : <Spinner size={14} />}
           </span>
           <div className="min-w-0">
-            <div className="text-[13.5px] font-semibold tracking-[-0.01em] truncate">{headline}</div>
+            <div className="text-[13px] font-medium truncate">{headline}</div>
             <div className="text-[11.5px] text-[var(--fg-4)] truncate max-w-[440px]">{status === 'failed' ? (error || message) : message}</div>
           </div>
         </div>
         {status === 'processing' && (
           <div className="flex items-center gap-3 flex-1 min-w-[180px] max-w-[360px]">
             <div className="flex-1 h-1 rounded-full bg-white/[0.08] overflow-hidden">
-              <div className="h-full bg-white rounded-full transition-all duration-700" style={{ width: `${progress}%` }} />
+              <div className="h-full bg-white/80 rounded-full transition-[width] duration-500" style={{ width: `${progress}%` }} />
             </div>
             <span className="ui-mono text-[11px] text-[var(--fg-3)] tabular-nums">{progress}%</span>
           </div>
@@ -218,7 +218,7 @@ export default function StudioGenerationView({
           </div>
           <div className="h-12 px-3 flex items-center gap-1.5 border-t border-[var(--line)] flex-shrink-0">
             <button onClick={() => { if (videoRef.current) videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 2); }} aria-label="Rewind" className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--fg-3)] hover:text-white hover:bg-white/[0.06]">{Ico.rewind}</button>
-            <button onClick={() => videoRef.current?.play()} aria-label="Play" className="w-8 h-8 rounded-full flex items-center justify-center bg-white text-black">{Ico.play}</button>
+            <button onClick={() => videoRef.current?.play()} aria-label="Play" className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--fg)] hover:bg-white/[0.06]">{Ico.play}</button>
             <button onClick={() => videoRef.current?.pause()} aria-label="Pause" className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--fg-3)] hover:text-white hover:bg-white/[0.06]">{Ico.pause}</button>
             {selectedScene && (
               <span className="ml-auto flex items-center gap-2 text-[11px] text-[var(--fg-4)]"><StatusDot status={selectedScene.status} />{selectedScene.status}</span>

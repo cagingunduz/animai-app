@@ -41,8 +41,8 @@ export default function LoginPage() {
 
   return (
     <AuthShell footer={<a href="https://animai.com" className="hover:text-white transition-colors">← Back to animai.com</a>}>
-      <h1 className="text-[30px] font-semibold tracking-[-0.045em] leading-tight mb-2">Welcome back</h1>
-      <p className="text-[14px] text-[var(--fg-3)] mb-8">Sign in to keep creating.</p>
+      <h1 className="text-[20px] font-semibold tracking-[-0.02em] text-center mb-1">Welcome back</h1>
+      <p className="text-[13px] text-[var(--fg-3)] text-center mb-6">Sign in to keep creating.</p>
 
       <button onClick={handleGoogle} className="ui-btn ui-btn-secondary ui-btn-lg w-full">
         <GoogleIcon />Continue with Google
@@ -50,7 +50,7 @@ export default function LoginPage() {
 
       <OrDivider />
 
-      <form onSubmit={handleLogin} className="flex flex-col gap-4">
+      <form onSubmit={handleLogin} className="flex flex-col gap-3">
         <Field label="Email">
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
             className="ui-input" placeholder="you@example.com" autoComplete="email" />
@@ -64,14 +64,14 @@ export default function LoginPage() {
           <p className="text-[12.5px] text-[#ff8a8a] bg-[rgba(255,90,90,0.06)] border border-[rgba(255,90,90,0.15)] px-3 py-2.5 rounded-lg">{error}</p>
         )}
 
-        <button type="submit" disabled={loading} className="ui-btn ui-btn-primary ui-btn-lg w-full mt-2">
-          {loading ? <><span className="w-3.5 h-3.5 rounded-full border-2 border-black/20 border-t-black animate-spin" />Signing in…</> : 'Sign in'}
+        <button type="submit" disabled={loading} className="ui-btn ui-btn-primary ui-btn-lg w-full mt-1">
+          {loading ? <><span className="w-3.5 h-3.5 rounded-full border-[1.5px] border-black/20 border-t-black animate-spin" />Signing in…</> : 'Sign in'}
         </button>
       </form>
 
-      <p className="text-[13px] text-[var(--fg-3)] mt-8">
+      <p className="text-[13px] text-[var(--fg-3)] mt-6 text-center">
         New to Animave?{' '}
-        <Link href="/signup" className="text-white font-medium underline decoration-white/30 underline-offset-4 hover:decoration-white transition-colors">Create an account</Link>
+        <Link href="/signup" className="text-[var(--fg)] hover:underline underline-offset-4">Create an account</Link>
       </p>
     </AuthShell>
   );

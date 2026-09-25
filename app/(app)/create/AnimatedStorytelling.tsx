@@ -193,14 +193,14 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
         steps={['Setup', 'Character', 'Render']}
         current={stepIndex}
         onStep={inStudio ? undefined : i => setStep(i === 0 ? 'setup' : 'character')}
-        right={<Credits n={cost} suffix="" />}
+        right={<Credits n={cost} suffix="credits est." />}
       />
 
       {/* ── SETUP ── */}
       {step === 'setup' && (
         <>
           <EditorPage>
-            <Intro eyebrow="Step 1 · Setup" title="Shape your story" desc="Give it a premise, pick a look and a narrator. We'll handle the script, scenes and edit." />
+            <Intro title="Shape your story" desc="Give it a premise, pick a look and a narrator. We'll handle the script, scenes and edit." />
 
             <Section n={1} title="Premise">
               <TextArea big value={title} onChange={e => setTitle(e.target.value)} rows={3}
@@ -251,7 +251,7 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
                   </div>
                 </>
               ) : (
-                <div className="rounded-[14px] border border-dashed border-[var(--line-2)] py-8 text-center text-[12.5px] text-[var(--fg-4)]">Narration disabled</div>
+                <div className="rounded-[10px] border border-dashed border-[var(--line-2)] py-8 text-center text-[12.5px] text-[var(--fg-4)]">Narration disabled</div>
               )}
             </Section>
           </EditorPage>
@@ -272,7 +272,7 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
       {step === 'character' && (
         <>
           <EditorPage width={980}>
-            <Intro eyebrow="Step 2 · Character" title="Design your lead" desc="Describe the main character — they'll stay consistent across every scene." />
+            <Intro title="Design your lead" desc="Describe the main character — they'll stay consistent across every scene." />
             <div className="grid lg:grid-cols-[1fr_360px] gap-6 items-start">
               <div className="flex flex-col gap-4">
                 <TextArea big value={charDesc} onChange={e => setCharDesc(e.target.value)} rows={6}
@@ -285,15 +285,14 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
                 </div>
                 {charErr && <ErrorNote>{charErr}</ErrorNote>}
               </div>
-              <div className="relative aspect-[3/4] rounded-[18px] border border-[var(--line)] bg-[#080808] overflow-hidden flex items-center justify-center">
-                <div className="absolute inset-0 ui-dots-bg opacity-40" />
+              <div className="relative aspect-[3/4] rounded-[10px] border border-[var(--line)] bg-[#080808] overflow-hidden flex items-center justify-center">
                 {charGen ? (
-                  <div className="relative flex flex-col items-center gap-3"><Spinner size={26} /><span className="text-[12px] text-[var(--fg-3)]">Designing character…</span></div>
+                  <div className="relative flex flex-col items-center gap-3"><Spinner size={18} /><span className="text-[12px] text-[var(--fg-3)]">Designing character…</span></div>
                 ) : charUrl ? (
                   <img src={charUrl} alt="character" className="relative w-full h-full object-contain" />
                 ) : (
                   <div className="relative flex flex-col items-center gap-3 text-white/20">
-                    <span className="scale-[2.2]">{Ico.user}</span>
+                    <span className="">{Ico.user}</span>
                     <span className="text-[12px] text-[var(--fg-4)] mt-3">Your character appears here</span>
                   </div>
                 )}

@@ -270,7 +270,7 @@ export default function EditorPage() {
   return (
     <div className="flex flex-col h-screen">
       {/* ── Header ── */}
-      <header className="flex-shrink-0 h-[60px] px-4 md:px-5 flex items-center gap-4 border-b border-[var(--line)] bg-black/80 backdrop-blur-xl">
+      <header className="flex-shrink-0 h-12 px-4 flex items-center gap-4 border-b border-[var(--line)] bg-black">
         <div className="min-w-0 flex-1 flex items-center gap-3">
           <div className="min-w-0">
             <div className="ui-eyebrow !text-[9.5px] leading-none mb-1">Editor</div>
@@ -349,7 +349,6 @@ export default function EditorPage() {
         {/* ── Preview ── */}
         <StudioPanel title={active ? active.title : 'Preview'} sub={active ? `clip ${current + 1} of ${clips.length}` : undefined} bodyClass="flex flex-col">
           <div className="relative flex-1 min-h-0 p-3 flex items-center justify-center">
-            <div className="absolute inset-0 ui-dots-bg opacity-25 pointer-events-none" />
             {exportState === 'done' && exportUrl ? (
               <div className="relative w-full max-w-[720px]">
                 <video src={exportUrl} controls autoPlay className="w-full aspect-video rounded-[12px] bg-black border border-[var(--line-2)]" />
@@ -390,7 +389,7 @@ export default function EditorPage() {
         <StudioPanel title={exportState === 'idle' ? 'Inspector' : 'Export'} bodyClass="overflow-y-auto">
           <div className="p-4 flex flex-col gap-4">
             {exportState === 'merging' && (
-              <div className="rounded-[14px] border border-[var(--line)] p-4 flex items-center gap-3">
+              <div className="rounded-[10px] border border-[var(--line)] p-4 flex items-center gap-3">
                 <Spinner size={18} />
                 <div>
                   <div className="text-[13px] font-medium">Merging {clips.length} clips…</div>
@@ -399,7 +398,7 @@ export default function EditorPage() {
               </div>
             )}
             {exportState === 'done' && exportUrl && (
-              <div className="rounded-[14px] border border-[var(--line-2)] bg-white/[0.03] p-4 flex flex-col gap-3">
+              <div className="rounded-[10px] border border-[var(--line-2)] bg-white/[0.03] p-4 flex flex-col gap-3">
                 <div className="flex items-center gap-2 text-[13px] font-medium"><span className="w-5 h-5 rounded-full bg-white text-black flex items-center justify-center">{Ico.check}</span>Export ready</div>
                 <p className="text-[11.5px] text-[var(--fg-3)]">{fmt(total)} · {clips.length} clips · saved to Home.</p>
                 <a href={downloadHref} className="ui-btn ui-btn-primary w-full">
@@ -451,7 +450,7 @@ export default function EditorPage() {
       </div>
 
       {/* ── Timeline ── */}
-      <section className="flex-shrink-0 m-3 rounded-[16px] bg-[#060606] border border-[var(--line)] overflow-hidden"
+      <section className="flex-shrink-0 m-3 rounded-[10px] bg-[#060606] border border-[var(--line)] overflow-hidden"
         onDragOver={e => { if (e.dataTransfer.types.includes('text/animave-asset')) e.preventDefault(); }}
         onDrop={e => {
           const id = e.dataTransfer.getData('text/animave-asset');
@@ -508,7 +507,7 @@ export default function EditorPage() {
                     onDragEnd={() => { dragFrom.current = null; setDragOver(null); }}
                     onClick={() => { setSelected(c.key); jumpTo(i); }}
                     style={{ width: w }}
-                    className={`relative h-[62px] rounded-[12px] border overflow-hidden flex-shrink-0 cursor-pointer transition-colors ${on ? 'border-white ring-2 ring-white/25' : 'border-[var(--line-2)] hover:border-[var(--line-3)]'} ${dragOver === i ? 'ml-6' : ''}`}>
+                    className={`relative h-[62px] rounded-[12px] border overflow-hidden flex-shrink-0 cursor-pointer transition-colors ${on ? 'border-white' : 'border-[var(--line-2)] hover:border-[var(--line-3)]'} ${dragOver === i ? 'ml-6' : ''}`}>
                     <div className="absolute inset-0 flex">
                       {Array.from({ length: Math.max(1, Math.floor(w / 72)) }).map((_, k) => (
                         <div key={k} className="h-full flex-1 bg-[#131313] border-r border-black/40 overflow-hidden">
