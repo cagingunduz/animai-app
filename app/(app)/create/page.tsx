@@ -7,6 +7,7 @@ import { type Resolution, RESOLUTION_CREDITS, STORYBOOK_CREDITS_PER_SCENE } from
 import AnimatedStorytelling from './AnimatedStorytelling';
 import WhiteboardAnimation from './WhiteboardAnimation';
 import FruitDrama from './FruitDrama';
+import MotionGraphics from './MotionGraphics';
 import StudioGenerationView from './StudioGenerationView';
 import { FORMATS, FormatIcon, type FormatKey } from '@/components/FormatArt';
 import { EditorHeader, EditorPage, Intro, Section, Label, Segmented, StyleCard, ToggleRow, TextArea, VoiceGrid, ActionBar, Credits, Modal, ErrorNote, Spinner, AspectGlyph, Ico, StatusDot } from '@/components/editor/kit';
@@ -37,7 +38,7 @@ interface SceneDef {
 type SceneRenderStatus = { scene_number: number; status: 'queued' | 'processing' | 'completed' | 'failed'; current_step?: string; video_url?: string; };
 
 // ─── Story Mode types ───
-type CreateMode = 'selecting' | 'theme_select' | 'story' | 'cartoon' | 'animated' | 'whiteboard' | 'fruit_drama';
+type CreateMode = 'selecting' | 'theme_select' | 'story' | 'cartoon' | 'animated' | 'whiteboard' | 'fruit_drama' | 'motion';
 type StoryTheme = 'true_crime' | 'history' | 'drama' | 'fairy_tale' | 'custom';
 type StoryGenre = 'drama' | 'fairy-tale' | 'horror' | 'action' | 'motivation' | 'comedy' | 'mystery';
 interface ScriptScene { id: string; sceneNumber: number; title: string; narratorText: string; sceneDescription: string; imageUrl: string | null; videoUrl: string | null; generating: boolean; error: string | null; approved: boolean; kenBurns: boolean; includeNarrator: boolean; includeSubtitles: boolean; }
@@ -653,7 +654,7 @@ function CreatePageInner() {
   const openFormat = (k: FormatKey) => {
     if (k === 'story') setMode('theme_select');
     else if (k === 'cartoon') { setCartoonSetupDone(false); setMode('cartoon'); }
-    else if (k === 'animated' || k === 'whiteboard' || k === 'fruit_drama') setMode(k);
+    else if (k === 'animated' || k === 'whiteboard' || k === 'fruit_drama' || k === 'motion') setMode(k);
   };
 
   const resetAll = () => {
@@ -915,6 +916,9 @@ function CreatePageInner() {
 
     {/* ═══ FRUIT DRAMA ═══ */}
     {mode === 'fruit_drama' && <FruitDrama onBack={goHome} />}
+
+    {/* ═══ MOTION GRAPHICS ═══ */}
+    {mode === 'motion' && <MotionGraphics onBack={goHome} />}
 
     {/* ═══ THEME SELECTION ═══ */}
     {mode === 'theme_select' && (
