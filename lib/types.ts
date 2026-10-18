@@ -47,6 +47,16 @@ export function fruitDramaCost(sceneCount: number, resolution: string, durationS
   return FRUIT_DRAMA_SETUP_CREDITS + scenes * fruitDramaSceneCost(resolution, durationSeconds);
 }
 
+// ─── Motion Graphics pricing (provisional) ───
+// Claude Opus writes + reviews every shot (≈3-4 s each, up to 3 versions) and the render
+// service draws it. Estimated real cost ≈ $0.10 per output second → 1.8× ≈ 56 credits/s.
+// Each job reports its real token cost (usage.cost_usd) so this can be tuned.
+export const MOTION_CREDITS_PER_SECOND = 60;
+export const MOTION_DURATIONS = [10, 15, 30, 60] as const;
+export function motionCost(seconds: number): number {
+  return Math.max(5, Math.round(seconds)) * MOTION_CREDITS_PER_SECOND;
+}
+
 export type CharacterRole = 'silent' | 'speaking';
 export type Framing = 'full-body' | 'half-body' | 'close-up';
 export type AnimationStatus = 'completed' | 'processing' | 'failed' | 'queued';

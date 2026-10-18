@@ -141,3 +141,24 @@ $$ language plpgsql;
 create trigger on_project_updated
   before update on public.projects
   for each row execute function public.handle_project_updated();
+
+-- ═══════════════════════════════════════
+-- BRAND KITS (Motion Graphics — colours, fonts, tone, logo per user)
+-- ═══════════════════════════════════════
+create table if not exists public.brand_kits (
+  user_id uuid references public.users(id) on delete cascade primary key,
+  name text,
+  colors text[] not null default '{}',
+  fonts text[] not null default '{}',
+  tone text,
+  notes text,
+  logo_data_url text,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.brand_kits enable row level security;
+
+create policy "Users can read own brand kit" on public.brand_kits for select using (auth.uid() = user_id);
+create policy "Users can insert own brand kit" on public.brand_kits for insert with check (auth.uid() = user_id);
+create policy "Users can update own brand kit" on public.brand_kits for update using (auth.uid() = user_id);
+create policy "Users can delete own brand kit" on public.brand_kits for delete using (auth.uid() = user_id);
