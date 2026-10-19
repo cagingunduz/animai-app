@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { motionCost, MOTION_DURATIONS } from '@/lib/types';
 import {
   EditorHeader, EditorPage, Intro, Section, Label, Segmented, Toggle, TextArea, ActionBar, Credits,
-  AspectGlyph, Ico, ErrorNote, Spinner, StudioPanel, StatusDot, Stage, StageEmpty,
+  AspectGlyph, Ico, ErrorNote, Spinner, StudioPanel, StatusDot, Stage, StageEmpty, VoiceGrid, type KitVoice,
 } from '@/components/editor/kit';
 
 /* ─────────────────────────── types ─────────────────────────── */
@@ -111,7 +111,13 @@ export default function MotionGraphics({ onBack }: { onBack: () => void }) {
   const [aspect, setAspect] = useState<Aspect>('9:16');
   const [resolution, setResolution] = useState<'720p' | '1080p'>('1080p');
   const [seconds, setSeconds] = useState<number>(15);
-  const [music, setMusic] = useState(true);
+  const [sfx, setSfx] = useState(true);
+  const [music, setMusic] = useState(false);
+  const [narration, setNarration] = useState(true);
+  const [voices, setVoices] = useState<KitVoice[]>([]);
+  const [voiceId, setVoiceId] = useState<string | null>(null);
+  const [previewing, setPreviewing] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [loop, setLoop] = useState(false);
   const [review, setReview] = useState<'review' | 'auto'>('review');
 
@@ -140,6 +146,20 @@ export default function MotionGraphics({ onBack }: { onBack: () => void }) {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const cost = motionCost(seconds);
+
+  useEffect(() => {
+    fetch('/api/voices').then(r => r.json()).then(d => setVoices(Array.isArray(d) ? d : (d?.voices || []))).catch(() => {});
+    return () => { audioRef.current?.pause(); };
+  }, []);
+
+  const previewVoice = (v: KitVoice) => {
+    audioRef.current?.pause();
+    if (previewing === v.voice_id || !v.preview_url) { setPreviewing(null); return; }
+    const a = new Audio(v.preview_url);
+    audioRef.current = a;
+    a.onended = () => setPreviewing(null);
+    a.play().then(() => setPreviewing(v.voice_id)).catch(() => setPreviewing(null));
+  };
 
   /* brand kit load / save */
   useEffect(() => {
@@ -243,7 +263,8 @@ export default function MotionGraphics({ onBack }: { onBack: () => void }) {
     while (size() > PAYLOAD_BUDGET && frames.length > 8) frames = frames.filter((_, i) => i % 2 === 0);
     return {
       prompt: prompt.trim(), aspect_ratio: aspect, resolution, duration_seconds: seconds,
-      include_music: music, loop, auto_approve: review === 'auto', approval_timeout: 600,
+      include_music: music, include_sfx: sfx, loop, auto_approve: review === 'auto', approval_timeout: 600,
+      narration: narration && !!voiceId, narrator_voice_id: narration ? voiceId : null,
       reference_images: refImages, reference_video_frames: frames, brand,
     };
   };
@@ -442,14 +463,27 @@ export default function MotionGraphics({ onBack }: { onBack: () => void }) {
                 options={MOTION_DURATIONS.map(d => ({ value: d, label: `${d}s`, sub: `${motionCost(d).toLocaleString()} cr` }))} />
               <div className="flex flex-wrap items-center gap-x-8 gap-y-4 mt-5 pt-5 border-t border-[var(--line)]">
                 <div className="flex items-center gap-3">
-                  <span className="text-[12px] text-[var(--fg-3)]">Music & SFX</span>
-                  <Toggle on={music} onChange={setMusic} label="Music and sound effects" />
+                  <span className="text-[12px] text-[var(--fg-3)]">Sound effects</span>
+                  <Toggle on={sfx} onChange={setSfx} label="Sound effects synced to the animation" />
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-[12px] text-[var(--fg-3)]">Music</span>
+                  <Toggle on={music} onChange={setMusic} label="Background music" />
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-[12px] text-[var(--fg-3)]">Seamless loop</span>
                   <Toggle on={loop} onChange={setLoop} label="Seamless loop" />
                 </div>
               </div>
+            </Section>
+
+            <Section title="Narration" hint={narration ? 'Written per beat by the director, voiced by ElevenLabs — tap ▶ to preview' : 'Off — text and sound effects only'}
+              right={<Toggle on={narration} onChange={setNarration} label="Narration" />}>
+              {narration ? (
+                <VoiceGrid voices={voices} value={voiceId} onChange={setVoiceId} previewing={previewing} onPreview={v => previewVoice(v as KitVoice)} />
+              ) : (
+                <div className="rounded-[10px] border border-dashed border-[var(--line-2)] py-6 text-center text-[12.5px] text-[var(--fg-4)]">No voiceover</div>
+              )}
             </Section>
 
             <Section title="Direction" hint="Approve the plan before anything is rendered">
@@ -462,8 +496,8 @@ export default function MotionGraphics({ onBack }: { onBack: () => void }) {
             {startErr && <ErrorNote>{startErr}</ErrorNote>}
           </EditorPage>
 
-          <ActionBar left={<><Credits n={cost} /><span className="hidden sm:inline">· deducted when you generate</span></>}>
-            <button onClick={start} disabled={!prompt.trim() || starting || refBusy !== null} className="ui-btn ui-btn-primary">
+          <ActionBar left={narration && !voiceId ? <span>Pick a narrator voice to continue</span> : <><Credits n={cost} /><span className="hidden sm:inline">· deducted when you generate</span></>}>
+            <button onClick={start} disabled={!prompt.trim() || starting || refBusy !== null || (narration && !voiceId)} className="ui-btn ui-btn-primary">
               {starting ? <Spinner size={13} /> : null}Generate{Ico.arrow}
             </button>
           </ActionBar>
