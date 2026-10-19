@@ -48,6 +48,8 @@ const KIT_LOCAL_KEY = 'animave.brandKit';
 const PAYLOAD_BUDGET = 3_600_000; // stay under Vercel's 4.5 MB request limit
 
 const ROLE_ORDER = ['Director', 'Animator', 'Render engineer', 'Critic', 'Sound designer'];
+// Approved default narrator (ElevenLabs "Matilda — knowledgeable, professional"); see animia/MOTION_SETTINGS.md
+const DEFAULT_VOICE_ID = 'XrExE9yKIg1WjnnlVkGX';
 
 /* ─────────────────────────── browser media helpers ─────────────────────────── */
 
@@ -148,7 +150,11 @@ export default function MotionGraphics({ onBack }: { onBack: () => void }) {
   const cost = motionCost(seconds);
 
   useEffect(() => {
-    fetch('/api/voices').then(r => r.json()).then(d => setVoices(Array.isArray(d) ? d : (d?.voices || []))).catch(() => {});
+    fetch('/api/voices').then(r => r.json()).then(d => {
+      const list: KitVoice[] = Array.isArray(d) ? d : (d?.voices || []);
+      setVoices(list);
+      setVoiceId(v => v ?? (list.some(x => x.voice_id === DEFAULT_VOICE_ID) ? DEFAULT_VOICE_ID : null));
+    }).catch(() => {});
     return () => { audioRef.current?.pause(); };
   }, []);
 
