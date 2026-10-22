@@ -105,7 +105,27 @@ const fmtClock = (s: number) => `${Math.floor(s / 60)}:${String(Math.max(0, Math
 
 /* ─────────────────────────── component ─────────────────────────── */
 
-export default function MotionGraphics({ onBack }: { onBack: () => void }) {
+type Look = 'motion' | 'cinematic3d';
+
+// One engine, two Create sections: "Motion Graphics" (drawn in code) and "3D Render"
+// (a 3D-rendered still per scene, animated in code).
+const LOOK_COPY: Record<Look, { name: string; title: string; desc: string; placeholder: string }> = {
+  motion: {
+    name: 'Motion Graphics',
+    title: 'What should we animate?',
+    desc: 'Claude plans it like a director, writes every shot as animation code, then reviews the rendered frames and fixes anything under 8/10.',
+    placeholder: "A 15-second launch teaser for our budgeting app: hook with '73% of people don't know where their money goes', show three features, end on the logo.",
+  },
+  cinematic3d: {
+    name: '3D Render',
+    title: 'What should we explain in 3D?',
+    desc: 'Every scene is a 3D render — x-ray cutaways, close-ups, dramatic light — brought to life with camera moves, scans and effects, cut to the narration.',
+    placeholder: "What happens to your body if you don't sleep for three days?",
+  },
+};
+
+export default function MotionGraphics({ onBack, look = 'motion' }: { onBack: () => void; look?: Look }) {
+  const copy = LOOK_COPY[look];
   const [view, setView] = useState<View>('setup');
 
   // brief
@@ -122,7 +142,6 @@ export default function MotionGraphics({ onBack }: { onBack: () => void }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [loop, setLoop] = useState(false);
   const [review, setReview] = useState<'review' | 'auto'>('review');
-  const [look, setLook] = useState<'motion' | 'cinematic3d'>('motion');
 
   // references
   const [refImages, setRefImages] = useState<string[]>([]);
@@ -316,7 +335,7 @@ export default function MotionGraphics({ onBack }: { onBack: () => void }) {
   return (
     <div className="flex flex-col min-h-screen text-white">
       <EditorHeader
-        format="Motion Graphics"
+        format={copy.name}
         onBack={view === 'setup' ? onBack : reset}
         steps={['Brief', 'Shot list', 'Style frame', 'Production']}
         current={stepIndex}
@@ -326,37 +345,11 @@ export default function MotionGraphics({ onBack }: { onBack: () => void }) {
       {view === 'setup' && (
         <>
           <EditorPage width={760}>
-            <Intro title="What should we animate?"
-              desc="Claude plans it like a director, writes every shot as animation code, then reviews the rendered frames and fixes anything under 8/10." />
+            <Intro title={copy.title} desc={copy.desc} />
 
             <Section title="Brief">
               <TextArea big value={prompt} onChange={e => setPrompt(e.target.value)} rows={4}
-                placeholder={look === 'cinematic3d'
-                  ? 'What happens to your body if you don\'t sleep for three days?'
-                  : "A 15-second launch teaser for our budgeting app: hook with '73% of people don't know where their money goes', show three features, end on the logo."} />
-            </Section>
-
-            <Section title="Look">
-              <div className="grid sm:grid-cols-2 gap-2.5">
-                {([
-                  { v: 'motion', label: 'Motion design', sub: 'Kinetic type, icons, charts and shapes, drawn in code' },
-                  { v: 'cinematic3d', label: 'Cinematic 3D', sub: 'A 3D-rendered still per scene, brought to life with camera moves, x-ray scans and effects' },
-                ] as const).map(o => {
-                  const on = look === o.v;
-                  return (
-                    <button key={o.v} type="button" onClick={() => setLook(o.v)}
-                      className={`flex items-start gap-2.5 p-3 rounded-[10px] border text-left transition-colors ${on ? 'border-[var(--line-3)] bg-white/[0.06]' : 'border-[var(--line)] hover:border-[var(--line-2)]'}`}>
-                      <span className={`mt-0.5 w-3.5 h-3.5 rounded-full border flex items-center justify-center flex-shrink-0 ${on ? 'border-white' : 'border-[var(--line-3)]'}`}>
-                        {on && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
-                      </span>
-                      <span>
-                        <span className="block text-[13px] font-medium">{o.label}</span>
-                        <span className="block text-[12px] text-[var(--fg-3)] leading-snug mt-0.5">{o.sub}</span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+                placeholder={copy.placeholder} />
             </Section>
 
             <Section title="References" hint="Optional — we borrow the look and rhythm, never the content">
@@ -538,7 +531,7 @@ export default function MotionGraphics({ onBack }: { onBack: () => void }) {
 
       {view === 'production' && job && (
         <Production
-          job={job} aspect={aspect} prompt={prompt} now={now}
+          job={job} aspect={aspect} prompt={prompt} now={now} formatName={copy.name}
           feedback={feedback} setFeedback={setFeedback} sending={sending}
           onApprove={() => answerGate(true)} onRevise={() => answerGate(false)}
           onRetry={() => { reset(); }} onAnother={reset}
@@ -550,8 +543,8 @@ export default function MotionGraphics({ onBack }: { onBack: () => void }) {
 
 /* ─────────────────────────── production view ─────────────────────────── */
 
-function Production({ job, aspect, prompt, now, feedback, setFeedback, sending, onApprove, onRevise, onRetry, onAnother }: {
-  job: MotionJob; aspect: Aspect; prompt: string; now: number;
+function Production({ job, aspect, prompt, now, formatName, feedback, setFeedback, sending, onApprove, onRevise, onRetry, onAnother }: {
+  job: MotionJob; aspect: Aspect; prompt: string; now: number; formatName: string;
   feedback: string; setFeedback: (v: string) => void; sending: boolean;
   onApprove: () => void; onRevise: () => void; onRetry: () => void; onAnother: () => void;
 }) {
@@ -569,7 +562,7 @@ function Production({ job, aspect, prompt, now, feedback, setFeedback, sending, 
         {/* ── main column ── */}
         <div className="min-w-0 space-y-5">
           <div>
-            <div className="text-[12px] text-[var(--fg-4)]">Motion Graphics</div>
+            <div className="text-[12px] text-[var(--fg-4)]">{formatName}</div>
             <h1 className="text-[20px] font-semibold tracking-[-0.02em] truncate">{title || 'Untitled'}</h1>
             {plan?.concept && <p className="text-[13px] text-[var(--fg-3)] mt-1 max-w-[640px]">{plan.concept}</p>}
           </div>
