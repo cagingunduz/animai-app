@@ -42,7 +42,7 @@ export async function POST(request: Request) {
       }
       await supabase.from('credit_transactions').insert({
         user_id: user.id, amount: -cost,
-        description: `Motion Graphics — ${title} (${seconds}s, ${resolution})`,
+        description: `${body.look === 'cinematic3d' ? '3D Render' : 'Motion Graphics'} — ${title} (${seconds}s, ${resolution})`,
       });
     }
 

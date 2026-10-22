@@ -38,7 +38,7 @@ interface SceneDef {
 type SceneRenderStatus = { scene_number: number; status: 'queued' | 'processing' | 'completed' | 'failed'; current_step?: string; video_url?: string; };
 
 // ─── Story Mode types ───
-type CreateMode = 'selecting' | 'theme_select' | 'story' | 'cartoon' | 'animated' | 'whiteboard' | 'fruit_drama' | 'motion';
+type CreateMode = 'selecting' | 'theme_select' | 'story' | 'cartoon' | 'animated' | 'whiteboard' | 'fruit_drama' | 'motion' | '3d_render';
 type StoryTheme = 'true_crime' | 'history' | 'drama' | 'fairy_tale' | 'custom';
 type StoryGenre = 'drama' | 'fairy-tale' | 'horror' | 'action' | 'motivation' | 'comedy' | 'mystery';
 interface ScriptScene { id: string; sceneNumber: number; title: string; narratorText: string; sceneDescription: string; imageUrl: string | null; videoUrl: string | null; generating: boolean; error: string | null; approved: boolean; kenBurns: boolean; includeNarrator: boolean; includeSubtitles: boolean; }
@@ -654,7 +654,7 @@ function CreatePageInner() {
   const openFormat = (k: FormatKey) => {
     if (k === 'story') setMode('theme_select');
     else if (k === 'cartoon') { setCartoonSetupDone(false); setMode('cartoon'); }
-    else if (k === 'animated' || k === 'whiteboard' || k === 'fruit_drama' || k === 'motion') setMode(k);
+    else if (k === 'animated' || k === 'whiteboard' || k === 'fruit_drama' || k === 'motion' || k === '3d_render') setMode(k);
   };
 
   const resetAll = () => {
@@ -919,6 +919,9 @@ function CreatePageInner() {
 
     {/* ═══ MOTION GRAPHICS ═══ */}
     {mode === 'motion' && <MotionGraphics onBack={goHome} />}
+
+    {/* ═══ 3D RENDER (same engine, a 3D still per scene) ═══ */}
+    {mode === '3d_render' && <MotionGraphics key="3d_render" onBack={goHome} look="cinematic3d" />}
 
     {/* ═══ THEME SELECTION ═══ */}
     {mode === 'theme_select' && (
