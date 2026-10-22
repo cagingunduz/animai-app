@@ -122,6 +122,7 @@ export default function MotionGraphics({ onBack }: { onBack: () => void }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [loop, setLoop] = useState(false);
   const [review, setReview] = useState<'review' | 'auto'>('review');
+  const [look, setLook] = useState<'motion' | 'cinematic3d'>('motion');
 
   // references
   const [refImages, setRefImages] = useState<string[]>([]);
@@ -269,7 +270,7 @@ export default function MotionGraphics({ onBack }: { onBack: () => void }) {
     while (size() > PAYLOAD_BUDGET && frames.length > 8) frames = frames.filter((_, i) => i % 2 === 0);
     return {
       prompt: prompt.trim(), aspect_ratio: aspect, resolution, duration_seconds: seconds,
-      include_music: music, include_sfx: sfx, loop, auto_approve: review === 'auto', approval_timeout: 600,
+      include_music: music, include_sfx: sfx, loop, auto_approve: review === 'auto', approval_timeout: 600, look,
       narration: narration && !!voiceId, narrator_voice_id: narration ? voiceId : null,
       reference_images: refImages, reference_video_frames: frames, brand,
     };
@@ -330,7 +331,32 @@ export default function MotionGraphics({ onBack }: { onBack: () => void }) {
 
             <Section title="Brief">
               <TextArea big value={prompt} onChange={e => setPrompt(e.target.value)} rows={4}
-                placeholder="A 15-second launch teaser for our budgeting app: hook with '73% of people don't know where their money goes', show three features, end on the logo." />
+                placeholder={look === 'cinematic3d'
+                  ? 'What happens to your body if you don\'t sleep for three days?'
+                  : "A 15-second launch teaser for our budgeting app: hook with '73% of people don't know where their money goes', show three features, end on the logo."} />
+            </Section>
+
+            <Section title="Look">
+              <div className="grid sm:grid-cols-2 gap-2.5">
+                {([
+                  { v: 'motion', label: 'Motion design', sub: 'Kinetic type, icons, charts and shapes, drawn in code' },
+                  { v: 'cinematic3d', label: 'Cinematic 3D', sub: 'A 3D-rendered still per scene, brought to life with camera moves, x-ray scans and effects' },
+                ] as const).map(o => {
+                  const on = look === o.v;
+                  return (
+                    <button key={o.v} type="button" onClick={() => setLook(o.v)}
+                      className={`flex items-start gap-2.5 p-3 rounded-[10px] border text-left transition-colors ${on ? 'border-[var(--line-3)] bg-white/[0.06]' : 'border-[var(--line)] hover:border-[var(--line-2)]'}`}>
+                      <span className={`mt-0.5 w-3.5 h-3.5 rounded-full border flex items-center justify-center flex-shrink-0 ${on ? 'border-white' : 'border-[var(--line-3)]'}`}>
+                        {on && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      </span>
+                      <span>
+                        <span className="block text-[13px] font-medium">{o.label}</span>
+                        <span className="block text-[12px] text-[var(--fg-3)] leading-snug mt-0.5">{o.sub}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </Section>
 
             <Section title="References" hint="Optional — we borrow the look and rhythm, never the content">
