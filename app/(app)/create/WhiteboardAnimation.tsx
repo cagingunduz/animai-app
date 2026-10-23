@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { whiteboardCost } from '@/lib/types';
 import StudioGenerationView from './StudioGenerationView';
-import { EditorHeader, EditorPage, Intro, Section, Label, Segmented, Toggle, TextArea, VoiceGrid, ActionBar, Credits, AspectGlyph, Ico } from '@/components/editor/kit';
+import { EditorHeader, EditorPage, Intro, Section, Label, Segmented, StyleCard, Toggle, TextArea, VoiceGrid, ActionBar, Credits, AspectGlyph, Ico } from '@/components/editor/kit';
 
 type Step = 'setup' | 'generating' | 'done';
 type Aspect = '16:9' | '9:16' | '1:1';
@@ -156,28 +156,11 @@ export default function WhiteboardAnimation({ onBack }: { onBack: () => void }) 
             <Section n={2} title="Drawing style">
               <div className="grid sm:grid-cols-2 gap-2.5">
                 {[
-                  { v: false, label: 'Black & white', sub: 'Classic single-ink line drawing' },
-                  { v: true, label: 'Illustrated colour', sub: 'Scenes drawn, then coloured piece by piece' },
-                ].map(o => {
-                  const on = colored === o.v;
-                  return (
-                    <button key={String(o.v)} onClick={() => setColored(o.v)}
-                      className={`group relative flex items-center gap-4 p-3 rounded-[10px] border text-left transition-all ${on ? 'border-[var(--line-3)] bg-white/[0.05]' : 'border-[var(--line)] hover:border-[var(--line-2)]'}`}>
-                      <span className="relative w-[92px] h-[60px] rounded-[10px] bg-[#f4f4f2] overflow-hidden flex-shrink-0">
-                        <svg viewBox="0 0 92 60" className="absolute inset-0 w-full h-full" fill="none">
-                          <path d="M10 44c8-16 16-20 24-12s14 10 20-4 14-14 22-2" stroke="#111" strokeWidth="2" strokeLinecap="round" />
-                          <circle cx="70" cy="16" r="7" stroke="#111" strokeWidth="1.6" fill={o.v ? '#bdbdbd' : 'none'} />
-                          <rect x="10" y="10" width="20" height="12" rx="2" stroke="#111" strokeWidth="1.4" fill={o.v ? '#8c8c8c' : 'none'} />
-                        </svg>
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block text-[13.5px] font-medium">{o.label}</span>
-                        <span className="block text-[11.5px] text-[var(--fg-4)] leading-relaxed">{o.sub}</span>
-                      </span>
-                      
-                    </button>
-                  );
-                })}
+                  { v: false, label: 'Black & white', sub: 'Classic single-ink line drawing', img: '/create/styles/whiteboard-classic.webp' },
+                  { v: true, label: 'Illustrated colour', sub: 'Scenes drawn, then coloured piece by piece', img: '/create/styles/whiteboard-colored.webp' },
+                ].map(o => (
+                  <StyleCard key={String(o.v)} label={o.label} desc={o.sub} image={o.img} active={colored === o.v} onClick={() => setColored(o.v)} />
+                ))}
               </div>
             </Section>
 

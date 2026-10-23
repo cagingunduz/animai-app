@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { animatedStoryCost } from '@/lib/types';
 import StudioGenerationView from './StudioGenerationView';
-import { EditorHeader, EditorPage, Intro, Section, Label, Segmented, StyleCard, Toggle, TextArea, VoiceGrid, ActionBar, Credits, ErrorNote, Spinner, AspectGlyph, Ico } from '@/components/editor/kit';
+import { EditorHeader, EditorPage, Intro, Section, Label, Segmented, StyleCard, styleImage, Toggle, TextArea, VoiceGrid, ActionBar, Credits, ErrorNote, Spinner, AspectGlyph, Ico } from '@/components/editor/kit';
 
 type Step = 'setup' | 'character' | 'generating' | 'done';
 type Aspect = '16:9' | '9:16' | '1:1';
@@ -16,7 +16,6 @@ const STYLES = [
   { id: 'western_cartoon', label: 'Western Cartoon', grad: 'from-[#3a2a17] to-[#14100a]' },
   { id: 'anime', label: 'Anime', grad: 'from-[#2a1d33] to-[#0f0d18]' },
   { id: 'pixar', label: 'Pixar 3D', grad: 'from-[#33231d] to-[#141014]' },
-  { id: 'comic', label: 'Comic', grad: 'from-[#3a1a1a] to-[#1a1206]' },
 ];
 const ASPECTS: { id: Aspect; label: string; sub: string }[] = [
   { id: '9:16', label: '9:16', sub: 'TikTok / Reels' },
@@ -208,9 +207,9 @@ export default function AnimatedStorytelling({ onBack }: { onBack: () => void })
             </Section>
 
             <Section n={2} title="Visual style">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 {STYLES.map((s, i) => (
-                  <StyleCard key={s.id} label={s.label} index={i} active={style === s.id} onClick={() => setStyle(s.id)} />
+                  <StyleCard key={s.id} label={s.label} index={i} image={styleImage(s.id)} active={style === s.id} onClick={() => setStyle(s.id)} />
                 ))}
               </div>
             </Section>

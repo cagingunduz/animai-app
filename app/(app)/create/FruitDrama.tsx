@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { EditorHeader, EditorPage, Intro, Section, Label, Segmented, StyleCard, TextArea, ActionBar, Credits, AspectGlyph, Ico, Stage, StageEmpty, StudioPanel, ChatPanel, StudioTimeline, StatusDot, Spinner } from '@/components/editor/kit';
+import { EditorHeader, EditorPage, Intro, Section, Label, Segmented, StyleCard, styleImage, TextArea, ActionBar, Credits, AspectGlyph, Ico, Stage, StageEmpty, StudioPanel, ChatPanel, StudioTimeline, StatusDot, Spinner } from '@/components/editor/kit';
 import { createClient } from '@/lib/supabase/client';
 import { fruitDramaCost, fruitDramaSceneCost } from '@/lib/types';
 
@@ -11,7 +11,6 @@ const STYLES = [
   { value: 'western-cartoon', label: 'Western Cartoon' },
   { value: 'anime', label: 'Anime' },
   { value: 'pixar', label: 'Pixar' },
-  { value: 'comic', label: 'Comic' },
   { value: 'retro', label: 'Retro' },
   { value: 'custom', label: 'Realistic' },
 ];
@@ -404,7 +403,7 @@ function SetupView(props: {
         <Section n={2} title="Visual style">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
             {STYLES.map((s, i) => (
-              <StyleCard key={s.value} label={s.label} index={i} active={props.style === s.value} onClick={() => props.setStyle(s.value)} />
+              <StyleCard key={s.value} label={s.label} index={i} image={styleImage(s.value)} active={props.style === s.value} onClick={() => props.setStyle(s.value)} />
             ))}
           </div>
         </Section>
