@@ -10,7 +10,7 @@ import FruitDrama from './FruitDrama';
 import MotionGraphics from './MotionGraphics';
 import StudioGenerationView from './StudioGenerationView';
 import { FORMATS, FormatIcon, type FormatKey } from '@/components/FormatArt';
-import { EditorHeader, EditorPage, Intro, Section, Label, Segmented, StyleCard, ToggleRow, TextArea, VoiceGrid, ActionBar, Credits, Modal, ErrorNote, Spinner, AspectGlyph, Ico, StatusDot } from '@/components/editor/kit';
+import { EditorHeader, EditorPage, Intro, Section, Label, Segmented, StyleCard, styleImage, ToggleRow, TextArea, VoiceGrid, ActionBar, Credits, Modal, ErrorNote, Spinner, AspectGlyph, Ico, StatusDot } from '@/components/editor/kit';
 
 type AnimStyle = 'western-cartoon' | 'anime' | 'pixar' | 'comic' | 'retro' | 'custom';
 type AspectRatio = '16:9' | '9:16' | '1:1';
@@ -54,7 +54,7 @@ const THEMES: { value: StoryTheme; label: string; icon: string; isCustom?: boole
 
 const STYLES: { value: AnimStyle; label: string }[] = [
   { value: 'western-cartoon', label: 'Western Cartoon' }, { value: 'anime', label: 'Anime' }, { value: 'pixar', label: 'Pixar' },
-  { value: 'comic', label: 'Comic' }, { value: 'retro', label: 'Retro' }, { value: 'custom', label: 'Realistic' },
+  { value: 'retro', label: 'Retro' }, { value: 'custom', label: 'Realistic' },
 ];
 
 const THEME_STYLES: Record<StoryTheme, AnimStyle> = {
@@ -950,7 +950,7 @@ function CreatePageInner() {
           <Section title="Visual style">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {STYLES.map(s => (
-                <StyleCard key={s.value} label={s.label} desc={STYLE_EXAMPLES[s.value].desc} active={storyStyle === s.value}
+                <StyleCard key={s.value} label={s.label} desc={STYLE_EXAMPLES[s.value].desc} image={styleImage(s.value)} active={storyStyle === s.value}
                   onClick={() => setStoryStyle(s.value)} badge={GENRE_RECOMMENDED_STYLE[customGenre] === s.value ? 'Recommended' : undefined} />
               ))}
             </div>
@@ -1249,7 +1249,7 @@ function CreatePageInner() {
           <Section n={2} title="Visual style">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
               {STYLES.map((s, i) => (
-                <StyleCard key={s.value} label={s.label} index={i} active={style === s.value} onClick={() => setStyle(s.value)} />
+                <StyleCard key={s.value} label={s.label} index={i} image={styleImage(s.value)} active={style === s.value} onClick={() => setStyle(s.value)} />
               ))}
             </div>
           </Section>

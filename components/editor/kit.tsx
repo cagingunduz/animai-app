@@ -204,9 +204,40 @@ export function TextArea({ className = '', big = false, ...props }: React.Textar
   );
 }
 
-export function StyleCard({ label, desc, active, onClick, badge }: {
-  label: string; desc?: string; active: boolean; onClick: () => void; index?: number; badge?: string;
+// Preview images for the visual styles (public/create/styles), keyed by every id the forms use.
+const STYLE_IMAGES: Record<string, string> = {
+  'western-cartoon': '/create/styles/western-cartoon.webp', western_cartoon: '/create/styles/western-cartoon.webp',
+  anime: '/create/styles/anime.webp', pixar: '/create/styles/pixar.webp', retro: '/create/styles/retro.webp',
+  custom: '/create/styles/realistic.webp', realistic: '/create/styles/realistic.webp',
+};
+export const styleImage = (key: string): string | undefined => STYLE_IMAGES[key];
+
+export function StyleCard({ label, desc, active, onClick, badge, image }: {
+  label: string; desc?: string; active: boolean; onClick: () => void; index?: number; badge?: string; image?: string;
 }) {
+  if (image) {
+    return (
+      <button type="button" onClick={onClick}
+        className={`group flex flex-col rounded-lg border text-left overflow-hidden transition-colors ${active ? 'border-white bg-white/[0.06]' : 'border-[var(--line)] hover:border-[var(--line-2)] hover:bg-white/[0.02]'}`}>
+        <span className="relative block aspect-video bg-[var(--surface-3)] overflow-hidden">
+          <img src={image} alt="" loading="lazy" draggable={false}
+            className={`absolute inset-0 w-full h-full object-cover transition-[transform,opacity] duration-300 group-hover:scale-[1.03] ${active ? 'opacity-100' : 'opacity-80 group-hover:opacity-100'}`} />
+        </span>
+        <span className="flex items-start gap-2.5 p-3">
+          <span className={`mt-0.5 w-3.5 h-3.5 rounded-full border flex items-center justify-center flex-shrink-0 ${active ? 'border-white' : 'border-[var(--line-3)]'}`}>
+            {active && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
+          </span>
+          <span className="min-w-0">
+            <span className="flex items-center gap-1.5">
+              <span className="text-[13px] font-medium">{label}</span>
+              {badge && <span className="text-[11px] text-[var(--fg-4)]">· {badge}</span>}
+            </span>
+            {desc && <span className="block text-[12px] text-[var(--fg-3)] leading-snug mt-0.5">{desc}</span>}
+          </span>
+        </span>
+      </button>
+    );
+  }
   return (
     <button type="button" onClick={onClick}
       className={`flex items-start gap-2.5 p-3 rounded-lg border text-left transition-colors ${active ? 'border-[var(--line-3)] bg-white/[0.06]' : 'border-[var(--line)] hover:border-[var(--line-2)] hover:bg-white/[0.02]'}`}>
