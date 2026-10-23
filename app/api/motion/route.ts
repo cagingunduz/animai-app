@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { spendCredits, refundCredits } from '@/lib/credits';
 import { motionCost } from '@/lib/types';
 
 export const maxDuration = 60;
@@ -28,22 +29,15 @@ export async function POST(request: Request) {
     const cost = motionCost(seconds);
     const title = (body.title || String(body.prompt).trim().split('\n')[0]).slice(0, 80);
 
-    if (!profile.is_admin) {
-      if (profile.credits < cost) {
-        return NextResponse.json({
-          error: `Not enough credits. This video needs ${cost} credits and you have ${profile.credits}.`,
-          required: cost, available: profile.credits,
-        }, { status: 402 });
-      }
-      const { error: deductError } = await supabase
-        .from('users').update({ credits: profile.credits - cost }).eq('id', user.id);
-      if (deductError) {
-        return NextResponse.json({ error: 'Could not deduct credits.' }, { status: 500 });
-      }
-      await supabase.from('credit_transactions').insert({
-        user_id: user.id, amount: -cost,
-        description: `${body.look === 'cinematic3d' ? '3D Render' : 'Motion Graphics'} — ${title} (${seconds}s, ${resolution})`,
-      });
+    const spend = await spendCredits(supabase, cost, `${body.look === 'cinematic3d' ? '3D Render' : 'Motion Graphics'} — ${title} (${seconds}s, ${resolution})`);
+    if (!spend) {
+      return NextResponse.json({ error: 'Could not deduct credits.' }, { status: 500 });
+    }
+    if (!spend.ok) {
+      return NextResponse.json({
+        error: `Not enough credits. This video needs ${cost} credits and you have ${spend.balance}.`,
+        required: cost, available: spend.balance,
+      }, { status: 402 });
     }
 
     let data: any = {};
@@ -60,12 +54,7 @@ export async function POST(request: Request) {
     }
 
     if (!data?.job_id) {
-      if (!profile.is_admin) {
-        await supabase.from('users').update({ credits: profile.credits }).eq('id', user.id);
-        await supabase.from('credit_transactions').insert({
-          user_id: user.id, amount: cost, description: 'Refund — Motion Graphics failed to start',
-        });
-      }
+      await refundCredits(supabase, spend, 'Refund — Motion Graphics failed to start');
       const detail = typeof data?.detail === 'string' ? data.detail : null;
       return NextResponse.json({ error: data?.error || detail || 'Motion Graphics failed to start.' }, { status: upstreamStatus >= 400 ? upstreamStatus : 500 });
     }

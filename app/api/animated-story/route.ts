@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { spendCredits, refundCredits } from '@/lib/credits';
 import { animatedStoryCost, DURATION_SCENE_MAP } from '@/lib/types';
 
 export async function POST(request: Request) {
@@ -28,22 +29,15 @@ export async function POST(request: Request) {
     const cost = animatedStoryCost(durationMinutes, resolution, body.scene_count);
 
     // Credit check + deduct (admin bypasses)
-    if (!profile.is_admin) {
-      if (profile.credits < cost) {
-        return NextResponse.json({
-          error: `Not enough credits. This video needs ${cost} credits and you have ${profile.credits}.`,
-          required: cost, available: profile.credits,
-        }, { status: 402 });
-      }
-      const { error: deductError } = await supabase
-        .from('users').update({ credits: profile.credits - cost }).eq('id', user.id);
-      if (deductError) {
-        return NextResponse.json({ error: 'Could not deduct credits.' }, { status: 500 });
-      }
-      await supabase.from('credit_transactions').insert({
-        user_id: user.id, amount: -cost,
-        description: `Animated Storytelling — ${body.title || 'Untitled'} (${scenesCount} scenes, ${resolution})`,
-      });
+    const spend = await spendCredits(supabase, cost, `Animated Storytelling — ${body.title || 'Untitled'} (${scenesCount} scenes, ${resolution})`);
+    if (!spend) {
+      return NextResponse.json({ error: 'Could not deduct credits.' }, { status: 500 });
+    }
+    if (!spend.ok) {
+      return NextResponse.json({
+        error: `Not enough credits. This video needs ${cost} credits and you have ${spend.balance}.`,
+        required: cost, available: spend.balance,
+      }, { status: 402 });
     }
 
     // Start the backend job
@@ -61,12 +55,7 @@ export async function POST(request: Request) {
 
     // Refund if the job failed to start
     if (!data?.job_id) {
-      if (!profile.is_admin) {
-        await supabase.from('users').update({ credits: profile.credits }).eq('id', user.id);
-        await supabase.from('credit_transactions').insert({
-          user_id: user.id, amount: cost, description: 'Refund — Animated Storytelling failed to start',
-        });
-      }
+      await refundCredits(supabase, spend, 'Refund — Animated Storytelling failed to start');
       return NextResponse.json(data?.error ? data : { error: 'Animated story failed to start.' }, { status: upstreamStatus || 500 });
     }
 
