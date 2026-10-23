@@ -1,18 +1,21 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { EditorHeader, EditorPage, Intro, Section, Label, Segmented, StyleCard, styleImage, TextArea, ActionBar, Credits, AspectGlyph, Ico, Stage, StageEmpty, StudioPanel, ChatPanel, StudioTimeline, StatusDot, Spinner } from '@/components/editor/kit';
+import { EditorHeader, EditorPage, Intro, Section, Label, Segmented, StyleCard, TextArea, ActionBar, Credits, AspectGlyph, Ico, Stage, StageEmpty, StudioPanel, ChatPanel, StudioTimeline, StatusDot, Spinner } from '@/components/editor/kit';
 import { createClient } from '@/lib/supabase/client';
 import { fruitDramaCost, fruitDramaSceneCost } from '@/lib/types';
 
 type Step = 'setup' | 'character' | 'editor';
 
-const STYLES = [
-  { value: 'western-cartoon', label: 'Western Cartoon' },
-  { value: 'anime', label: 'Anime' },
-  { value: 'pixar', label: 'Pixar' },
-  { value: 'retro', label: 'Retro' },
-  { value: 'custom', label: 'Realistic' },
+// How the story plays out (the backend's GENRE_DIRECTION). The look is always the Fruit Drama 3D style.
+type Genre = 'drama' | 'comedy' | 'romance' | 'revenge' | 'mystery' | 'spooky';
+const GENRES: { value: Genre; label: string; desc: string; example: string }[] = [
+  { value: 'drama', label: 'Drama', desc: 'Betrayal, big reveals, tearful confrontations', example: 'Peach finds out her best friend Banana has been secretly taking credit for her smoothie recipes…' },
+  { value: 'comedy', label: 'Comedy', desc: 'Misunderstandings and silly chaos', example: "Banana tries to cook a fancy dinner to impress Peach's parents, and everything goes wrong…" },
+  { value: 'romance', label: 'Romance', desc: 'Crushes, shy glances, sweet confessions', example: "Strawberry has a crush on the new kiwi at the fruit stand but can't find the courage to say hi…" },
+  { value: 'revenge', label: 'Revenge', desc: 'Wronged, then the perfect comeback', example: 'After Banana humiliates Peach in front of the whole market, she plans the perfect comeback…' },
+  { value: 'mystery', label: 'Mystery', desc: 'Clues, suspects and a surprise reveal', example: 'The last golden apple vanishes from the fridge overnight, and everyone in the kitchen is a suspect…' },
+  { value: 'spooky', label: 'Spooky', desc: 'Eerie nights, family-safe scares', example: 'Every night at midnight, Peach hears strange whispers coming from the back of the fridge…' },
 ];
 type Aspect = '9:16' | '16:9';
 type Resolution = '720p' | '1080p';
@@ -74,8 +77,8 @@ function durationFromText(text: string): 4 | 6 | 8 | null {
 
 export default function FruitDrama({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState<Step>('setup');
-  const [style, setStyle] = useState('anime');  // Visual Style (parity with 2D setup)
-  const [title, setTitle] = useState('Peach girl discovers banana boss lied to her');
+  const [genre, setGenre] = useState<Genre>('drama');
+  const [title, setTitle] = useState('');
   const [mainFruit, setMainFruit] = useState('peach');
   const [mainGender, setMainGender] = useState<Gender>('girl');
   const [secondFruit, setSecondFruit] = useState('banana');
@@ -205,6 +208,7 @@ export default function FruitDrama({ onBack }: { onBack: () => void }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title,
+          genre,
           main_fruit: mainFruit,
           main_gender: mainGender,
           second_fruit: secondFruit,
@@ -320,7 +324,7 @@ export default function FruitDrama({ onBack }: { onBack: () => void }) {
       {step === 'setup' && (
         <SetupView
           title={title} setTitle={setTitle}
-          style={style} setStyle={setStyle}
+          genre={genre} setGenre={setGenre}
           sceneCount={sceneCount} setSceneCount={setSceneCount}
           aspect={aspect} setAspect={setAspect}
           resolution={resolution} setResolution={setResolution}
@@ -383,7 +387,7 @@ export default function FruitDrama({ onBack }: { onBack: () => void }) {
 
 function SetupView(props: {
   title: string; setTitle: (v: string) => void;
-  style: string; setStyle: (v: string) => void;
+  genre: Genre; setGenre: (v: Genre) => void;
   sceneCount: number; setSceneCount: (v: number) => void;
   aspect: Aspect; setAspect: (v: Aspect) => void;
   resolution: Resolution; setResolution: (v: Resolution) => void;
@@ -393,19 +397,19 @@ function SetupView(props: {
   return (
     <>
       <EditorPage>
-        <Intro title="Set up your drama" desc="A premise, a look and the shape of the cut. Characters come next." />
+        <Intro title="Set up your drama" desc="A genre, a premise and the shape of the cut. Characters come next." />
 
-        <Section n={1} title="Premise">
-          <TextArea big value={props.title} onChange={e => props.setTitle(e.target.value)} rows={3}
-            placeholder="A detective uncovers a midnight conspiracy…" />
-        </Section>
-
-        <Section n={2} title="Visual style">
+        <Section n={1} title="Genre">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-            {STYLES.map((s, i) => (
-              <StyleCard key={s.value} label={s.label} index={i} image={styleImage(s.value)} active={props.style === s.value} onClick={() => props.setStyle(s.value)} />
+            {GENRES.map(g => (
+              <StyleCard key={g.value} label={g.label} desc={g.desc} active={props.genre === g.value} onClick={() => props.setGenre(g.value)} />
             ))}
           </div>
+        </Section>
+
+        <Section n={2} title="Premise">
+          <TextArea big value={props.title} onChange={e => props.setTitle(e.target.value)} rows={3}
+            placeholder={GENRES.find(g => g.value === props.genre)?.example} />
         </Section>
 
         <Section n={3} title="Output">
