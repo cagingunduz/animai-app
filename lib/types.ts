@@ -81,13 +81,25 @@ export const CREDIT_PACKS: CreditPack[] = [
   { credits: 30000, price: 75, label: '30,000 credits' },
 ];
 
-export interface Plan { name: string; price: number; period: string; description: string; credits: string; features: string[]; highlighted?: boolean; cta: string; }
+// Every plan unlocks every format, 1080p and all voices; plans differ only in credits.
+export interface Plan { name: string; price: number; period: string; description: string; credits: number; features: string[]; highlighted?: boolean; cta: string; }
 export const PLANS: Plan[] = [
-  { name: 'Free', price: 0, period: '', description: 'Try Animave with no commitment.', credits: '500 credits included', features: ['500 free credits on signup', '480p resolution', 'Watermark on exports', 'Community voices'], cta: 'Downgrade' },
-  { name: 'Starter', price: 15, period: '/ month', description: 'For creators just getting started.', credits: '5,000 credits / month', features: ['5,000 credits per month', 'Up to 720p resolution', 'No watermark', 'All voices', 'Credits never expire'], highlighted: true, cta: 'Upgrade' },
-  { name: 'Pro', price: 49, period: '/ month', description: 'For serious creators and small studios.', credits: '20,000 credits / month', features: ['20,000 credits per month', 'Up to 1080p resolution', 'No watermark', 'Lip sync (premium)', 'Priority rendering', 'All voices'], cta: 'Upgrade' },
-  { name: 'Studio', price: 149, period: '/ month', description: 'For studios and power users.', credits: '40,000 credits / month', features: ['40,000 credits per month', '1080p resolution', 'No watermark', 'Lip sync included', 'Priority rendering', 'Dedicated support'], cta: 'Contact Sales' },
+  { name: 'Free', price: 0, period: '', description: 'Try every format with no commitment.', credits: 500, features: ['500 credits on signup', 'Every format', 'Up to 1080p', 'All voices'], cta: 'Downgrade' },
+  { name: 'Starter', price: 15, period: '/ month', description: 'For creators just getting started.', credits: 5000, features: ['5,000 credits every month', 'Every format', 'Up to 1080p', 'All voices', 'Credits never expire'], highlighted: true, cta: 'Upgrade' },
+  { name: 'Pro', price: 49, period: '/ month', description: 'For regular creators and small studios.', credits: 20000, features: ['20,000 credits every month', 'Every format', 'Up to 1080p', 'All voices', 'Credits never expire'], cta: 'Upgrade' },
+  { name: 'Studio', price: 149, period: '/ month', description: 'For studios and power users.', credits: 60000, features: ['60,000 credits every month', 'Every format', 'Up to 1080p', 'All voices', 'Credits never expire'], cta: 'Contact Sales' },
 ];
+
+// What a number of credits makes at today's prices (shown on the plan cards).
+export function creditExamples(credits: number): { label: string; amount: string }[] {
+  const rows: [string, number, string][] = [
+    ['Motion Graphics / 3D', Math.floor(credits / motionCost(15)), '× 15 s'],
+    ['Whiteboard', Math.floor(credits / whiteboardCost(1)), 'min'],
+    ['Animated Story', Math.floor(credits / animatedStoryCost(1, '720p')), 'min'],
+    ['Fruit Drama', Math.floor(credits / fruitDramaCost(5, '720p', 8)), '× 5 scenes'],
+  ];
+  return rows.filter(([, n]) => n > 0).map(([label, n, unit]) => ({ label, amount: `${n.toLocaleString()} ${unit}` }));
+}
 
 export const MOCK_VOICES: Voice[] = [
   { id: 'v1', name: 'Alex', gender: 'male', accent: 'American', age: 'Young Adult', preview_url: '' },

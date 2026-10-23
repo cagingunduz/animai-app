@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { PLANS, CREDIT_PACKS } from '@/lib/types';
+import { PLANS, CREDIT_PACKS, creditExamples, motionCost } from '@/lib/types';
 
 type UsageRow = { date: string; description: string; amount: number };
 
@@ -40,7 +40,6 @@ export default function BillingPage() {
     })();
   }, []);
 
-  const seconds = Math.round(credits ?? 0); // 1 credit ≈ 1 second of animation
   const selectedPack = CREDIT_PACKS[pack];
 
   return (
@@ -60,7 +59,7 @@ export default function BillingPage() {
           <div className="text-[28px] font-semibold tracking-[-0.02em] tabular-nums leading-none">
             {credits === null ? <span className="inline-block w-24 h-7 rounded ui-shimmer align-middle" /> : credits.toLocaleString()}
           </div>
-          <div className="text-[12px] text-[var(--fg-4)] mt-1.5">credits · about {Math.floor(seconds / 60)}m {seconds % 60}s of animation</div>
+          <div className="text-[12px] text-[var(--fg-4)] mt-1.5">credits · about {Math.floor((credits ?? 0) / motionCost(15))} Motion Graphics videos of 15 s</div>
           <div className="mt-auto pt-5 flex gap-2">
             <button className="ui-btn ui-btn-secondary">Manage subscription</button>
             <a href="#plans" className="ui-btn ui-btn-ghost">Compare plans</a>
@@ -97,7 +96,7 @@ export default function BillingPage() {
       <section id="plans" className="mb-10 scroll-mt-6">
         <div className="flex items-baseline justify-between mb-3">
           <h2 className="text-[14px] font-medium">Plans</h2>
-          <span className="text-[12px] text-[var(--fg-4)]">1 credit ≈ 1 second of animation · USD</span>
+          <span className="text-[12px] text-[var(--fg-4)]">Prices in USD · examples at 720p · credits never expire</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-[var(--line)] border border-[var(--line)] rounded-[10px] overflow-hidden">
           {PLANS.map((p) => {
@@ -113,6 +112,15 @@ export default function BillingPage() {
                   {p.period && <span className="text-[12px] text-[var(--fg-4)]">{p.period}</span>}
                 </div>
                 <p className="text-[12px] text-[var(--fg-3)] mb-4 min-h-[32px]">{p.description}</p>
+                <div className="border-t border-[var(--line)] pt-3 mb-4 min-h-[104px]">
+                  <div className="text-[11.5px] text-[var(--fg-4)] mb-2">{p.credits.toLocaleString()} credits make about</div>
+                  {creditExamples(p.credits).map(e => (
+                    <div key={e.label} className="flex items-center justify-between gap-2 h-[19px] text-[12px] tabular-nums">
+                      <span className="text-[var(--fg-3)] truncate">{e.label}</span>
+                      <span className="text-[var(--fg-2)] whitespace-nowrap">{e.amount}</span>
+                    </div>
+                  ))}
+                </div>
                 <ul className="flex flex-col gap-2 mb-5 flex-1 border-t border-[var(--line)] pt-4">
                   {p.features.map((f, i) => (
                     <li key={i} className="text-[12.5px] text-[var(--fg-2)] flex items-start gap-2">
