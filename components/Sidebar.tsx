@@ -20,7 +20,6 @@ const Icon = {
 const navItems = [
   { label: 'Home', href: '/dashboard', icon: Icon.home },
   { label: 'Create', href: '/create', icon: Icon.create },
-  { label: 'Editor', href: '/editor', icon: Icon.editor },
   { label: 'Billing', href: '/billing', icon: Icon.billing },
 ];
 
