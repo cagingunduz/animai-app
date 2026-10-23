@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { spendCredits } from '@/lib/credits';
 import { STORYBOOK_CREDITS_PER_SCENE } from '@/lib/types';
 
 export async function POST(request: Request) {
@@ -27,33 +28,15 @@ export async function POST(request: Request) {
     const isRegeneration: boolean = body.is_regeneration === true;
     const cost = isRegeneration ? 25 : STORYBOOK_CREDITS_PER_SCENE;
 
-    // Credit check (admin bypasses)
-    if (!profile.is_admin) {
-      if (profile.credits < cost) {
-        return NextResponse.json({
-          error: `Not enough credits. This scene needs ${cost} credits and you have ${profile.credits}.`,
-          required: cost,
-          available: profile.credits,
-          status: 402,
-        }, { status: 402 });
-      }
-
-      // Deduct credits
-      const { error: deductError } = await supabase
-        .from('users')
-        .update({ credits: profile.credits - cost })
-        .eq('id', user.id);
-
-      if (deductError) {
-        return NextResponse.json({ error: 'Could not deduct credits.' }, { status: 500 });
-      }
-
-      // Log transaction
-      await supabase.from('credit_transactions').insert({
-        user_id: user.id,
-        amount: -cost,
-        description: isRegeneration ? 'Storytelling scene regeneration' : 'Storytelling scene preview',
-      });
+    const spend = await spendCredits(supabase, cost, isRegeneration ? 'Storytelling scene regeneration' : 'Storytelling scene preview');
+    if (!spend) {
+      return NextResponse.json({ error: 'Could not deduct credits.' }, { status: 500 });
+    }
+    if (!spend.ok) {
+      return NextResponse.json({
+        error: `Not enough credits. This scene needs ${cost} credits and you have ${spend.balance}.`,
+        required: cost, available: spend.balance,
+      }, { status: 402 });
     }
 
     // Strip is_regeneration before forwarding to Railway

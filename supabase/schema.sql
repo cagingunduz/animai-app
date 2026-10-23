@@ -23,9 +23,9 @@ create policy "Users can read own data"
   on public.users for select
   using (auth.uid() = id);
 
-create policy "Users can update own data"
-  on public.users for update
-  using (auth.uid() = id);
+-- No update policy: users cannot change credits / plan / is_admin themselves.
+-- Credits move only through spend_credits() / refund_credits()
+-- (supabase/migrations/20261023_credits_security.sql).
 
 -- Auto-create user profile on signup
 create or replace function public.handle_new_user()
@@ -86,6 +86,7 @@ create table public.credit_transactions (
   user_id uuid references public.users(id) on delete cascade not null,
   amount integer not null, -- positive = credit added, negative = credit spent
   description text not null,
+  refunded boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -95,9 +96,7 @@ create policy "Users can read own transactions"
   on public.credit_transactions for select
   using (auth.uid() = user_id);
 
-create policy "Users can insert own transactions"
-  on public.credit_transactions for insert
-  with check (auth.uid() = user_id);
+-- No insert policy: rows are written by spend_credits() / refund_credits().
 
 create index idx_transactions_user on public.credit_transactions(user_id);
 
