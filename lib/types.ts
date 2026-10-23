@@ -101,10 +101,3 @@ export const MOCK_VOICES: Voice[] = [
   { id: 'v9', name: 'Oliver', gender: 'male', accent: 'British', age: 'Young Adult', preview_url: '' },
   { id: 'v10', name: 'Mia', gender: 'female', accent: 'American', age: 'Adult', preview_url: '' },
 ];
-
-export const MOCK_USAGE = [
-  { date: '2026-03-12', description: 'Fox in Snowy Forest — 3 scenes, 720p', credits: 300 },
-  { date: '2026-03-11', description: 'City Chase Scene — 5 scenes, 1080p + lip sync', credits: 1250 },
-  { date: '2026-03-10', description: 'Space Station Dialog — 4 scenes, 480p', credits: 200 },
-  { date: '2026-03-08', description: 'Credit top-up: 10,000 credits', credits: -10000 },
-];

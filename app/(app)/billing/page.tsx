@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { PLANS, CREDIT_PACKS, MOCK_USAGE } from '@/lib/types';
+import { PLANS, CREDIT_PACKS } from '@/lib/types';
+
+type UsageRow = { date: string; description: string; amount: number };
 
 const Check = ({ className = '' }: { className?: string }) => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m5 12 5 5L20 7" /></svg>
@@ -12,7 +14,7 @@ export default function BillingPage() {
   const supabase = createClient();
   const [credits, setCredits] = useState<number | null>(null);
   const [plan, setPlan] = useState('free');
-  const [usage, setUsage] = useState(MOCK_USAGE);
+  const [usage, setUsage] = useState<UsageRow[] | null>(null);
   const [pack, setPack] = useState(1);
 
   useEffect(() => {
@@ -22,21 +24,19 @@ export default function BillingPage() {
       const { data } = await supabase.from('users').select('credits, plan').eq('id', user.id).single();
       if (data) { setCredits(data.credits); setPlan(data.plan); }
 
-      // Fetch real transactions when available
+      // amount < 0 = credits spent, amount > 0 = credits added (top-up, refund)
       const { data: txns } = await supabase
         .from('credit_transactions')
         .select('created_at, description, amount')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(20);
+        .limit(50);
 
-      if (txns && txns.length > 0) {
-        setUsage(txns.map(t => ({
-          date: new Date(t.created_at).toLocaleDateString('en-CA'),
-          description: t.description,
-          credits: t.amount,
-        })));
-      }
+      setUsage((txns ?? []).map(t => ({
+        date: new Date(t.created_at).toLocaleDateString('en-CA'),
+        description: t.description,
+        amount: t.amount,
+      })));
     })();
   }, []);
 
@@ -136,14 +136,22 @@ export default function BillingPage() {
           <div className="grid grid-cols-[96px_1fr_96px] md:grid-cols-[120px_1fr_120px] px-4 h-9 items-center text-[12px] text-[var(--fg-4)] border-b border-[var(--line)] bg-[var(--surface)]">
             <span>Date</span><span>Description</span><span className="text-right">Credits</span>
           </div>
-          {usage.map((r, i) => {
-            const topUp = r.credits < 0;
+          {usage === null ? (
+            [0, 1, 2].map(i => (
+              <div key={i} className="px-4 h-10 flex items-center border-b border-[var(--line)] last:border-0">
+                <span className="w-full h-3 rounded ui-shimmer" />
+              </div>
+            ))
+          ) : usage.length === 0 ? (
+            <div className="px-4 h-16 flex items-center justify-center text-[12.5px] text-[var(--fg-4)]">No usage yet.</div>
+          ) : usage.map((r, i) => {
+            const added = r.amount > 0;
             return (
               <div key={i} className="grid grid-cols-[96px_1fr_96px] md:grid-cols-[120px_1fr_120px] px-4 h-10 items-center border-b border-[var(--line)] last:border-0">
                 <span className="text-[12.5px] text-[var(--fg-3)] tabular-nums">{r.date}</span>
-                <span className="text-[12.5px] text-[var(--fg-2)] truncate pr-4">{r.description}</span>
-                <span className={`text-[12.5px] text-right tabular-nums ${topUp ? 'text-[var(--fg)]' : 'text-[var(--fg-3)]'}`}>
-                  {topUp ? `+${Math.abs(r.credits).toLocaleString()}` : r.credits === 0 ? '0' : `−${r.credits.toLocaleString()}`}
+                <span className="text-[12.5px] text-[var(--fg-2)] truncate pr-4" title={r.description}>{r.description}</span>
+                <span className={`text-[12.5px] text-right tabular-nums ${added ? 'text-[var(--fg)]' : 'text-[var(--fg-3)]'}`}>
+                  {added ? `+${r.amount.toLocaleString()}` : r.amount === 0 ? '0' : `−${Math.abs(r.amount).toLocaleString()}`}
                 </span>
               </div>
             );
