@@ -219,9 +219,10 @@ export function StyleCard({ label, desc, active, onClick, badge, image }: {
     return (
       <button type="button" onClick={onClick}
         className={`group flex flex-col rounded-lg border text-left overflow-hidden transition-colors ${active ? 'border-white bg-white/[0.06]' : 'border-[var(--line)] hover:border-[var(--line-2)] hover:bg-white/[0.02]'}`}>
-        <span className="relative block aspect-video bg-[var(--surface-3)] overflow-hidden">
-          <img src={image} alt="" loading="lazy" draggable={false}
-            className={`absolute inset-0 w-full h-full object-cover transition-[transform,opacity] duration-300 group-hover:scale-[1.03] ${active ? 'opacity-100' : 'opacity-80 group-hover:opacity-100'}`} />
+        {/* the img sizes itself from width/height (16:9): aspect-ratio on a span inside a button is not reliable in every browser */}
+        <span className="block w-full bg-[var(--surface-3)] overflow-hidden">
+          <img src={image} alt="" width={640} height={360} draggable={false}
+            className={`block w-full h-auto object-cover transition-[transform,opacity] duration-300 group-hover:scale-[1.03] ${active ? 'opacity-100' : 'opacity-80 group-hover:opacity-100'}`} />
         </span>
         <span className="flex items-start gap-2.5 p-3">
           <span className={`mt-0.5 w-3.5 h-3.5 rounded-full border flex items-center justify-center flex-shrink-0 ${active ? 'border-white' : 'border-[var(--line-3)]'}`}>
