@@ -9,7 +9,8 @@ import WhiteboardAnimation from './WhiteboardAnimation';
 import FruitDrama from './FruitDrama';
 import MotionGraphics from './MotionGraphics';
 import StudioGenerationView from './StudioGenerationView';
-import { FORMATS, FormatIcon, type FormatKey } from '@/components/FormatArt';
+import { type FormatKey } from '@/components/FormatArt';
+import { FormatGallery } from '@/components/create/FormatGallery';
 import { EditorHeader, EditorPage, Intro, Section, Label, Segmented, StyleCard, styleImage, ToggleRow, TextArea, VoiceGrid, ActionBar, Credits, Modal, ErrorNote, Spinner, AspectGlyph, Ico, StatusDot } from '@/components/editor/kit';
 
 type AnimStyle = 'western-cartoon' | 'anime' | 'pixar' | 'comic' | 'retro' | 'custom';
@@ -880,33 +881,7 @@ function CreatePageInner() {
 
   return (<>
     {/* ═══ MODE SELECTION ═══ */}
-    {mode === 'selecting' && (
-      <div className="px-5 md:px-8 py-6 max-w-[960px] mx-auto">
-        <header className="mb-6">
-          <h1 className="text-[20px] font-semibold tracking-[-0.02em]">Create</h1>
-          <p className="text-[13px] text-[var(--fg-3)] mt-0.5">Choose a format. Every format exports vertical and horizontal.</p>
-        </header>
-        <div className="flex flex-col rounded-[10px] border border-[var(--line)] divide-y divide-[var(--line)] overflow-hidden">
-          {FORMATS.map(f => (
-            <button key={f.key} onClick={() => openFormat(f.key)}
-              className="group flex items-center gap-4 px-4 py-3.5 text-left bg-black hover:bg-[var(--surface)] transition-colors">
-              <span className="w-9 h-9 rounded-md bg-[var(--surface-3)] border border-[var(--line)] flex items-center justify-center text-[var(--fg-2)] flex-shrink-0">
-                <FormatIcon k={f.key} size={17} />
-              </span>
-              <span className="flex-1 min-w-0">
-                <span className="flex items-center gap-2">
-                  <span className="text-[13px] font-medium">{f.title}</span>
-                  {f.badge && <span className={`ui-chip ${f.badge === 'Popular' ? 'ui-chip-solid' : 'ui-chip-muted'}`}>{f.badge}</span>}
-                </span>
-                <span className="block text-[12px] text-[var(--fg-3)] truncate mt-0.5">{f.desc}</span>
-              </span>
-              <span className="hidden sm:block text-[12px] text-[var(--fg-4)] w-[160px] text-right">{f.tagline}</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--fg-4)] group-hover:text-white transition-colors flex-shrink-0"><path d="m9 6 6 6-6 6" /></svg>
-            </button>
-          ))}
-        </div>
-      </div>
-    )}
+    {mode === 'selecting' && <FormatGallery onOpen={openFormat} />}
 
     {/* ═══ ANIMATED STORYTELLING ═══ */}
     {mode === 'animated' && <AnimatedStorytelling onBack={goHome} />}
