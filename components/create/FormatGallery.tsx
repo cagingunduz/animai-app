@@ -8,11 +8,11 @@ import { FormatIcon, type FormatKey } from '@/components/FormatArt';
 type Media = { kind: 'image'; src: string; fit?: 'cover' | 'contain'; bg?: string } | { kind: 'video'; src: string; poster: string } | { kind: 'art' };
 
 const CARDS: { key: FormatKey; title: string; desc: string; meta: string; tag?: string; media: Media }[] = [
-  { key: 'story', title: 'Storytelling', tag: 'Most used', desc: 'Narrated stories for YouTube, with cinematic scenes, camera moves and sound design.', meta: '1–10 min · narrated · 16:9 or 9:16', media: { kind: 'image', src: '/create/styles/realistic.webp' } },
+  { key: 'story', title: 'Storytelling', tag: 'Most used', desc: 'Narrated stories for YouTube, with cinematic scenes, camera moves and sound design.', meta: '1–10 min · narrated · 16:9 or 9:16', media: { kind: 'video', src: '/create/formats/story.mp4', poster: '/create/formats/story.jpg' } },
   { key: 'motion', title: 'Motion Graphics', desc: 'Kinetic type, charts and diagrams, animated in code and timed to the voice.', meta: '10–60 s · code-animated', media: { kind: 'video', src: '/create/formats/motion.mp4', poster: '/create/formats/motion.jpg' } },
-  { key: 'animated', title: 'Animated Story', desc: 'Design one lead character and get a narrated, captioned short.', meta: '1–10 min · captions', media: { kind: 'image', src: '/create/styles/pixar.webp' } },
+  { key: 'animated', title: 'Animated Story', desc: 'Design one lead character and get a narrated, captioned short.', meta: '1–10 min · captions', media: { kind: 'video', src: '/create/formats/animated.mp4', poster: '/create/formats/animated.jpg' } },
   { key: 'whiteboard', title: 'Whiteboard', desc: 'Any topic, drawn line by line while a narrator explains it.', meta: '1–10 min · narrated', media: { kind: 'video', src: '/create/formats/whiteboard.mp4', poster: '/create/formats/whiteboard.jpg' } },
-  { key: 'cartoon', title: '2D Animation', desc: 'Your own characters, scenes and dialogue, built shot by shot.', meta: 'Scene by scene · dialogue', media: { kind: 'image', src: '/create/styles/western-cartoon.webp' } },
+  { key: 'cartoon', title: '2D Animation', desc: 'Your own characters, scenes and dialogue, built shot by shot.', meta: 'Scene by scene · dialogue', media: { kind: 'video', src: '/create/formats/cartoon.mp4', poster: '/create/formats/cartoon.jpg' } },
   { key: 'fruit_drama', title: 'Fruit Drama', desc: 'Fruit-character dramas with dialogue, made for Shorts and Reels.', meta: '3–10 scenes · Veo 3.1', media: { kind: 'art' } },
   { key: '3d_render', title: '3D Render', desc: 'Cinematic 3D explainers: x-ray cutaways, close-ups and slow camera moves.', meta: '10–60 s · narrated', media: { kind: 'art' } },
 ];
