@@ -75,10 +75,10 @@ function durationFromText(text: string): 4 | 6 | 8 | null {
   return match ? snapDuration(Number(match[1])) : null;
 }
 
-export default function FruitDrama({ onBack }: { onBack: () => void }) {
+export default function FruitDrama({ onBack, initialIdea }: { onBack: () => void; initialIdea?: string | null }) {
   const [step, setStep] = useState<Step>('setup');
   const [genre, setGenre] = useState<Genre>('drama');
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState(initialIdea ?? '');
   const [mainFruit, setMainFruit] = useState('peach');
   const [mainGender, setMainGender] = useState<Gender>('girl');
   const [secondFruit, setSecondFruit] = useState('banana');

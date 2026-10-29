@@ -24,11 +24,11 @@ const ASPECTS: { id: Aspect; label: string; sub: string }[] = [
 ];
 const DURATIONS = [1, 2, 3, 5, 10];
 
-export default function AnimatedStorytelling({ onBack }: { onBack: () => void }) {
+export default function AnimatedStorytelling({ onBack, initialIdea }: { onBack: () => void; initialIdea?: string | null }) {
   const [step, setStep] = useState<Step>('setup');
 
   // setup
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState(initialIdea ?? '');
   const [style, setStyle] = useState('western_cartoon');
   const [aspect, setAspect] = useState<Aspect>('9:16');
   const [resolution, setResolution] = useState<'720p' | '1080p'>('1080p');

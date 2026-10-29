@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { currentNext, withNext } from '@/lib/next';
 import AuthShell, { GoogleIcon, OrDivider, Field } from '@/components/AuthShell';
 
 export default function SignupPage() {
@@ -15,6 +16,8 @@ export default function SignupPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [next, setNext] = useState<string | null>(null);
+  useEffect(() => { setNext(currentNext()); }, []);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +27,7 @@ export default function SignupPage() {
       email, password,
       options: {
         data: { full_name: name },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}${withNext('/auth/callback', currentNext())}`,
       },
     });
     if (error) { setError(error.message); setLoading(false); return; }
@@ -35,7 +38,7 @@ export default function SignupPage() {
   const handleGoogle = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: `${window.location.origin}${withNext('/auth/callback', currentNext())}` },
     });
   };
 
@@ -48,7 +51,7 @@ export default function SignupPage() {
           </div>
           <h1 className="text-[20px] font-semibold tracking-[-0.02em] text-center mb-1">Check your inbox</h1>
           <p className="text-[13px] text-[var(--fg-3)] leading-relaxed text-center">We sent a confirmation link to <span className="text-white font-medium">{email}</span>. Open it to activate your account.</p>
-          <Link href="/login" className="ui-btn ui-btn-secondary ui-btn-lg w-full mt-6">Back to sign in</Link>
+          <Link href={withNext('/login', next)} className="ui-btn ui-btn-secondary ui-btn-lg w-full mt-6">Back to sign in</Link>
         </div>
       ) : (
         <>
@@ -82,7 +85,7 @@ export default function SignupPage() {
 
           <p className="text-[13px] text-[var(--fg-3)] mt-6 text-center">
             Already have an account?{' '}
-            <Link href="/login" className="text-[var(--fg)] hover:underline underline-offset-4">Sign in</Link>
+            <Link href={withNext('/login', next)} className="text-[var(--fg)] hover:underline underline-offset-4">Sign in</Link>
           </p>
         </>
       )}

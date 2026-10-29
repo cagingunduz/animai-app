@@ -19,10 +19,10 @@ const ASPECTS: { id: Aspect; label: string; sub: string }[] = [
 ];
 const DURATIONS = [1, 2, 3, 5, 10];
 
-export default function WhiteboardAnimation({ onBack }: { onBack: () => void }) {
+export default function WhiteboardAnimation({ onBack, initialIdea }: { onBack: () => void; initialIdea?: string | null }) {
   const [step, setStep] = useState<Step>('setup');
 
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState(initialIdea ?? '');
   const [aspect, setAspect] = useState<Aspect>('16:9');
   const [resolution, setResolution] = useState<'720p' | '1080p'>('1080p');
   const [durationMinutes, setDurationMinutes] = useState(1);

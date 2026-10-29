@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { currentNext, withNext } from '@/lib/next';
 import AuthShell, { GoogleIcon, OrDivider, Field } from '@/components/AuthShell';
 
 export default function LoginPage() {
@@ -21,6 +22,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [next, setNext] = useState<string | null>(null);
+  useEffect(() => { setNext(currentNext()); }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,14 +31,14 @@ export default function LoginPage() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) { setError(error.message); setLoading(false); return; }
-    router.push('/dashboard');
+    router.push(currentNext() ?? '/dashboard');
     router.refresh();
   };
 
   const handleGoogle = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: `${window.location.origin}${withNext('/auth/callback', currentNext())}` },
     });
   };
 
@@ -71,7 +74,7 @@ export default function LoginPage() {
 
       <p className="text-[13px] text-[var(--fg-3)] mt-6 text-center">
         New to Animave?{' '}
-        <Link href="/signup" className="text-[var(--fg)] hover:underline underline-offset-4">Create an account</Link>
+        <Link href={withNext('/signup', next)} className="text-[var(--fg)] hover:underline underline-offset-4">Create an account</Link>
       </p>
     </AuthShell>
   );

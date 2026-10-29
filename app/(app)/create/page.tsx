@@ -202,6 +202,8 @@ function CreatePageInner() {
   const storyVideoRef = useRef<HTMLVideoElement | null>(null);
   const [storyVideoPlaying, setStoryVideoPlaying] = useState(false);
   const searchParams = useSearchParams();
+  // An idea typed on the landing page (/create?mode=…&idea=…): it fills the chosen format's main field.
+  const [idea, setIdea] = useState<string | null>(() => searchParams.get('idea')?.trim().slice(0, 1000) || null);
   const router = useRouter();
 
   useEffect(() => {
@@ -653,6 +655,8 @@ function CreatePageInner() {
   };
 
   const openFormat = (k: FormatKey) => {
+    if (idea && k === 'story' && !storyTitle) setStoryTitle(idea);
+    if (idea && k === 'cartoon' && !cTitle) setCTitle(idea);
     if (k === 'story') setMode('theme_select');
     else if (k === 'cartoon') { setCartoonSetupDone(false); setMode('cartoon'); }
     else if (k === 'animated' || k === 'whiteboard' || k === 'fruit_drama' || k === 'motion' || k === '3d_render') setMode(k);
@@ -881,22 +885,22 @@ function CreatePageInner() {
 
   return (<>
     {/* ═══ MODE SELECTION ═══ */}
-    {mode === 'selecting' && <FormatGallery onOpen={openFormat} />}
+    {mode === 'selecting' && <FormatGallery onOpen={openFormat} idea={idea} onClearIdea={() => setIdea(null)} />}
 
     {/* ═══ ANIMATED STORYTELLING ═══ */}
-    {mode === 'animated' && <AnimatedStorytelling onBack={goHome} />}
+    {mode === 'animated' && <AnimatedStorytelling onBack={goHome} initialIdea={idea} />}
 
     {/* ═══ WHITEBOARD ANIMATION ═══ */}
-    {mode === 'whiteboard' && <WhiteboardAnimation onBack={goHome} />}
+    {mode === 'whiteboard' && <WhiteboardAnimation onBack={goHome} initialIdea={idea} />}
 
     {/* ═══ FRUIT DRAMA ═══ */}
-    {mode === 'fruit_drama' && <FruitDrama onBack={goHome} />}
+    {mode === 'fruit_drama' && <FruitDrama onBack={goHome} initialIdea={idea} />}
 
     {/* ═══ MOTION GRAPHICS ═══ */}
-    {mode === 'motion' && <MotionGraphics onBack={goHome} />}
+    {mode === 'motion' && <MotionGraphics onBack={goHome} initialIdea={idea} />}
 
     {/* ═══ 3D RENDER (same engine, a 3D still per scene) ═══ */}
-    {mode === '3d_render' && <MotionGraphics key="3d_render" onBack={goHome} look="cinematic3d" />}
+    {mode === '3d_render' && <MotionGraphics key="3d_render" onBack={goHome} look="cinematic3d" initialIdea={idea} />}
 
     {/* ═══ THEME SELECTION ═══ */}
     {mode === 'theme_select' && (

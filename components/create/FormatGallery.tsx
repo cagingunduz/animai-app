@@ -52,7 +52,7 @@ function MediaBox({ m, k }: { m: Media; k: FormatKey }) {
   );
 }
 
-export function FormatGallery({ onOpen }: { onOpen: (k: FormatKey) => void }) {
+export function FormatGallery({ onOpen, idea, onClearIdea }: { onOpen: (k: FormatKey) => void; idea?: string | null; onClearIdea?: () => void }) {
   return (
     <div className="px-5 md:px-10 pt-10 pb-16 max-w-[1180px] mx-auto">
       <header className="flex items-end justify-between gap-6 mb-9">
@@ -64,6 +64,22 @@ export function FormatGallery({ onOpen }: { onOpen: (k: FormatKey) => void }) {
         </div>
         <span className="hidden md:block text-[12px] text-[var(--fg-4)] tabular-nums pb-1">{CARDS.length} formats</span>
       </header>
+
+      {idea && (
+        <div className="flex items-start gap-4 mb-6 px-5 py-4 rounded-[14px] border border-[var(--line-2)] bg-[var(--surface)]">
+          <div className="flex-1 min-w-0">
+            <div className="text-[12px] text-[var(--fg-4)] mb-1">Your idea</div>
+            <p className="text-[15px] leading-snug line-clamp-2">{idea}</p>
+            <p className="text-[12.5px] text-[var(--fg-3)] mt-2">Pick a format below and it will be filled in for you.</p>
+          </div>
+          {onClearIdea && (
+            <button type="button" onClick={onClearIdea} aria-label="Dismiss idea"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--fg-4)] hover:text-white hover:bg-white/[0.06] transition-colors flex-shrink-0">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
         {CARDS.map(c => (

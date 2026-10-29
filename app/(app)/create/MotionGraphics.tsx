@@ -124,12 +124,12 @@ const LOOK_COPY: Record<Look, { name: string; title: string; desc: string; place
   },
 };
 
-export default function MotionGraphics({ onBack, look = 'motion' }: { onBack: () => void; look?: Look }) {
+export default function MotionGraphics({ onBack, look = 'motion', initialIdea }: { onBack: () => void; look?: Look; initialIdea?: string | null }) {
   const copy = LOOK_COPY[look];
   const [view, setView] = useState<View>('setup');
 
   // brief
-  const [prompt, setPrompt] = useState('');
+  const [prompt, setPrompt] = useState(initialIdea ?? '');
   const [aspect, setAspect] = useState<Aspect>('9:16');
   const [resolution, setResolution] = useState<'720p' | '1080p'>('1080p');
   const [seconds, setSeconds] = useState<number>(15);

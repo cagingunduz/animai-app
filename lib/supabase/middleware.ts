@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { safeNext } from '@/lib/next';
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } });
@@ -33,8 +34,11 @@ export async function updateSession(request: NextRequest) {
   const isProtected = protectedPaths.some((p) => request.nextUrl.pathname.startsWith(p));
 
   if (isProtected && !user) {
+    // remember where they were going (e.g. /create?mode=motion&idea=…) and come back after sign-in
     const url = request.nextUrl.clone();
     url.pathname = '/login';
+    url.search = '';
+    url.searchParams.set('next', request.nextUrl.pathname + request.nextUrl.search);
     return NextResponse.redirect(url);
   }
 
@@ -44,8 +48,10 @@ export async function updateSession(request: NextRequest) {
 
   if (isAuthPage && user) {
     const url = request.nextUrl.clone();
+    const next = safeNext(request.nextUrl.searchParams.get('next'));
     url.pathname = '/dashboard';
-    return NextResponse.redirect(url);
+    url.search = '';
+    return NextResponse.redirect(next ? new URL(next, request.url) : url);
   }
 
   return response;
