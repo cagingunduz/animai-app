@@ -16,10 +16,12 @@ export async function POST(request: Request) {
 
     const body = await request.json().catch(() => ({}));
     const topic = String(body.topic || '').trim().slice(0, 300);
+    const set: 'yard' | 'body' = body.set === 'body' ? 'body' : 'yard';
+    const format = set === 'body' ? '3D Health' : '3D Build';
     const cost = BUILD3D_CREDITS;
     const label = topic ? topic.split('\n')[0].slice(0, 80) : 'Surprise topic';
 
-    const spend = await spendCredits(supabase, cost, `3D Build — ${label}`);
+    const spend = await spendCredits(supabase, cost, `${format} — ${label}`);
     if (!spend) {
       return NextResponse.json({ error: 'Could not deduct credits.' }, { status: 500 });
     }
@@ -35,7 +37,7 @@ export async function POST(request: Request) {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/generate-yard`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic: topic || null }),
+        body: JSON.stringify({ topic: topic || null, set }),
       });
       upstreamStatus = res.status;
       data = await res.json();
@@ -44,13 +46,13 @@ export async function POST(request: Request) {
     }
 
     if (!data?.job_id) {
-      await refundCredits(supabase, spend, 'Refund — 3D Build failed to start');
+      await refundCredits(supabase, spend, `Refund — ${format} failed to start`);
       const detail = typeof data?.detail === 'string' ? data.detail : null;
-      return NextResponse.json({ error: data?.error || detail || '3D Build failed to start.' }, { status: upstreamStatus >= 400 ? upstreamStatus : 500 });
+      return NextResponse.json({ error: data?.error || detail || `${format} failed to start.` }, { status: upstreamStatus >= 400 ? upstreamStatus : 500 });
     }
 
     await supabase.from('animations').insert({
-      user_id: user.id, job_id: data.job_id, title: topic ? label : '3D Build',
+      user_id: user.id, job_id: data.job_id, title: topic ? label : format,
       status: 'processing', scenes_count: 1, resolution: '1080p', lipsync: false,
     });
 

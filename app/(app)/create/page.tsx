@@ -40,7 +40,7 @@ interface SceneDef {
 type SceneRenderStatus = { scene_number: number; status: 'queued' | 'processing' | 'completed' | 'failed'; current_step?: string; video_url?: string; };
 
 // ─── Story Mode types ───
-type CreateMode = 'selecting' | 'theme_select' | 'story' | 'cartoon' | 'animated' | 'whiteboard' | 'fruit_drama' | 'motion' | '3d_render' | 'build3d';
+type CreateMode = 'selecting' | 'theme_select' | 'story' | 'cartoon' | 'animated' | 'whiteboard' | 'fruit_drama' | 'motion' | '3d_render' | 'build3d' | 'health3d';
 type StoryTheme = 'true_crime' | 'history' | 'drama' | 'fairy_tale' | 'custom';
 type StoryGenre = 'drama' | 'fairy-tale' | 'horror' | 'action' | 'motivation' | 'comedy' | 'mystery';
 interface ScriptScene { id: string; sceneNumber: number; title: string; narratorText: string; sceneDescription: string; imageUrl: string | null; videoUrl: string | null; generating: boolean; error: string | null; approved: boolean; kenBurns: boolean; includeNarrator: boolean; includeSubtitles: boolean; }
@@ -247,7 +247,7 @@ function CreatePageInner() {
     })();
   }, []);
 
-  // ─── Deep-link into a format: /create?mode=story|cartoon|animated|whiteboard|fruit_drama|motion|3d_render|build3d ───
+  // ─── Deep-link into a format: /create?mode=story|cartoon|animated|whiteboard|fruit_drama|motion|3d_render|build3d|health3d ───
   const modeParam = searchParams.get('mode');
   const lastModeParam = useRef<string | null>(null);
   useEffect(() => {
@@ -656,7 +656,7 @@ function CreatePageInner() {
   const openFormat = (k: FormatKey) => {
     if (k === 'story') setMode('theme_select');
     else if (k === 'cartoon') { setCartoonSetupDone(false); setMode('cartoon'); }
-    else if (k === 'animated' || k === 'whiteboard' || k === 'fruit_drama' || k === 'motion' || k === '3d_render' || k === 'build3d') setMode(k);
+    else if (k === 'animated' || k === 'whiteboard' || k === 'fruit_drama' || k === 'motion' || k === '3d_render' || k === 'build3d' || k === 'health3d') setMode(k);
   };
 
   const resetAll = () => {
@@ -900,7 +900,10 @@ function CreatePageInner() {
     {mode === '3d_render' && <MotionGraphics key="3d_render" onBack={goHome} look="cinematic3d" />}
 
     {/* ═══ 3D BUILD (the cut-away yard) ═══ */}
-    {mode === 'build3d' && <Build3D onBack={goHome} />}
+    {mode === 'build3d' && <Build3D key="yard" onBack={goHome} />}
+
+    {/* ═══ 3D HEALTH (the x-ray body, same engine) ═══ */}
+    {mode === 'health3d' && <Build3D key="body" set="body" onBack={goHome} />}
 
     {/* ═══ THEME SELECTION ═══ */}
     {mode === 'theme_select' && (
