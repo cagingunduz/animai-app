@@ -62,6 +62,11 @@ export function motionCost(seconds: number): number {
 // the narrator (Kokoro) and the CPU render run on our own servers. 500 credits ≈ $1.60.
 export const BUILD3D_CREDITS = 500;
 
+// ─── Explainer pricing (one 30-60 s reel) ───
+// Estimated cost ≈ $0.05-0.15: Claude writes the script and plans the cards; the narrator (Kokoro) and the 2D render
+// run on our servers. 200 credits ≈ $0.64.
+export const EXPLAINER_CREDITS = 200;
+
 export type CharacterRole = 'silent' | 'speaking';
 export type Framing = 'full-body' | 'half-body' | 'close-up';
 export type AnimationStatus = 'completed' | 'processing' | 'failed' | 'queued';
@@ -100,6 +105,7 @@ export function creditExamples(credits: number): { label: string; amount: string
   const rows: [string, number, string][] = [
     ['Motion Graphics / 3D', Math.floor(credits / motionCost(15)), '× 15 s'],
     ['3D Build', Math.floor(credits / BUILD3D_CREDITS), 'videos'],
+    ['Explainer', Math.floor(credits / EXPLAINER_CREDITS), 'reels'],
     ['Whiteboard', Math.floor(credits / whiteboardCost(1)), 'min'],
     ['Animated Story', Math.floor(credits / animatedStoryCost(1, '720p')), 'min'],
     ['Fruit Drama', Math.floor(credits / fruitDramaCost(5, '720p', 8)), '× 5 scenes'],

@@ -1,6 +1,6 @@
 // Creation formats + their line icons. Used by the sidebar, Home, Create and the mobile page.
 
-export type FormatKey = 'story' | 'cartoon' | 'animated' | 'whiteboard' | 'fruit_drama' | 'motion' | '3d_render' | 'build3d' | 'health3d';
+export type FormatKey = 'story' | 'cartoon' | 'animated' | 'whiteboard' | 'fruit_drama' | 'motion' | '3d_render' | 'build3d' | 'health3d' | 'explainer';
 
 export const FORMATS: { key: FormatKey; title: string; tagline: string; desc: string; badge?: string }[] = [
   { key: 'story', title: 'Storytelling', tagline: 'YouTube story videos', desc: 'Cinematic AI scenes with camera motion, narration and sound design.', badge: 'Popular' },
@@ -10,6 +10,7 @@ export const FORMATS: { key: FormatKey; title: string; tagline: string; desc: st
   { key: 'fruit_drama', title: 'Fruit Drama', tagline: 'Viral character shorts', desc: 'Fruit characters, cinematic scenes and Veo 3.1 clips with dialogue.', badge: 'New' },
   { key: 'motion', title: 'Motion Graphics', tagline: 'Code-animated design', desc: 'Claude directs, animates and reviews kinetic type and graphics, frame by frame.', badge: 'New' },
   { key: 'build3d', title: '3D Build', tagline: 'Backyard 3D explainers', desc: 'A yard cut open like a cake: a narrator builds an everyday thing step by step, in 3D.', badge: 'New' },
+  { key: 'explainer', title: 'Explainer', tagline: 'Talking-host explainer reels', desc: 'A cartoon host explains any topic in 30-60 seconds, with cards, counters and demos.', badge: 'New' },
   { key: 'health3d', title: '3D Health', tagline: 'Inside-the-body explainers', desc: 'An x-ray body, glowing organs and a blood vessel cut open: what your body does, step by step.', badge: 'New' },
   { key: '3d_render', title: '3D Render', tagline: '3D explainer shorts', desc: 'Cinematic 3D renders — x-ray cutaways, close-ups, dramatic light — brought to life with camera moves and narration.', badge: 'New' },
 ];
@@ -23,6 +24,7 @@ const PATHS: Record<FormatKey, JSX.Element> = {
   motion: <><path d="M4 17c3.5 0 4.5-10 8-10s4.5 10 8 10" /><circle cx="12" cy="7" r="1.6" /><path d="M4 20h16" /></>,
   '3d_render': <><path d="M12 3 20 7.5v9L12 21l-8-4.5v-9L12 3Z" /><path d="M12 12 20 7.5M12 12v9M12 12 4 7.5" /></>,
   build3d: <><path d="M7 11V7.5L11 4l4 3.5V11" /><path d="M3 11h18M3 15h18M3 19h18" /><path d="M10 11v8h5v-8" /></>,
+  explainer: <><rect x="3" y="4" width="12" height="9" rx="2" /><path d="M6 8h6M6 10.5h3.5" /><circle cx="18" cy="14" r="3" /><path d="M13.5 21c.6-2.4 2.4-3.6 4.5-3.6s3.9 1.2 4.5 3.6" /></>,
   health3d: <><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" /><path d="M5.5 12h3l1.5-2.5 2 5 1.5-2.5h5" /></>,
 };
 
