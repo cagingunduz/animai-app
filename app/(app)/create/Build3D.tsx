@@ -8,8 +8,29 @@ import { EditorHeader, EditorPage, Intro, Section, TextArea, Chip, ActionBar, Cr
 
 type Step = 'setup' | 'generating' | 'done';
 
-// Things that build well in a cut-open yard: holes, tanks, pipes, layers, water.
-const IDEAS = ['Rainwater cistern', 'French drain', 'Root cellar', 'Compost heap', 'Fire pit', 'Retaining wall', 'Geothermal heat pump', 'Basement'];
+type Set3D = 'yard' | 'body';
+
+// One engine, two sets: the cut-open backyard (3D Build) and the x-ray body (3D Health).
+const COPY: Record<Set3D, { format: string; title: string; desc: string; placeholder: string; ideas: string[]; titleFor: (t: string) => string }> = {
+  yard: {
+    format: '3D Build',
+    title: 'What should we build in the yard?',
+    desc: 'A yard cut open like a cake. A calm narrator builds an everyday thing step by step: every problem forces the next real fix, all in 3D.',
+    placeholder: 'A rainwater cistern, a root cellar, a French drain…',
+    // things that build well in a cut-open yard: holes, tanks, pipes, layers, water
+    ideas: ['Rainwater cistern', 'French drain', 'Root cellar', 'Compost heap', 'Fire pit', 'Retaining wall', 'Geothermal heat pump', 'Basement'],
+    titleFor: t => `How a Hole in Your Yard Becomes a ${t}`,
+  },
+  body: {
+    format: '3D Health',
+    title: 'What happens in your body when…',
+    desc: 'An x-ray body with glowing organs and a blood vessel cut open. A calm narrator walks through what your body does, step by step, in 3D.',
+    placeholder: 'You eat a donut, you drink coffee, you catch a cold…',
+    // moments with real, showable steps: organs, blood, cells, molecules
+    ideas: ['You eat a donut', 'You drink coffee', 'You catch a cold', 'You hold your breath', 'You cut your finger', 'You get a sunburn', 'You skip a night of sleep', 'You get scared'],
+    titleFor: t => `What Happens in Your Body When ${t.replace(/^when\s+/i, '')}`,
+  },
+};
 
 const FACTS = [
   ['Vertical', '9:16 · 1080p'],
@@ -18,7 +39,8 @@ const FACTS = [
   ['Captions', 'One word at a time'],
 ];
 
-export default function Build3D({ onBack }: { onBack: () => void }) {
+export default function Build3D({ onBack, set = 'yard' }: { onBack: () => void; set?: Set3D }) {
+  const copy = COPY[set];
   const [step, setStep] = useState<Step>('setup');
   const [topic, setTopic] = useState('');
 
@@ -56,7 +78,7 @@ export default function Build3D({ onBack }: { onBack: () => void }) {
     try {
       const r = await fetch('/api/build3d', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic: topic.trim() }),
+        body: JSON.stringify({ topic: topic.trim(), set }),
       });
       const d = await r.json();
       if (r.status === 402) { setGenStatus('failed'); setGenErr(d.error || 'Not enough credits.'); return; }
@@ -67,12 +89,12 @@ export default function Build3D({ onBack }: { onBack: () => void }) {
     } catch { setGenStatus('failed'); setGenErr('Failed to start generation'); }
   };
 
-  const shownTitle = title || (topic.trim() ? `How a Hole in Your Yard Becomes a ${topic.trim()}` : '3D Build');
+  const shownTitle = title || (topic.trim() ? copy.titleFor(topic.trim()) : copy.format);
 
   return (
     <div className="flex flex-col min-h-screen text-white">
       <EditorHeader
-        format="3D Build"
+        format={copy.format}
         onBack={onBack}
         steps={['Setup', 'Render']}
         current={step === 'setup' ? 0 : 1}
@@ -82,14 +104,13 @@ export default function Build3D({ onBack }: { onBack: () => void }) {
       {step === 'setup' && (
         <>
           <EditorPage>
-            <Intro title="What should we build in the yard?"
-              desc="A yard cut open like a cake. A calm narrator builds an everyday thing step by step: every problem forces the next real fix, all in 3D." />
+            <Intro title={copy.title} desc={copy.desc} />
 
             <Section n={1} title="Topic" hint="Optional. Leave it empty and we pick one.">
               <TextArea big value={topic} onChange={e => setTopic(e.target.value)} rows={2} maxLength={300}
-                placeholder="A rainwater cistern, a root cellar, a French drain…" />
+                placeholder={copy.placeholder} />
               <div className="flex flex-wrap gap-1.5 mt-3">
-                {IDEAS.map(i => (
+                {copy.ideas.map(i => (
                   <Chip key={i} on={topic.trim().toLowerCase() === i.toLowerCase()} onClick={() => setTopic(i)}>{i}</Chip>
                 ))}
               </div>
@@ -119,7 +140,7 @@ export default function Build3D({ onBack }: { onBack: () => void }) {
       {step === 'generating' && (
         <StudioGenerationView
           title={shownTitle}
-          modeLabel="3D Build"
+          modeLabel={copy.format}
           aspect="9:16"
           status={genStatus}
           message={genMsg || 'Writing the script...'}
@@ -136,7 +157,7 @@ export default function Build3D({ onBack }: { onBack: () => void }) {
       {step === 'done' && finalVideo && (
         <StudioGenerationView
           title={shownTitle}
-          modeLabel="3D Build"
+          modeLabel={copy.format}
           aspect="9:16"
           status={genStatus}
           message="Your 3D video is ready"
