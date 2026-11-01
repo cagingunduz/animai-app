@@ -103,12 +103,9 @@ export const PLANS: Plan[] = [
 // What a number of credits makes at today's prices (shown on the plan cards).
 export function creditExamples(credits: number): { label: string; amount: string }[] {
   const rows: [string, number, string][] = [
-    ['Motion Graphics / 3D', Math.floor(credits / motionCost(15)), '× 15 s'],
-    ['3D Build', Math.floor(credits / BUILD3D_CREDITS), 'videos'],
     ['Explainer', Math.floor(credits / EXPLAINER_CREDITS), 'reels'],
-    ['Whiteboard', Math.floor(credits / whiteboardCost(1)), 'min'],
-    ['Animated Story', Math.floor(credits / animatedStoryCost(1, '720p')), 'min'],
-    ['Fruit Drama', Math.floor(credits / fruitDramaCost(5, '720p', 8)), '× 5 scenes'],
+    ['3D Build / 3D Health', Math.floor(credits / BUILD3D_CREDITS), 'reels'],
+    ['Motion Graphics / 3D', Math.floor(credits / motionCost(15)), '× 15 s'],
   ];
   return rows.filter(([, n]) => n > 0).map(([label, n, unit]) => ({ label, amount: `${n.toLocaleString()} ${unit}` }));
 }

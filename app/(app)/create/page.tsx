@@ -11,7 +11,7 @@ import MotionGraphics from './MotionGraphics';
 import Build3D from './Build3D';
 import Explainer from './Explainer';
 import StudioGenerationView from './StudioGenerationView';
-import { type FormatKey } from '@/components/FormatArt';
+import { type FormatKey, isLiveFormat } from '@/components/FormatArt';
 import { FormatGallery } from '@/components/create/FormatGallery';
 import { EditorHeader, EditorPage, Intro, Section, Label, Segmented, StyleCard, styleImage, ToggleRow, TextArea, VoiceGrid, ActionBar, Credits, Modal, ErrorNote, Spinner, AspectGlyph, Ico, StatusDot } from '@/components/editor/kit';
 
@@ -655,6 +655,7 @@ function CreatePageInner() {
   };
 
   const openFormat = (k: FormatKey) => {
+    if (!isLiveFormat(k)) { setMode('selecting'); return; }   // hidden formats stay out of reach
     if (k === 'story') setMode('theme_select');
     else if (k === 'cartoon') { setCartoonSetupDone(false); setMode('cartoon'); }
     else if (k === 'animated' || k === 'whiteboard' || k === 'fruit_drama' || k === 'motion' || k === '3d_render' || k === 'build3d' || k === 'health3d' || k === 'explainer') setMode(k);
