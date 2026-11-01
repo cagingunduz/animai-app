@@ -67,6 +67,12 @@ export const BUILD3D_CREDITS = 500;
 // run on our servers. 200 credits ≈ $0.64.
 export const EXPLAINER_CREDITS = 200;
 
+// ─── Survival Story pricing (one 60-90 s vertical video) ───
+// Estimated cost ≈ $0.60-1.00 per video: Claude Sonnet writes the story and the film code and reviews 6 stills;
+// the voices (Kokoro), the sound (made in code) and the CPU render (≈ 6-10 min of render-service time) run on our own
+// servers. 600 credits ≈ $1.90. Each job reports its real token cost (usage.cost_usd) so this can be tuned.
+export const SURVIVAL_CREDITS = 600;
+
 export type CharacterRole = 'silent' | 'speaking';
 export type Framing = 'full-body' | 'half-body' | 'close-up';
 export type AnimationStatus = 'completed' | 'processing' | 'failed' | 'queued';
@@ -106,6 +112,7 @@ export function creditExamples(credits: number): { label: string; amount: string
     ['Explainer', Math.floor(credits / EXPLAINER_CREDITS), 'reels'],
     ['3D Build / 3D Health', Math.floor(credits / BUILD3D_CREDITS), 'reels'],
     ['Motion Graphics / 3D', Math.floor(credits / motionCost(15)), '× 15 s'],
+    ['Survival Story', Math.floor(credits / SURVIVAL_CREDITS), 'reels'],
   ];
   return rows.filter(([, n]) => n > 0).map(([label, n, unit]) => ({ label, amount: `${n.toLocaleString()} ${unit}` }));
 }

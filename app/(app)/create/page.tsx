@@ -10,6 +10,7 @@ import FruitDrama from './FruitDrama';
 import MotionGraphics from './MotionGraphics';
 import Build3D from './Build3D';
 import Explainer from './Explainer';
+import SurvivalStory from './SurvivalStory';
 import StudioGenerationView from './StudioGenerationView';
 import { type FormatKey, isLiveFormat } from '@/components/FormatArt';
 import { FormatGallery } from '@/components/create/FormatGallery';
@@ -41,7 +42,7 @@ interface SceneDef {
 type SceneRenderStatus = { scene_number: number; status: 'queued' | 'processing' | 'completed' | 'failed'; current_step?: string; video_url?: string; };
 
 // ─── Story Mode types ───
-type CreateMode = 'selecting' | 'theme_select' | 'story' | 'cartoon' | 'animated' | 'whiteboard' | 'fruit_drama' | 'motion' | '3d_render' | 'build3d' | 'health3d' | 'explainer';
+type CreateMode = 'selecting' | 'theme_select' | 'story' | 'cartoon' | 'animated' | 'whiteboard' | 'fruit_drama' | 'motion' | '3d_render' | 'build3d' | 'health3d' | 'explainer' | 'survival';
 type StoryTheme = 'true_crime' | 'history' | 'drama' | 'fairy_tale' | 'custom';
 type StoryGenre = 'drama' | 'fairy-tale' | 'horror' | 'action' | 'motivation' | 'comedy' | 'mystery';
 interface ScriptScene { id: string; sceneNumber: number; title: string; narratorText: string; sceneDescription: string; imageUrl: string | null; videoUrl: string | null; generating: boolean; error: string | null; approved: boolean; kenBurns: boolean; includeNarrator: boolean; includeSubtitles: boolean; }
@@ -658,7 +659,7 @@ function CreatePageInner() {
     if (!isLiveFormat(k)) { setMode('selecting'); return; }   // hidden formats stay out of reach
     if (k === 'story') setMode('theme_select');
     else if (k === 'cartoon') { setCartoonSetupDone(false); setMode('cartoon'); }
-    else if (k === 'animated' || k === 'whiteboard' || k === 'fruit_drama' || k === 'motion' || k === '3d_render' || k === 'build3d' || k === 'health3d' || k === 'explainer') setMode(k);
+    else if (k === 'animated' || k === 'whiteboard' || k === 'fruit_drama' || k === 'motion' || k === '3d_render' || k === 'build3d' || k === 'health3d' || k === 'explainer' || k === 'survival') setMode(k);
   };
 
   const resetAll = () => {
@@ -909,6 +910,9 @@ function CreatePageInner() {
 
     {/* ═══ EXPLAINER (cartoon host, cards and demos) ═══ */}
     {mode === 'explainer' && <Explainer onBack={goHome} />}
+
+    {/* ═══ SURVIVAL STORY (stickmen in 3D sets, rules, a twist and a choice) ═══ */}
+    {mode === 'survival' && <SurvivalStory onBack={goHome} />}
 
     {/* ═══ THEME SELECTION ═══ */}
     {mode === 'theme_select' && (
