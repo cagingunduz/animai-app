@@ -57,6 +57,11 @@ export function motionCost(seconds: number): number {
   return Math.max(5, Math.round(seconds)) * MOTION_CREDITS_PER_SECOND;
 }
 
+// ─── 3D Build pricing (one 60-75 s vertical video) ───
+// Estimated cost ≈ $0.50-0.75 per video: Claude Sonnet writes the script and the 3D scene and reviews stills;
+// the narrator (Kokoro) and the CPU render run on our own servers. 500 credits ≈ $1.60.
+export const BUILD3D_CREDITS = 500;
+
 export type CharacterRole = 'silent' | 'speaking';
 export type Framing = 'full-body' | 'half-body' | 'close-up';
 export type AnimationStatus = 'completed' | 'processing' | 'failed' | 'queued';
@@ -94,6 +99,7 @@ export const PLANS: Plan[] = [
 export function creditExamples(credits: number): { label: string; amount: string }[] {
   const rows: [string, number, string][] = [
     ['Motion Graphics / 3D', Math.floor(credits / motionCost(15)), '× 15 s'],
+    ['3D Build', Math.floor(credits / BUILD3D_CREDITS), 'videos'],
     ['Whiteboard', Math.floor(credits / whiteboardCost(1)), 'min'],
     ['Animated Story', Math.floor(credits / animatedStoryCost(1, '720p')), 'min'],
     ['Fruit Drama', Math.floor(credits / fruitDramaCost(5, '720p', 8)), '× 5 scenes'],
