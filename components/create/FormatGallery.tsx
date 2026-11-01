@@ -13,15 +13,16 @@ const CARDS: { key: FormatKey; title: string; desc: string; meta: string; tag?: 
   { key: 'animated', title: 'Animated Story', desc: 'Design one lead character and get a narrated, captioned short.', meta: '1–10 min · captions', media: { kind: 'video', src: '/create/formats/animated.mp4', poster: '/create/formats/animated.jpg' } },
   { key: 'whiteboard', title: 'Whiteboard', desc: 'Any topic, drawn line by line while a narrator explains it.', meta: '1–10 min · narrated', media: { kind: 'video', src: '/create/formats/whiteboard.mp4', poster: '/create/formats/whiteboard.jpg' } },
   { key: 'cartoon', title: '2D Animation', desc: 'Your own characters, scenes and dialogue, built shot by shot.', meta: 'Scene by scene · dialogue', media: { kind: 'video', src: '/create/formats/cartoon.mp4', poster: '/create/formats/cartoon.jpg' } },
+  { key: 'build3d', title: '3D Build', tag: 'New', desc: 'A yard cut open like a cake: a calm narrator builds an everyday thing, step by step, in 3D.', meta: '60–75 s · narrated · 9:16', media: { kind: 'video', src: '/create/formats/build3d.mp4', poster: '/create/formats/build3d.jpg' } },
   { key: 'fruit_drama', title: 'Fruit Drama', desc: 'Fruit-character dramas with dialogue, made for Shorts and Reels.', meta: '3–10 scenes · Veo 3.1', media: { kind: 'art' } },
   { key: '3d_render', title: '3D Render', desc: 'Cinematic 3D explainers: x-ray cutaways, close-ups and slow camera moves.', meta: '10–60 s · narrated', media: { kind: 'art' } },
 ];
 
-// Bento on a 6-column grid: two showcase cards, three formats, then two.
+// Bento on a 6-column grid: two showcase cards, then two rows of three.
 const SPAN: Record<FormatKey, string> = {
   story: 'md:col-span-3', motion: 'md:col-span-3',
   animated: 'md:col-span-2', whiteboard: 'md:col-span-2', cartoon: 'md:col-span-2',
-  fruit_drama: 'md:col-span-3', '3d_render': 'md:col-span-3',
+  build3d: 'md:col-span-2', fruit_drama: 'md:col-span-2', '3d_render': 'md:col-span-2',
 };
 const TALL: FormatKey[] = ['story', 'motion'];
 
