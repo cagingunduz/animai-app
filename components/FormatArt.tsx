@@ -2,18 +2,16 @@
 
 export type FormatKey = 'story' | 'cartoon' | 'animated' | 'whiteboard' | 'fruit_drama' | 'motion' | '3d_render' | 'build3d' | 'health3d' | 'explainer';
 
+// Animave makes vertical reels that Claude animates frame by frame. Only these formats are on the site; the
+// others (story, cartoon, animated, whiteboard, fruit_drama) keep their code but are hidden.
 export const FORMATS: { key: FormatKey; title: string; tagline: string; desc: string; badge?: string }[] = [
-  { key: 'story', title: 'Storytelling', tagline: 'YouTube story videos', desc: 'Cinematic AI scenes with camera motion, narration and sound design.', badge: 'Popular' },
-  { key: 'cartoon', title: '2D Animation', tagline: 'Cartoon series & films', desc: 'Your own characters, scenes and dialogue, built shot by shot.' },
-  { key: 'animated', title: 'Animated Story', tagline: 'Character-driven shorts', desc: 'Design one character, then generate a narrated, captioned story.', badge: 'New' },
-  { key: 'whiteboard', title: 'Whiteboard', tagline: 'Doodle explainers', desc: 'Any topic, sketched on a whiteboard with narration and captions.', badge: 'New' },
-  { key: 'fruit_drama', title: 'Fruit Drama', tagline: 'Viral character shorts', desc: 'Fruit characters, cinematic scenes and Veo 3.1 clips with dialogue.', badge: 'New' },
-  { key: 'motion', title: 'Motion Graphics', tagline: 'Code-animated design', desc: 'Claude directs, animates and reviews kinetic type and graphics, frame by frame.', badge: 'New' },
-  { key: 'build3d', title: '3D Build', tagline: 'Backyard 3D explainers', desc: 'A yard cut open like a cake: a narrator builds an everyday thing step by step, in 3D.', badge: 'New' },
   { key: 'explainer', title: 'Explainer', tagline: 'Talking-host explainer reels', desc: 'A cartoon host explains any topic in 30-60 seconds, with cards, counters and demos.', badge: 'New' },
+  { key: 'build3d', title: '3D Build', tagline: 'Backyard 3D explainers', desc: 'A yard cut open like a cake: a narrator builds an everyday thing step by step, in 3D.', badge: 'New' },
   { key: 'health3d', title: '3D Health', tagline: 'Inside-the-body explainers', desc: 'An x-ray body, glowing organs and a blood vessel cut open: what your body does, step by step.', badge: 'New' },
-  { key: '3d_render', title: '3D Render', tagline: '3D explainer shorts', desc: 'Cinematic 3D renders — x-ray cutaways, close-ups, dramatic light — brought to life with camera moves and narration.', badge: 'New' },
+  { key: 'motion', title: 'Motion Graphics', tagline: 'Code-animated design', desc: 'Kinetic type, charts and diagrams, animated in code and timed to the voice.' },
+  { key: '3d_render', title: '3D Render', tagline: 'Cinematic 3D shorts', desc: 'Cinematic 3D cutaways, close-ups and slow camera moves, animated to the narration.' },
 ];
+export const isLiveFormat = (k: string): k is FormatKey => FORMATS.some(f => f.key === k);
 
 const PATHS: Record<FormatKey, JSX.Element> = {
   story: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 9h18M3 15h18" /></>,

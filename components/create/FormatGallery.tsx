@@ -2,93 +2,78 @@
 
 import { FormatIcon, type FormatKey } from '@/components/FormatArt';
 
-// The Create home: one card per format, each showing what that format actually makes.
-// Media heights are fixed (not aspect-ratio) so the cards lay out the same in every browser.
+// The Create home: a shelf of vertical reels, one per format, each playing what that format actually makes.
+// Cards keep 9:16 with a padding box (not aspect-ratio), so they lay out the same in every browser.
 
-type Media = { kind: 'image'; src: string; fit?: 'cover' | 'contain'; bg?: string } | { kind: 'video'; src: string; poster: string } | { kind: 'art' };
+type Media = { kind: 'video'; src: string; poster: string } | { kind: 'art' };
 
 const CARDS: { key: FormatKey; title: string; desc: string; meta: string; tag?: string; media: Media }[] = [
-  { key: 'story', title: 'Storytelling', tag: 'Most used', desc: 'Narrated stories for YouTube, with cinematic scenes, camera moves and sound design.', meta: '1–10 min · narrated · 16:9 or 9:16', media: { kind: 'video', src: '/create/formats/story.mp4', poster: '/create/formats/story.jpg' } },
-  { key: 'motion', title: 'Motion Graphics', desc: 'Kinetic type, charts and diagrams, animated in code and timed to the voice.', meta: '10–60 s · code-animated', media: { kind: 'video', src: '/create/formats/motion.mp4', poster: '/create/formats/motion.jpg' } },
-  { key: 'health3d', title: '3D Health', tag: 'New', desc: 'An x-ray body, glowing organs and a blood vessel cut open: what your body does, step by step.', meta: '60–75 s · narrated · 9:16', media: { kind: 'image', src: '/create/formats/health3d.jpg' } },
-  { key: 'build3d', title: '3D Build', tag: 'New', desc: 'A yard cut open like a cake: a calm narrator builds an everyday thing, step by step, in 3D.', meta: '60–75 s · narrated · 9:16', media: { kind: 'video', src: '/create/formats/build3d.mp4', poster: '/create/formats/build3d.jpg' } },
-  { key: 'animated', title: 'Animated Story', desc: 'Design one lead character and get a narrated, captioned short.', meta: '1–10 min · captions', media: { kind: 'video', src: '/create/formats/animated.mp4', poster: '/create/formats/animated.jpg' } },
-  { key: 'whiteboard', title: 'Whiteboard', desc: 'Any topic, drawn line by line while a narrator explains it.', meta: '1–10 min · narrated', media: { kind: 'video', src: '/create/formats/whiteboard.mp4', poster: '/create/formats/whiteboard.jpg' } },
-  { key: 'cartoon', title: '2D Animation', desc: 'Your own characters, scenes and dialogue, built shot by shot.', meta: 'Scene by scene · dialogue', media: { kind: 'video', src: '/create/formats/cartoon.mp4', poster: '/create/formats/cartoon.jpg' } },
-  { key: 'explainer', title: 'Explainer', tag: 'New', desc: 'A cartoon host explains any topic with cards, counters and little demos.', meta: '30–60 s · narrated · 9:16', media: { kind: 'video', src: '/create/formats/explainer.mp4', poster: '/create/formats/explainer.jpg' } },
-  { key: 'fruit_drama', title: 'Fruit Drama', desc: 'Fruit-character dramas with dialogue, made for Shorts and Reels.', meta: '3–10 scenes · Veo 3.1', media: { kind: 'art' } },
-  { key: '3d_render', title: '3D Render', desc: 'Cinematic 3D explainers: x-ray cutaways, close-ups and slow camera moves.', meta: '10–60 s · narrated', media: { kind: 'art' } },
+  { key: 'explainer', title: 'Explainer', tag: 'New', desc: 'A cartoon host explains any topic with cards, counters and little demos.', meta: '30–60 s', media: { kind: 'video', src: '/create/formats/explainer.mp4', poster: '/create/formats/explainer.jpg' } },
+  { key: 'build3d', title: '3D Build', tag: 'New', desc: 'A yard cut open like a cake: everyday things built step by step.', meta: '60–75 s', media: { kind: 'video', src: '/create/formats/build3d.mp4', poster: '/create/formats/build3d.jpg' } },
+  { key: 'health3d', title: '3D Health', tag: 'New', desc: 'Glowing organs and a vessel cut open: what your body does, step by step.', meta: '60–75 s', media: { kind: 'video', src: '/create/formats/health3d.mp4', poster: '/create/formats/health3d.jpg' } },
+  { key: 'motion', title: 'Motion Graphics', desc: 'Kinetic type, charts and diagrams, timed to the voice.', meta: '10–60 s', media: { kind: 'video', src: '/create/formats/motion.mp4', poster: '/create/formats/motion.jpg' } },
+  { key: '3d_render', title: '3D Render', desc: 'Cinematic 3D cutaways and slow camera moves, animated to the narration.', meta: '10–60 s', media: { kind: 'art' } },
 ];
 
-// Bento on a 6-column grid: two showcase cards, the two 3D explainers, then two rows of three.
-const SPAN: Record<FormatKey, string> = {
-  story: 'md:col-span-3', motion: 'md:col-span-3',
-  animated: 'md:col-span-2', whiteboard: 'md:col-span-2', cartoon: 'md:col-span-2',
-  health3d: 'md:col-span-3', build3d: 'md:col-span-3', explainer: 'md:col-span-2', fruit_drama: 'md:col-span-2', '3d_render': 'md:col-span-2',
-};
-const TALL: FormatKey[] = ['story', 'motion'];
+const FACTS = ['Vertical 9:16, 1080p', 'Voiced, with word-by-word captions', 'Animated frame by frame by Claude'];
 
 function Art({ k }: { k: FormatKey }) {
   return (
     <div className="absolute inset-0 bg-[#0c0c0c]">
       <div className="absolute inset-0 opacity-[0.35]"
-        style={{ backgroundImage: 'linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
-      <div className="absolute inset-0 flex items-center justify-center text-white/[0.14] group-hover:text-white/25 transition-colors duration-500">
-        <FormatIcon k={k} size={96} />
+        style={{ backgroundImage: 'linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+      <div className="absolute inset-0 flex items-center justify-center text-white/[0.16] group-hover:text-white/25 transition-colors duration-500">
+        <FormatIcon k={k} size={72} />
       </div>
-    </div>
-  );
-}
-
-function MediaBox({ m, k }: { m: Media; k: FormatKey }) {
-  if (m.kind === 'art') return <Art k={k} />;
-  const zoom = 'transition-transform duration-[900ms] ease-out group-hover:scale-[1.035]';
-  if (m.kind === 'video') {
-    return <video src={m.src} poster={m.poster} muted loop autoPlay playsInline preload="metadata"
-      className={`absolute inset-0 w-full h-full object-cover ${zoom}`} />;
-  }
-  return (
-    <div className="absolute inset-0" style={m.bg ? { background: m.bg } : undefined}>
-      <img src={m.src} alt="" draggable={false}
-        className={`absolute inset-0 w-full h-full ${m.fit === 'contain' ? 'object-contain p-3' : 'object-cover'} ${zoom}`} />
     </div>
   );
 }
 
 export function FormatGallery({ onOpen }: { onOpen: (k: FormatKey) => void }) {
   return (
-    <div className="px-5 md:px-10 pt-10 pb-16 max-w-[1180px] mx-auto">
-      <header className="flex items-end justify-between gap-6 mb-9">
+    <div className="px-5 md:px-10 pt-10 pb-16 max-w-[1240px] mx-auto">
+      <header className="flex items-end justify-between gap-6 mb-8">
         <div>
-          <h1 className="text-[30px] md:text-[38px] font-semibold tracking-[-0.035em] leading-[1.05]">What are we making?</h1>
-          <p className="text-[14px] text-[var(--fg-3)] mt-3 max-w-[520px] leading-relaxed">
-            Pick a format. Each one is its own studio: scripted, voiced and rendered for vertical and horizontal.
+          <div className="text-[12px] text-[var(--fg-4)] mb-2">Reels studio</div>
+          <h1 className="text-[30px] md:text-[38px] font-semibold tracking-[-0.035em] leading-[1.05]">What reel are we making?</h1>
+          <p className="text-[14px] text-[var(--fg-3)] mt-3 max-w-[560px] leading-relaxed">
+            Pick a format. Claude writes it, animates it frame by frame and hands you a finished vertical video for TikTok, Reels and Shorts.
           </p>
         </div>
-        <span className="hidden md:block text-[12px] text-[var(--fg-4)] tabular-nums pb-1">{CARDS.length} formats</span>
+        <span className="hidden md:block text-[12px] text-[var(--fg-4)] tabular-nums pb-1">{CARDS.length} formats · 9:16</span>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {CARDS.map(c => (
           <button key={c.key} type="button" onClick={() => onOpen(c.key)}
-            className={`group relative flex flex-col text-left rounded-[14px] border border-[var(--line)] bg-[var(--surface)] overflow-hidden transition-colors hover:border-[var(--line-3)] focus-visible:outline-none focus-visible:border-white ${SPAN[c.key]}`}>
-            <div className={`relative w-full overflow-hidden border-b border-[var(--line)] ${TALL.includes(c.key) ? 'h-[220px] md:h-[290px]' : 'h-[190px] md:h-[200px]'}`}>
-              <MediaBox m={c.media} k={c.key} />
-            </div>
-            <div className="flex items-start gap-4 px-5 pt-4 pb-5">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-2.5">
-                  <h3 className="text-[15px] font-semibold tracking-[-0.01em]">{c.title}</h3>
-                  {c.tag && <span className="text-[11.5px] text-[var(--fg-4)]">{c.tag}</span>}
-                </div>
-                <p className="text-[13px] text-[var(--fg-3)] leading-snug mt-1.5 max-w-[460px]">{c.desc}</p>
-                <p className="text-[11.5px] text-[var(--fg-4)] mt-3 tabular-nums">{c.meta}</p>
-              </div>
-              <span className="mt-0.5 w-8 h-8 rounded-full border border-[var(--line-2)] flex items-center justify-center text-[var(--fg-3)] flex-shrink-0 transition-all duration-300 group-hover:bg-white group-hover:text-black group-hover:border-white">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+            className="group relative block w-full text-left rounded-[16px] border border-[var(--line)] bg-[var(--surface)] overflow-hidden transition-colors hover:border-[var(--line-3)] focus-visible:outline-none focus-visible:border-white">
+            <div className="relative w-full" style={{ paddingTop: '177.78%' }}>
+              {c.media.kind === 'video' ? (
+                <video src={c.media.src} poster={c.media.poster} muted loop autoPlay playsInline preload="metadata"
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-[1.03]" />
+              ) : <Art k={c.key} />}
+              <div className="absolute inset-x-0 bottom-0 h-[58%] bg-gradient-to-t from-black via-black/70 to-transparent pointer-events-none" />
+              {c.tag && (
+                <span className="absolute top-2.5 left-2.5 text-[11px] font-medium px-2 py-0.5 rounded-full bg-black/55 backdrop-blur-sm border border-white/15">{c.tag}</span>
+              )}
+              <span className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-black/45 border border-white/15 flex items-center justify-center text-white/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
               </span>
+              <div className="absolute inset-x-0 bottom-0 p-3.5">
+                <div className="flex items-baseline justify-between gap-2">
+                  <h3 className="text-[15px] font-semibold tracking-[-0.01em] leading-tight">{c.title}</h3>
+                  <span className="text-[11px] text-white/55 tabular-nums whitespace-nowrap">{c.meta}</span>
+                </div>
+                <p className="text-[12px] text-white/65 leading-snug mt-1 line-clamp-3">{c.desc}</p>
+              </div>
             </div>
           </button>
+        ))}
+      </div>
+
+      <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-[12px] text-[var(--fg-4)]">
+        {FACTS.map(f => (
+          <span key={f} className="inline-flex items-center gap-2"><span className="w-1 h-1 rounded-full bg-[var(--fg-4)]" />{f}</span>
         ))}
       </div>
     </div>
