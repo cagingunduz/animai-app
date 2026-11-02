@@ -50,11 +50,11 @@ export default function SignupPage() {
   };
 
   return (
-    <AuthShell title={sent ? 'Check your inbox' : 'Sign up'} footer={<a href="https://animai.com" className="hover:text-black transition-colors">← Back to animai.com</a>}>
+    <AuthShell title={sent ? 'Check your inbox' : 'Sign up'} footer={<a href="https://animave.com" className="hover:text-black transition-colors">← Back to animave.com</a>}>
       {sent ? (
         <div>
           <p className="text-[15px] text-black/60 leading-relaxed">We sent a confirmation link to <span className="text-black font-semibold">{email}</span>. Open it to activate your account.</p>
-          <div className="mt-8"><Link href="/login"><AuthButton type="button">Back to sign in</AuthButton></Link></div>
+          <div className="mt-5"><Link href="/login"><AuthButton type="button">Back to sign in</AuthButton></Link></div>
         </div>
       ) : (
         <>
@@ -62,23 +62,23 @@ export default function SignupPage() {
             <Field label="Full Name">
               <AuthInput icon="user" type="text" value={name} onChange={(e) => setName(e.target.value)} required placeholder="Jane Doe" autoComplete="name" />
             </Field>
-            <div className="h-7" />
+            <div className="h-4" />
             <Field label="Email Address">
               <AuthInput icon="mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="you@example.com" autoComplete="email" />
             </Field>
-            <div className="h-7" />
+            <div className="h-4" />
             <Field label="Password" hint={<span className="text-[13px] text-black/40">Min. 6 characters</span>}>
               <AuthInput icon="lock" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} placeholder="••••••••" autoComplete="new-password" />
             </Field>
-            {error && <div className="mt-6"><AuthNote>{error}</AuthNote></div>}
-            <div className="mt-8">
+            {error && <div className="mt-4"><AuthNote>{error}</AuthNote></div>}
+            <div className="mt-5">
               <AuthButton type="submit" disabled={loading}>
                 {loading ? <><span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />Creating account…</> : 'Create account'}
               </AuthButton>
             </div>
           </form>
-          <p className="text-[15px] text-black/40 mt-8">Start with 500 free credits.</p>
-          <p className="text-[15px] text-black/40 mt-2">
+          <p className="text-[14px] text-black/40 mt-5">Start with 500 free credits.</p>
+          <p className="text-[14px] text-black/40 mt-1.5">
             Already have an account?{' '}
             <Link href="/login" className="text-black hover:underline underline-offset-4">Sign in</Link>
           </p>

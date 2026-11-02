@@ -31,14 +31,14 @@ export default function ResetPasswordPage() {
         <Field label="New Password" hint={<span className="text-[13px] text-black/40">Min. 6 characters</span>}>
           <AuthInput icon="lock" type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} placeholder="••••••••" autoComplete="new-password" />
         </Field>
-        <div className="h-7" />
+        <div className="h-4" />
         <Field label="Repeat Password">
           <AuthInput icon="lock" type="password" value={again} onChange={e => setAgain(e.target.value)} required minLength={6} placeholder="••••••••" autoComplete="new-password" />
         </Field>
-        {error && <div className="mt-6"><AuthNote>{error}</AuthNote></div>}
-        <div className="mt-8"><AuthButton type="submit" disabled={loading}>{loading ? 'Saving…' : 'Save and continue'}</AuthButton></div>
+        {error && <div className="mt-4"><AuthNote>{error}</AuthNote></div>}
+        <div className="mt-5"><AuthButton type="submit" disabled={loading}>{loading ? 'Saving…' : 'Save and continue'}</AuthButton></div>
       </form>
-      <p className="text-[15px] text-black/40 mt-8"><Link href="/login" className="text-black hover:underline underline-offset-4">Back to sign in</Link></p>
+      <p className="text-[14px] text-black/40 mt-5"><Link href="/login" className="text-black hover:underline underline-offset-4">Back to sign in</Link></p>
     </AuthShell>
   );
 }
