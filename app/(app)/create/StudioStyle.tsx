@@ -162,7 +162,7 @@ export default function StudioStyle({ format, onBack }: { format: StudioFormat; 
 
             {cfg.options?.audience && (
               <Section title="Audience" hint="Optional: who the reel speaks to.">
-                <input value={audience} onChange={e => setAudience(e.target.value)} maxLength={160} placeholder="Founders of small agencies"
+                <input value={audience} onChange={e => setAudience(e.target.value)} maxLength={160} placeholder={cfg.options.audienceHint || 'Founders of small agencies'}
                   className="w-full rounded-[10px] border border-[var(--line)] bg-[var(--surface)] px-3 py-2.5 text-[14px] outline-none focus:border-white/40" />
               </Section>
             )}
