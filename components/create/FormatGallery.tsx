@@ -11,6 +11,7 @@ const CARDS: { key: FormatKey; title: string; desc: string; meta: string; tag?: 
   { key: 'explainer', title: 'Explainer', tag: 'New', desc: 'A cartoon host explains any topic with cards, counters and little demos.', meta: '30–60 s', media: { kind: 'video', src: '/create/formats/explainer.mp4', poster: '/create/formats/explainer.jpg' } },
   { key: 'build3d', title: '3D Build', tag: 'New', desc: 'A yard cut open like a cake: everyday things built step by step.', meta: '60–75 s', media: { kind: 'video', src: '/create/formats/build3d.mp4', poster: '/create/formats/build3d.jpg' } },
   { key: 'health3d', title: '3D Health', tag: 'New', desc: 'Glowing organs and a vessel cut open: what your body does, step by step.', meta: '60–75 s', media: { kind: 'video', src: '/create/formats/health3d.mp4', poster: '/create/formats/health3d.jpg' } },
+  { key: 'block', title: 'Block Horror', tag: 'New', desc: 'A rule the whole town obeys, a kid who breaks it and the tall thing in the dark.', meta: '40–50 s', media: { kind: 'video', src: '/create/formats/block.mp4', poster: '/create/formats/block.jpg' } },
   { key: 'survival', title: 'Survival Story', tag: 'New', desc: 'Imagine you… stickmen in real 3D sets, rules on screen, a twist and a choice.', meta: '60–90 s', media: { kind: 'video', src: '/create/formats/survival.mp4', poster: '/create/formats/survival.jpg' } },
   { key: 'motion', title: 'Motion Graphics', desc: 'Kinetic type, charts and diagrams, timed to the voice.', meta: '10–60 s', media: { kind: 'video', src: '/create/formats/motion.mp4', poster: '/create/formats/motion.jpg' } },
   { key: '3d_render', title: '3D Render', desc: 'Cinematic 3D cutaways and slow camera moves, animated to the narration.', meta: '10–60 s', media: { kind: 'art' } },
@@ -44,7 +45,7 @@ export function FormatGallery({ onOpen }: { onOpen: (k: FormatKey) => void }) {
         <span className="hidden md:block text-[12px] text-[var(--fg-4)] tabular-nums pb-1">{CARDS.length} formats · 9:16</span>
       </header>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         {CARDS.map(c => (
           <button key={c.key} type="button" onClick={() => onOpen(c.key)}
             className="group relative block w-full text-left rounded-[16px] border border-[var(--line)] bg-[var(--surface)] overflow-hidden transition-colors hover:border-[var(--line-3)] focus-visible:outline-none focus-visible:border-white">

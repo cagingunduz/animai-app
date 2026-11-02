@@ -1,6 +1,6 @@
 // Creation formats + their line icons. Used by the sidebar, Home, Create and the mobile page.
 
-export type FormatKey = 'story' | 'cartoon' | 'animated' | 'whiteboard' | 'fruit_drama' | 'motion' | '3d_render' | 'build3d' | 'health3d' | 'explainer' | 'survival';
+export type FormatKey = 'story' | 'cartoon' | 'animated' | 'whiteboard' | 'fruit_drama' | 'motion' | '3d_render' | 'build3d' | 'health3d' | 'explainer' | 'survival' | 'block';
 
 // Animave makes vertical reels that Claude animates frame by frame. Only these formats are on the site; the
 // others (story, cartoon, animated, whiteboard, fruit_drama) keep their code but are hidden.
@@ -8,6 +8,7 @@ export const FORMATS: { key: FormatKey; title: string; tagline: string; desc: st
   { key: 'explainer', title: 'Explainer', tagline: 'Talking-host explainer reels', desc: 'A cartoon host explains any topic in 30-60 seconds, with cards, counters and demos.', badge: 'New' },
   { key: 'build3d', title: '3D Build', tagline: 'Backyard 3D explainers', desc: 'A yard cut open like a cake: a narrator builds an everyday thing step by step, in 3D.', badge: 'New' },
   { key: 'health3d', title: '3D Health', tagline: 'Inside-the-body explainers', desc: 'An x-ray body, glowing organs and a blood vessel cut open: what your body does, step by step.', badge: 'New' },
+  { key: 'block', title: 'Block Horror', tagline: 'Blocky night-town horror', desc: 'A rule the whole town obeys, a kid who breaks it and the tall thing in the dark, in a blocky game look.', badge: 'New' },
   { key: 'survival', title: 'Survival Story', tagline: 'Stickman thriller reels', desc: 'Imagine you… A stickman survival thriller in real 3D sets: rules on screen, a twist, and a choice for the comments.', badge: 'New' },
   { key: 'motion', title: 'Motion Graphics', tagline: 'Code-animated design', desc: 'Kinetic type, charts and diagrams, animated in code and timed to the voice.' },
   { key: '3d_render', title: '3D Render', tagline: 'Cinematic 3D shorts', desc: 'Cinematic 3D cutaways, close-ups and slow camera moves, animated to the narration.' },
@@ -25,6 +26,7 @@ const PATHS: Record<FormatKey, JSX.Element> = {
   build3d: <><path d="M7 11V7.5L11 4l4 3.5V11" /><path d="M3 11h18M3 15h18M3 19h18" /><path d="M10 11v8h5v-8" /></>,
   explainer: <><rect x="3" y="4" width="12" height="9" rx="2" /><path d="M6 8h6M6 10.5h3.5" /><circle cx="18" cy="14" r="3" /><path d="M13.5 21c.6-2.4 2.4-3.6 4.5-3.6s3.9 1.2 4.5 3.6" /></>,
   health3d: <><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" /><path d="M5.5 12h3l1.5-2.5 2 5 1.5-2.5h5" /></>,
+  block: <><rect x="8" y="3" width="8" height="7" rx="1.5" /><path d="M10.5 6h.01M13.5 6h.01M10.5 8h3" /><rect x="7" y="10" width="10" height="7" rx="1" /><path d="M9 17v4M15 17v4" /></>,
   survival: <><path d="M5 21V8l7-5 7 5v13" /><path d="M9 21v-7h6v7" /><circle cx="12" cy="9" r="1.2" /></>,
 };
 
