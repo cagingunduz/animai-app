@@ -1,3 +1,6 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
 import { LogoMark } from '@/components/Logo';
 
 export function GoogleIcon() {
@@ -68,19 +71,72 @@ export function AuthButton({ children, ...props }: React.ButtonHTMLAttributes<HT
   );
 }
 
+// Google sign-in. With NEXT_PUBLIC_GOOGLE_CLIENT_ID set, Google's own button (Google Identity Services) runs on our page,
+// so Google's sheet says it continues to app.animave.com, and the ID token is handed to Supabase (signInWithIdToken)
+// with a nonce. Without it, the old redirect through Supabase is used (onGoogle).
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
+declare global { interface Window { google?: any } }
+
+async function sha256Hex(s: string) {
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, '0')).join('');
+}
+function loadGis(): Promise<void> {
+  if (window.google?.accounts?.id) return Promise.resolve();
+  return new Promise((res, rej) => {
+    const ex = document.getElementById('gis-client') as HTMLScriptElement | null;
+    if (ex) { ex.addEventListener('load', () => res()); ex.addEventListener('error', () => rej()); return; }
+    const sc = document.createElement('script'); sc.id = 'gis-client'; sc.src = 'https://accounts.google.com/gsi/client'; sc.async = true;
+    sc.onload = () => res(); sc.onerror = () => rej(); document.head.appendChild(sc);
+  });
+}
+
+const G_ICON = (
+  <svg width="40" height="40" viewBox="0 0 24 24" aria-hidden>
+    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+  </svg>
+);
+const CIRCLE = 'w-[88px] h-[88px] rounded-full bg-white flex items-center justify-center shadow-[0_1px_2px_rgba(0,0,0,.04)] hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,.18)] transition-shadow';
+
 // the round social sign-in buttons (Google is the provider we have)
-export function SocialRow({ onGoogle }: { onGoogle: () => void }) {
+export function SocialRow({ onGoogle, onCredential }: { onGoogle: () => void; onCredential?: (idToken: string, nonce: string) => void }) {
+  const slot = useRef<HTMLDivElement>(null);
+  const [gis, setGis] = useState(false);
+  const cb = useRef(onCredential); cb.current = onCredential;   // the latest handler, without re-running Google's setup
+  const wants = !!onCredential;
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID || !wants) return;
+    let dead = false;
+    (async () => {
+      try {
+        await loadGis();
+        const raw = Array.from(crypto.getRandomValues(new Uint8Array(24))).map(x => x.toString(16).padStart(2, '0')).join('');
+        const hashed = await sha256Hex(raw);
+        if (dead || !slot.current) return;
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID, nonce: hashed, use_fedcm_for_prompt: true, ux_mode: 'popup',
+          callback: (r: { credential?: string }) => { if (r.credential) cb.current?.(r.credential, raw); },
+        });
+        slot.current.innerHTML = '';
+        window.google.accounts.id.renderButton(slot.current, { type: 'icon', shape: 'circle', theme: 'outline', size: 'large' });
+        setGis(true);
+      } catch { /* Google script blocked: keep the redirect button */ }
+    })();
+    return () => { dead = true; };
+  }, [wants]);
   return (
     <div className="flex gap-6 mt-12">
-      <button type="button" onClick={onGoogle} aria-label="Continue with Google" title="Continue with Google"
-        className="w-[88px] h-[88px] rounded-full bg-white flex items-center justify-center shadow-[0_1px_2px_rgba(0,0,0,.04)] hover:shadow-[0_8px_24px_-8px_rgba(0,0,0,.18)] transition-shadow">
-        <svg width="40" height="40" viewBox="0 0 24 24" aria-hidden>
-          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
-          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-        </svg>
-      </button>
+      {GOOGLE_CLIENT_ID && onCredential ? (
+        <div className={CIRCLE} title="Continue with Google">
+          <div ref={slot} className={gis ? '' : 'hidden'} />
+          {!gis && <button type="button" onClick={onGoogle} aria-label="Continue with Google">{G_ICON}</button>}
+        </div>
+      ) : (
+        <button type="button" onClick={onGoogle} aria-label="Continue with Google" title="Continue with Google" className={CIRCLE}>{G_ICON}</button>
+      )}
     </div>
   );
 }

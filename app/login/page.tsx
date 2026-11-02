@@ -37,6 +37,16 @@ export default function LoginPage() {
     router.refresh();
   };
 
+  // Google's own button on our page: its ID token signs in to Supabase directly
+  const handleCredential = async (token: string, nonce: string) => {
+    setError('');
+    const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token, nonce });
+    if (error) { setError(error.message); return; }
+    try { localStorage.setItem(REMEMBER_KEY, '1'); sessionStorage.setItem(ALIVE_KEY, '1'); } catch { /* storage blocked */ }
+    router.push('/dashboard');
+    router.refresh();
+  };
+
   const handleGoogle = async () => {
     try { localStorage.setItem(REMEMBER_KEY, '1'); } catch { /* storage blocked */ }
     await supabase.auth.signInWithOAuth({
@@ -86,7 +96,7 @@ export default function LoginPage() {
       </p>
       <button type="button" onClick={handleForgot} className="block text-[15px] text-black mt-2 hover:underline underline-offset-4">Forgot Password</button>
 
-      <SocialRow onGoogle={handleGoogle} />
+      <SocialRow onGoogle={handleGoogle} onCredential={handleCredential} />
     </AuthShell>
   );
 }
