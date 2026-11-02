@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { forgottenSession } from '@/lib/remember';
 import Logo from '@/components/Logo';
 import { FORMATS, FormatIcon } from '@/components/FormatArt';
 
@@ -34,6 +35,7 @@ function SidebarInner() {
 
   useEffect(() => {
     (async () => {
+      if (forgottenSession()) { await supabase.auth.signOut(); router.replace('/login'); return; }   // "Remember me" was off
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       setEmail(user.email || '');

@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import AuthShell, { GoogleIcon, OrDivider, Field } from '@/components/AuthShell';
+import AuthShell, { Field, AuthInput, Checkbox, AuthButton, SocialRow, AuthNote } from '@/components/AuthShell';
+import { REMEMBER_KEY, ALIVE_KEY } from '@/lib/remember';
+
 
 export default function LoginPage() {
   const router = useRouter();
@@ -19,60 +21,72 @@ export default function LoginPage() {
   const supabase = createClient();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(true);
   const [error, setError] = useState('');
+  const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError(''); setNote('');
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) { setError(error.message); setLoading(false); return; }
+    try { localStorage.setItem(REMEMBER_KEY, remember ? '1' : '0'); sessionStorage.setItem(ALIVE_KEY, '1'); } catch { /* storage blocked */ }
     router.push('/dashboard');
     router.refresh();
   };
 
   const handleGoogle = async () => {
+    try { localStorage.setItem(REMEMBER_KEY, '1'); } catch { /* storage blocked */ }
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
   };
 
+  const handleForgot = async () => {
+    setError(''); setNote('');
+    if (!email.trim()) { setError('Enter your email address above, then press Forgot Password.'); return; }
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+    });
+    if (error) { setError(error.message); return; }
+    setNote(`We sent a link to ${email.trim()} to set a new password.`);
+  };
+
   return (
-    <AuthShell footer={<a href="https://animai.com" className="hover:text-black transition-colors">← Back to animai.com</a>}>
-      <h1 className="text-[20px] font-semibold tracking-[-0.02em] text-center mb-1">Welcome back</h1>
-      <p className="text-[13px] text-[var(--fg-3)] text-center mb-6">Sign in to keep creating.</p>
-
-      <button onClick={handleGoogle} className="ui-btn ui-btn-secondary ui-btn-lg w-full">
-        <GoogleIcon />Continue with Google
-      </button>
-
-      <OrDivider />
-
-      <form onSubmit={handleLogin} className="flex flex-col gap-3">
-        <Field label="Email">
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-            className="ui-input" placeholder="you@example.com" autoComplete="email" />
+    <AuthShell title="Sign in" footer={<a href="https://animai.com" className="hover:text-black transition-colors">← Back to animai.com</a>}>
+      <form onSubmit={handleLogin} className="flex flex-col">
+        <Field label="Email Address">
+          <AuthInput icon="mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
+            placeholder="you@example.com" autoComplete="email" />
         </Field>
+        <div className="h-7" />
         <Field label="Password">
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
-            className="ui-input" placeholder="••••••••" autoComplete="current-password" />
+          <AuthInput icon="lock" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
+            placeholder="••••••••" autoComplete="current-password" />
         </Field>
 
-        {error && (
-          <p className="text-[12.5px] text-[#b42318] bg-[#fef3f2] border border-[#fecdca] px-3 py-2.5 rounded-lg">{error}</p>
-        )}
+        <div className="mt-7"><Checkbox checked={remember} onChange={setRemember} label="Remember me" /></div>
 
-        <button type="submit" disabled={loading} className="ui-btn ui-btn-primary ui-btn-lg w-full mt-1">
-          {loading ? <><span className="w-3.5 h-3.5 rounded-full border-[1.5px] border-black/20 border-t-black animate-spin" />Signing in…</> : 'Sign in'}
-        </button>
+        {error && <div className="mt-6"><AuthNote>{error}</AuthNote></div>}
+        {note && <div className="mt-6"><AuthNote tone="ok">{note}</AuthNote></div>}
+
+        <div className="mt-8">
+          <AuthButton type="submit" disabled={loading}>
+            {loading ? <><span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />Signing in…</> : 'Sign in'}
+          </AuthButton>
+        </div>
       </form>
 
-      <p className="text-[13px] text-[var(--fg-3)] mt-6 text-center">
-        New to Animave?{' '}
-        <Link href="/signup" className="text-[var(--fg)] hover:underline underline-offset-4">Create an account</Link>
+      <p className="text-[15px] text-black/40 mt-8">
+        Don&apos;t have an account?{' '}
+        <Link href="/signup" className="text-black hover:underline underline-offset-4">Sign up</Link>
       </p>
+      <button type="button" onClick={handleForgot} className="block text-[15px] text-black mt-2 hover:underline underline-offset-4">Forgot Password</button>
+
+      <SocialRow onGoogle={handleGoogle} />
     </AuthShell>
   );
 }
