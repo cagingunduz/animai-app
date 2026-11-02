@@ -1,7 +1,7 @@
 // Creation formats + their line icons. Used by the sidebar, Home, Create and the mobile page.
 
 export type FormatKey = 'story' | 'cartoon' | 'animated' | 'whiteboard' | 'fruit_drama' | 'motion' | '3d_render' | 'build3d' | 'health3d' | 'explainer' | 'survival' | 'block'
-  | 'scifi_toon' | 'paper_lantern' | 'teardown' | 'caption_news' | 'telestrator';
+  | 'scifi_toon' | 'paper_lantern' | 'teardown' | 'caption_news' | 'telestrator' | 'premium';
 
 // Animave makes vertical reels that Claude animates frame by frame. Only these formats are on the site; the
 // others (story, cartoon, animated, fruit_drama) keep their code but are hidden. Whiteboard is now the Style Studio's
@@ -11,6 +11,7 @@ export const FORMATS: { key: FormatKey; title: string; tagline: string; desc: st
   { key: 'build3d', title: '3D Build', tagline: 'Backyard 3D explainers', desc: 'A yard cut open like a cake: a narrator builds an everyday thing step by step, in 3D.', badge: 'New' },
   { key: 'health3d', title: '3D Health', tagline: 'Inside-the-body explainers', desc: 'An x-ray body, glowing organs and a blood vessel cut open: what your body does, step by step.', badge: 'New' },
   { key: 'block', title: 'Block Horror', tagline: 'Blocky night-town horror', desc: 'A rule the whole town obeys, a kid who breaks it and the tall thing in the dark, in a blocky game look.', badge: 'New' },
+  { key: 'premium', title: 'Premium Faceless', tagline: 'Kinetic type + live UI', desc: 'Your message typed on letter by letter, a live UI diagram for every line, glossy depth and your handle at the end.', badge: 'New' },
   { key: 'caption_news', title: 'Caption News', tagline: 'Sound-off news reels', desc: 'Real footage under huge captions, rolling numbers and a source on every figure. Your clips or open archives.', badge: 'New' },
   { key: 'telestrator', title: 'Sports Telestrator', tagline: 'Match analysis on your clip', desc: 'Rewind, freeze and draw on your own match footage: rings, arrows and the space nobody covered.', badge: 'New' },
   { key: 'teardown', title: 'Exploded Teardown', tagline: 'Products taken apart in 3D', desc: 'A studio-lit product lifts apart layer by layer while the camera orbits and every part gets its label.', badge: 'New' },
@@ -35,6 +36,7 @@ const PATHS: Record<FormatKey, JSX.Element> = {
   explainer: <><rect x="3" y="4" width="12" height="9" rx="2" /><path d="M6 8h6M6 10.5h3.5" /><circle cx="18" cy="14" r="3" /><path d="M13.5 21c.6-2.4 2.4-3.6 4.5-3.6s3.9 1.2 4.5 3.6" /></>,
   health3d: <><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" /><path d="M5.5 12h3l1.5-2.5 2 5 1.5-2.5h5" /></>,
   block: <><rect x="8" y="3" width="8" height="7" rx="1.5" /><path d="M10.5 6h.01M13.5 6h.01M10.5 8h3" /><rect x="7" y="10" width="10" height="7" rx="1" /><path d="M9 17v4M15 17v4" /></>,
+  premium: <><rect x="4" y="9" width="16" height="11" rx="2.5" /><path d="M7 16l3-3 2 2 4-4" /><path d="M7 5h10M9 2.5h6" /></>,
   caption_news: <><rect x="3" y="4" width="18" height="11" rx="1.5" /><path d="M5 18h10M5 21h6" /><rect x="15" y="17" width="5" height="4" rx=".5" /></>,
   telestrator: <><rect x="3" y="4" width="18" height="16" rx="2" /><ellipse cx="9" cy="15" rx="3" ry="1.2" /><path d="M10 12c3-1 5-3 6-6M16 6l-2.5.2M16 6l.3 2.4" /></>,
   teardown: <><rect x="6" y="3" width="12" height="3" rx="1" /><rect x="6" y="10" width="12" height="3" rx="1" /><rect x="6" y="17" width="12" height="3" rx="1" /><path d="M12 6.5v3M12 13.5v3" /></>,

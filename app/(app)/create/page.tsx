@@ -44,7 +44,7 @@ type SceneRenderStatus = { scene_number: number; status: 'queued' | 'processing'
 
 // ─── Story Mode types ───
 type CreateMode = 'selecting' | 'theme_select' | 'story' | 'cartoon' | 'animated' | 'whiteboard' | 'fruit_drama' | 'motion' | '3d_render' | 'build3d' | 'health3d' | 'explainer' | 'survival' | 'block'
-  | 'scifi_toon' | 'paper_lantern' | 'teardown' | 'caption_news' | 'telestrator';
+  | 'scifi_toon' | 'paper_lantern' | 'teardown' | 'caption_news' | 'telestrator' | 'premium';
 type StoryTheme = 'true_crime' | 'history' | 'drama' | 'fairy_tale' | 'custom';
 type StoryGenre = 'drama' | 'fairy-tale' | 'horror' | 'action' | 'motivation' | 'comedy' | 'mystery';
 interface ScriptScene { id: string; sceneNumber: number; title: string; narratorText: string; sceneDescription: string; imageUrl: string | null; videoUrl: string | null; generating: boolean; error: string | null; approved: boolean; kenBurns: boolean; includeNarrator: boolean; includeSubtitles: boolean; }
@@ -662,7 +662,7 @@ function CreatePageInner() {
     if (k === 'story') setMode('theme_select');
     else if (k === 'cartoon') { setCartoonSetupDone(false); setMode('cartoon'); }
     else if (k === 'animated' || k === 'whiteboard' || k === 'fruit_drama' || k === 'motion' || k === '3d_render' || k === 'build3d' || k === 'health3d' || k === 'explainer' || k === 'survival' || k === 'block'
-      || k === 'scifi_toon' || k === 'paper_lantern' || k === 'teardown' || k === 'caption_news' || k === 'telestrator') setMode(k);
+      || k === 'scifi_toon' || k === 'paper_lantern' || k === 'teardown' || k === 'caption_news' || k === 'telestrator' || k === 'premium') setMode(k);
   };
 
   const resetAll = () => {
@@ -897,7 +897,7 @@ function CreatePageInner() {
     {/* Whiteboard is now the Style Studio's Whiteboard Explainer (the old WhiteboardAnimation stays in the code, unused) */}
     {mode === 'whiteboard' && <StudioStyle key="whiteboard" format="whiteboard" onBack={goHome} />}
     {/* ═══ STYLE STUDIO (styles after lemo-opuscar, MIT) ═══ */}
-    {(mode === 'scifi_toon' || mode === 'paper_lantern' || mode === 'teardown' || mode === 'caption_news' || mode === 'telestrator') && <StudioStyle key={mode} format={mode} onBack={goHome} />}
+    {(mode === 'scifi_toon' || mode === 'paper_lantern' || mode === 'teardown' || mode === 'caption_news' || mode === 'telestrator' || mode === 'premium') && <StudioStyle key={mode} format={mode} onBack={goHome} />}
 
     {/* ═══ FRUIT DRAMA ═══ */}
     {mode === 'fruit_drama' && <FruitDrama onBack={goHome} />}

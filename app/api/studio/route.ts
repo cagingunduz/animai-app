@@ -21,6 +21,13 @@ export async function POST(request: Request) {
     if (cfg.uploads === 'required' && !uploads.length) return NextResponse.json({ error: 'Upload your clip first.' }, { status: 400 });
     if (cfg.uploads === 'none' && uploads.length) uploads.length = 0;
 
+    const o = body.options && typeof body.options === 'object' ? body.options : {};
+    const options = cfg.options ? {
+      accent: /^#[0-9a-fA-F]{6}$/.test(String(o.accent || '')) ? String(o.accent) : undefined,
+      handle: String(o.handle || '').trim().slice(0, 40) || undefined,
+      voice: cfg.options.voices?.some(v => v.id === o.voice) ? String(o.voice) : undefined,
+      audience: String(o.audience || '').trim().slice(0, 160) || undefined,
+    } : undefined;
     const label = topic ? topic.split('\n')[0].slice(0, 80) : cfg.title;
     const spend = await spendCredits(supabase, cfg.credits, `${cfg.title} — ${label}`);
     if (!spend) return NextResponse.json({ error: 'Could not deduct credits.' }, { status: 500 });
@@ -36,7 +43,7 @@ export async function POST(request: Request) {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/generate-studio`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ style: cfg.style, topic: topic || null, seconds, uploads: uploads.length ? uploads : null }),
+        body: JSON.stringify({ style: cfg.style, topic: topic || null, seconds, uploads: uploads.length ? uploads : null, options: options || null }),
       });
       upstreamStatus = res.status;
       data = await res.json();
