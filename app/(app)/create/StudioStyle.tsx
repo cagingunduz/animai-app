@@ -49,6 +49,7 @@ export default function StudioStyle({ format, onBack }: { format: StudioFormat; 
   const [genStep, setGenStep] = useState(0);
   const [genTotal, setGenTotal] = useState(0);
   const [title, setTitle] = useState('');
+  const [caption, setCaption] = useState<string | null>(null);
   const [finalVideo, setFinalVideo] = useState<string | null>(null);
   const [genErr, setGenErr] = useState('');
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -87,6 +88,7 @@ export default function StudioStyle({ format, onBack }: { format: StudioFormat; 
       const d = await r.json();
       setGenMsg(d.message || ''); setGenStep(d.step || 0); setGenTotal(d.total_steps || 0);
       if (d.title) setTitle(d.title);
+      if (d.post) setCaption(d.post);
       if (d.status === 'completed') {
         setGenStatus('completed'); setFinalVideo(d.final_video_url); setStep('done');
         if (pollRef.current) clearInterval(pollRef.current);
@@ -229,7 +231,7 @@ export default function StudioStyle({ format, onBack }: { format: StudioFormat; 
       {step === 'done' && finalVideo && (
         <StudioGenerationView title={shownTitle} modeLabel={cfg.title} aspect="9:16" status={genStatus}
           message={`Your ${cfg.title} reel is ready`} scenes={[]} finalVideo={finalVideo} step={genTotal} totalSteps={genTotal || 1}
-          onBack={() => setStep('setup')}
+          onBack={() => setStep('setup')} caption={caption}
           downloadHref={`/api/download?url=${encodeURIComponent(finalVideo)}&filename=${encodeURIComponent(shownTitle + '.mp4')}`}
           onCreateAnother={() => { setStep('setup'); setFinalVideo(null); setGenStatus('idle'); setTitle(''); }} />
       )}
