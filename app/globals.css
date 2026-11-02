@@ -93,3 +93,11 @@ body { background: var(--bg); color: var(--fg); font-size: 13px; font-feature-se
   /* Loading placeholder (static — no shimmer) */
   .ui-shimmer { background: rgba(255,255,255,0.05); }
 }
+
+/* Reel production screen (StudioGenerationView): a soft scan over the preview, a shine on the progress bar, tips fading in */
+@keyframes scan { 0% { top: -25%; } 100% { top: 100%; } }
+@keyframes shine { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+@keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  [class*="animate-[scan"], [class*="animate-[shine"], [class*="animate-[fadein"] { animation: none !important; }
+}
