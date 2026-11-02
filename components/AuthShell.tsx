@@ -129,12 +129,14 @@ export function SocialRow({ onGoogle, onCredential }: { onGoogle: () => void; on
         window.google.accounts.id.renderButton(inner, { type: 'standard', theme: 'outline', size: 'large', shape: 'rectangular', text: 'continue_with', width: w });
         inner.style.transformOrigin = '0 0';
         inner.style.transform = `scale(${box.offsetWidth / w}, ${box.offsetHeight / 40})`;
-        setGis(true);
-        // if Google never loads its frame (wrong origin or client ID), go back to the redirect sign-in
-        setTimeout(() => {
+        // hand the click to Google only once its frame has really loaded; with a wrong origin or client ID
+        // Google refuses the frame, and the redirect sign-in stays on top
+        const t0 = Date.now();
+        const poll = setInterval(() => {
           const f = box.querySelector('iframe');
-          if (!dead && (!f || f.offsetWidth === 0)) setGis(false);
-        }, 3500);
+          if (dead || Date.now() - t0 > 15000) { clearInterval(poll); return; }
+          if (f && f.offsetWidth > 0) { clearInterval(poll); setGis(true); }
+        }, 200);
       } catch { /* Google script blocked: keep the redirect button */ }
     })();
     return () => { dead = true; };
