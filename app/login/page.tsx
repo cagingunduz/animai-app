@@ -66,35 +66,35 @@ export default function LoginPage() {
   };
 
   return (
-    <AuthShell title="Sign in" footer={<a href="https://animai.com" className="hover:text-black transition-colors">← Back to animai.com</a>}>
+    <AuthShell title="Sign in" footer={<a href="https://animave.com" className="hover:text-black transition-colors">← Back to animave.com</a>}>
       <form onSubmit={handleLogin} className="flex flex-col">
         <Field label="Email Address">
           <AuthInput icon="mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
             placeholder="you@example.com" autoComplete="email" />
         </Field>
-        <div className="h-7" />
+        <div className="h-4" />
         <Field label="Password">
           <AuthInput icon="lock" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
             placeholder="••••••••" autoComplete="current-password" />
         </Field>
 
-        <div className="mt-7"><Checkbox checked={remember} onChange={setRemember} label="Remember me" /></div>
+        <div className="mt-4"><Checkbox checked={remember} onChange={setRemember} label="Remember me" /></div>
 
-        {error && <div className="mt-6"><AuthNote>{error}</AuthNote></div>}
-        {note && <div className="mt-6"><AuthNote tone="ok">{note}</AuthNote></div>}
+        {error && <div className="mt-4"><AuthNote>{error}</AuthNote></div>}
+        {note && <div className="mt-4"><AuthNote tone="ok">{note}</AuthNote></div>}
 
-        <div className="mt-8">
+        <div className="mt-5">
           <AuthButton type="submit" disabled={loading}>
             {loading ? <><span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />Signing in…</> : 'Sign in'}
           </AuthButton>
         </div>
       </form>
 
-      <p className="text-[15px] text-black/40 mt-8">
+      <p className="text-[14px] text-black/40 mt-5">
         Don&apos;t have an account?{' '}
         <Link href="/signup" className="text-black hover:underline underline-offset-4">Sign up</Link>
       </p>
-      <button type="button" onClick={handleForgot} className="block text-[15px] text-black mt-2 hover:underline underline-offset-4">Forgot Password</button>
+      <button type="button" onClick={handleForgot} className="block text-[14px] text-black mt-1.5 hover:underline underline-offset-4">Forgot Password</button>
 
       <SocialRow onGoogle={handleGoogle} onCredential={handleCredential} />
     </AuthShell>

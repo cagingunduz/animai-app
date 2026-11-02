@@ -28,8 +28,8 @@ export function OrDivider() {
 export function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="flex items-center justify-between mb-2.5">
-        <span className="text-[15px] font-semibold text-black">{label}</span>
+      <span className="flex items-center justify-between mb-2">
+        <span className="text-[14px] font-semibold text-black">{label}</span>
         {hint}
       </span>
       {children}
@@ -44,7 +44,7 @@ const ICONS = {
 };
 export function AuthInput({ icon, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { icon: keyof typeof ICONS }) {
   return (
-    <span className="flex items-center gap-3 h-[56px] px-4 rounded-[14px] bg-white shadow-[0_1px_2px_rgba(0,0,0,.04)] border border-transparent focus-within:border-black/25 transition-colors">
+    <span className="flex items-center gap-3 h-12 px-4 rounded-[12px] bg-white shadow-[0_1px_2px_rgba(0,0,0,.04)] border border-transparent focus-within:border-black/25 transition-colors">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="flex-shrink-0">{ICONS[icon]}</svg>
       <input {...props} className="flex-1 min-w-0 h-full bg-transparent outline-none text-[15px] text-black placeholder:text-black/35" />
     </span>
@@ -58,14 +58,14 @@ export function Checkbox({ checked, onChange, label }: { checked: boolean; onCha
       <span className="w-[18px] h-[18px] rounded-[3px] border-[1.5px] border-black/80 flex items-center justify-center peer-checked:bg-black peer-focus-visible:ring-2 peer-focus-visible:ring-black/30">
         {checked && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>}
       </span>
-      <span className="text-[15px] font-semibold text-black">{label}</span>
+      <span className="text-[14px] font-semibold text-black">{label}</span>
     </label>
   );
 }
 
 export function AuthButton({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <button {...props} className="w-full h-[56px] rounded-[12px] bg-[#1b1b1b] hover:bg-black text-white text-[16px] font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50">
+    <button {...props} className="w-full h-12 rounded-[12px] bg-[#1b1b1b] hover:bg-black text-white text-[15px] font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50">
       {children}
     </button>
   );
@@ -99,7 +99,7 @@ const G_ICON = (
     <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
   </svg>
 );
-const G_BTN = 'relative w-full h-14 rounded-2xl bg-white border border-black/10 flex items-center justify-center gap-3 text-[15px] font-medium text-black hover:border-black/25 hover:shadow-[0_8px_24px_-12px_rgba(0,0,0,.18)] transition';
+const G_BTN = 'relative w-full h-12 rounded-[12px] bg-white border border-black/10 flex items-center justify-center gap-3 text-[15px] font-medium text-black hover:border-black/25 hover:shadow-[0_8px_24px_-12px_rgba(0,0,0,.18)] transition';
 const G_FACE = <>{G_ICON}<span>Continue with Google</span></>;
 
 // the round social sign-in buttons (Google is the provider we have)
@@ -140,12 +140,12 @@ export function SocialRow({ onGoogle, onCredential }: { onGoogle: () => void; on
     return () => { dead = true; };
   }, [wants]);
   return (
-    <div className="mt-10">
+    <div className="mt-6">
       {GOOGLE_CLIENT_ID && onCredential ? (
         <div className={G_BTN}>
           {G_FACE}
-          <div ref={slot} aria-label="Continue with Google" className={`absolute inset-0 overflow-hidden rounded-2xl opacity-0 ${gis ? '' : 'pointer-events-none'}`} />
-          {!gis && <button type="button" onClick={onGoogle} aria-label="Continue with Google" className="absolute inset-0 rounded-2xl" />}
+          <div ref={slot} aria-label="Continue with Google" className={`absolute inset-0 overflow-hidden rounded-[12px] opacity-0 ${gis ? '' : 'pointer-events-none'}`} />
+          {!gis && <button type="button" onClick={onGoogle} aria-label="Continue with Google" className="absolute inset-0 rounded-[12px]" />}
         </div>
       ) : (
         <button type="button" onClick={onGoogle} className={G_BTN}>{G_FACE}</button>
@@ -205,19 +205,19 @@ function ReelWall() {
 
 export default function AuthShell({ children, title, footer }: { children: React.ReactNode; title?: string; footer?: React.ReactNode }) {
   return (
-    <div className="auth-light min-h-screen grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)] !bg-[#f3f3f3]">
-      <div className="flex flex-col px-6 sm:px-14">
-        <div className="flex-1 flex items-center justify-center py-14">
-          <div className="w-full max-w-[480px]">
-            <div className="inline-flex flex-col items-start gap-1.5 mb-12">
-              <LogoMark size={52} color="#0a0a0a" />
-              <span className="text-[24px] font-semibold tracking-[-0.03em] text-black">Animave</span>
+    <div className="auth-light min-h-screen lg:h-screen lg:overflow-hidden grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)] !bg-[#f3f3f3]">
+      <div className="flex flex-col px-6 sm:px-14 lg:h-screen lg:overflow-y-auto">
+        <div className="flex-1 flex items-center justify-center py-8">
+          <div className="w-full max-w-[400px]">
+            <div className="inline-flex items-center gap-2.5 mb-8">
+              <LogoMark size={30} color="#0a0a0a" />
+              <span className="text-[20px] font-semibold tracking-[-0.03em] text-black">Animave</span>
             </div>
-            {title && <h1 className="text-[42px] font-bold tracking-[-0.03em] text-black mb-10 leading-none">{title}</h1>}
+            {title && <h1 className="text-[32px] font-bold tracking-[-0.03em] text-black mb-7 leading-none">{title}</h1>}
             {children}
           </div>
         </div>
-        {footer && <div className="pb-8 text-[12px] text-black/40">{footer}</div>}
+        {footer && <div className="pb-6 text-[12px] text-black/40">{footer}</div>}
       </div>
       <div className="hidden lg:block p-4 h-screen sticky top-0"><ReelWall /></div>
     </div>
