@@ -9,10 +9,10 @@ export function LogoMark({ size = 22, color = '#ededed' }: { size?: number; colo
   );
 }
 
-export default function Logo({ size = 22, className = '' }: { size?: number; className?: string }) {
+export default function Logo({ size = 22, className = '', color }: { size?: number; className?: string; color?: string }) {
   return (
     <span className={`inline-flex items-center gap-2.5 ${className}`}>
-      <LogoMark size={size} />
+      <LogoMark size={size} color={color} />
       <span className="font-semibold tracking-[-0.03em]" style={{ fontSize: Math.round(size * 0.78) }}>Animave</span>
     </span>
   );

@@ -101,3 +101,19 @@ body { background: var(--bg); color: var(--fg); font-size: 13px; font-feature-se
 @media (prefers-reduced-motion: reduce) {
   [class*="animate-[scan"], [class*="animate-[shine"], [class*="animate-[fadein"] { animation: none !important; }
 }
+
+/* Auth pages (login / signup): a white page on the left, the reel wall on the right */
+.auth-light {
+  --bg: #fff; --surface: #fff; --surface-2: #f4f4f5; --surface-3: #ececee;
+  --line: rgba(0,0,0,.08); --line-2: rgba(0,0,0,.12); --line-3: rgba(0,0,0,.22);
+  --fg: #0a0a0a; --fg-2: rgba(0,0,0,.68); --fg-3: rgba(0,0,0,.5); --fg-4: rgba(0,0,0,.38);
+  background: #fff; color: var(--fg);
+}
+.auth-light .ui-btn-primary { background: #0a0a0a; color: #fff; }
+.auth-light .ui-btn-primary:hover { background: #000; }
+.auth-light .ui-btn-secondary:hover { background: var(--surface-2); }
+.auth-light .ui-input:focus { border-color: rgba(0,0,0,.45); }
+.auth-light a:hover { color: #000; }
+@keyframes reelUp { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+@keyframes reelDown { from { transform: translateY(-50%); } to { transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .reel-col { animation: none !important; } }

@@ -40,7 +40,7 @@ export default function LoginPage() {
   };
 
   return (
-    <AuthShell footer={<a href="https://animai.com" className="hover:text-white transition-colors">← Back to animai.com</a>}>
+    <AuthShell footer={<a href="https://animai.com" className="hover:text-black transition-colors">← Back to animai.com</a>}>
       <h1 className="text-[20px] font-semibold tracking-[-0.02em] text-center mb-1">Welcome back</h1>
       <p className="text-[13px] text-[var(--fg-3)] text-center mb-6">Sign in to keep creating.</p>
 
@@ -61,7 +61,7 @@ export default function LoginPage() {
         </Field>
 
         {error && (
-          <p className="text-[12.5px] text-[#ff8a8a] bg-[rgba(255,90,90,0.06)] border border-[rgba(255,90,90,0.15)] px-3 py-2.5 rounded-lg">{error}</p>
+          <p className="text-[12.5px] text-[#b42318] bg-[#fef3f2] border border-[#fecdca] px-3 py-2.5 rounded-lg">{error}</p>
         )}
 
         <button type="submit" disabled={loading} className="ui-btn ui-btn-primary ui-btn-lg w-full mt-1">

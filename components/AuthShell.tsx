@@ -33,14 +33,49 @@ export function Field({ label, children, hint }: { label: string; children: Reac
   );
 }
 
+// The reel wall on the right: three columns of the formats' preview loops drifting up and down at different speeds.
+const COLS = [
+  { dir: 'reelUp', dur: 46, clips: ['premium', 'scifi_toon', 'caption_news'] },
+  { dir: 'reelDown', dur: 58, clips: ['paper_lantern', 'survival', 'whiteboard'] },
+  { dir: 'reelUp', dur: 52, clips: ['teardown', 'explainer', 'telestrator'] },
+];
+
+function ReelWall() {
+  return (
+    <div className="relative h-full overflow-hidden rounded-[28px] bg-[#0b0b10]">
+      <div className="absolute inset-0 opacity-90" style={{ background: 'radial-gradient(70% 55% at 20% 15%, rgba(110,96,255,.45), transparent 70%), radial-gradient(60% 50% at 85% 85%, rgba(255,120,190,.30), transparent 70%)' }} />
+      <div className="absolute inset-0 grid grid-cols-3 gap-4 px-5 -rotate-[6deg] scale-[1.08] origin-center">
+        {COLS.map((c, i) => (
+          <div key={i} className="reel-col flex flex-col gap-4" style={{ animation: `${c.dir} ${c.dur}s linear infinite` }}>
+            {[...c.clips, ...c.clips].map((k, j) => (
+              <div key={j} className="relative w-full rounded-[18px] overflow-hidden bg-black/40 shadow-[0_30px_60px_-25px_rgba(0,0,0,.8)] ring-1 ring-white/10" style={{ paddingTop: '177.78%' }}>
+                <video src={`/create/formats/${k}.mp4`} poster={`/create/formats/${k}.jpg`} muted loop autoPlay playsInline preload="metadata"
+                  className="absolute inset-0 w-full h-full object-cover" />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-black/30 pointer-events-none" />
+      <div className="absolute left-8 right-8 bottom-8 text-white">
+        <div className="text-[12px] text-white/60 mb-2">Animave · reels studio</div>
+        <div className="text-[30px] leading-[1.1] font-semibold tracking-[-0.03em]">Fourteen formats.<br /><span className="text-white/55">One sentence each.</span></div>
+      </div>
+    </div>
+  );
+}
+
 export default function AuthShell({ children, footer }: { children: React.ReactNode; footer?: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center px-6">
-      <div className="flex-1 w-full flex flex-col items-center justify-center py-16">
-        <div className="mb-8"><Logo size={22} /></div>
-        <div className="w-full max-w-[340px]">{children}</div>
+    <div className="auth-light min-h-screen grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)]">
+      <div className="flex flex-col px-6 sm:px-10">
+        <div className="pt-8"><Logo size={22} color="#0a0a0a" /></div>
+        <div className="flex-1 flex items-center justify-center py-12">
+          <div className="w-full max-w-[360px]">{children}</div>
+        </div>
+        {footer && <div className="pb-8 text-[12px] text-[var(--fg-4)]">{footer}</div>}
       </div>
-      {footer && <div className="pb-8 text-[12px] text-[var(--fg-4)]">{footer}</div>}
+      <div className="hidden lg:block p-4 h-screen sticky top-0"><ReelWall /></div>
     </div>
   );
 }
