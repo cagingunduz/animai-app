@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { motionCost, MOTION_DURATIONS } from '@/lib/types';
 import {
   EditorHeader, EditorPage, Intro, Section, Label, Segmented, Toggle, TextArea, ActionBar, Credits,
-  AspectGlyph, Ico, ErrorNote, Spinner, StudioPanel, StatusDot, Stage, StageEmpty, VoiceGrid, type KitVoice,
+  AspectGlyph, Ico, ErrorNote, Spinner, StudioPanel, StatusDot, Stage, StageEmpty, VoiceGrid, StyleCard, type KitVoice,
 } from '@/components/editor/kit';
 
 /* ─────────────────────────── types ─────────────────────────── */
@@ -106,6 +106,14 @@ const fmtClock = (s: number) => `${Math.floor(s / 60)}:${String(Math.max(0, Math
 /* ─────────────────────────── component ─────────────────────────── */
 
 type Look = 'motion' | 'cinematic3d';
+type MotionStyle = 'auto' | 'flat_vector';
+
+// Named styles for "Motion Graphics" (the director follows the style's signature rules). Flat Vector follows the
+// Flat / Vector 2D film of mg-styles-15 (MIT, github.com/Vincentwei1021/mg-styles-15), whose preview we show.
+const MOTION_STYLES: { id: MotionStyle; label: string; desc: string; image: string; badge?: string }[] = [
+  { id: 'auto', label: 'Auto', desc: 'The director designs a look for your brief, brand and references.', image: '/create/styles/motion-auto.jpg' },
+  { id: 'flat_vector', label: 'Flat Vector', badge: 'New', desc: 'Bold flat colour, geometric characters, bouncy squash & stretch and shape-wipe transitions.', image: '/create/styles/flat-vector.webp' },
+];
 
 // One engine, two Create sections: "Motion Graphics" (drawn in code) and "3D Render"
 // (a 3D-rendered still per scene, animated in code).
@@ -130,6 +138,7 @@ export default function MotionGraphics({ onBack, look = 'motion' }: { onBack: ()
 
   // brief
   const [prompt, setPrompt] = useState('');
+  const [style, setStyle] = useState<MotionStyle>('auto');
   const [aspect, setAspect] = useState<Aspect>('9:16');
   const [resolution, setResolution] = useState<'720p' | '1080p'>('1080p');
   const [seconds, setSeconds] = useState<number>(15);
@@ -290,6 +299,7 @@ export default function MotionGraphics({ onBack, look = 'motion' }: { onBack: ()
     return {
       prompt: prompt.trim(), aspect_ratio: aspect, resolution, duration_seconds: seconds,
       include_music: music, include_sfx: sfx, loop, auto_approve: review === 'auto', approval_timeout: 600, look,
+      style: look === 'motion' ? style : 'auto',
       narration: narration && !!voiceId, narrator_voice_id: narration ? voiceId : null,
       reference_images: refImages, reference_video_frames: frames, brand,
     };
@@ -351,6 +361,16 @@ export default function MotionGraphics({ onBack, look = 'motion' }: { onBack: ()
               <TextArea big value={prompt} onChange={e => setPrompt(e.target.value)} rows={4}
                 placeholder={copy.placeholder} />
             </Section>
+
+            {look === 'motion' && (
+              <Section title="Style">
+                <div className="grid sm:grid-cols-2 gap-2.5">
+                  {MOTION_STYLES.map(s => (
+                    <StyleCard key={s.id} label={s.label} desc={s.desc} badge={s.badge} image={s.image} active={style === s.id} onClick={() => setStyle(s.id)} />
+                  ))}
+                </div>
+              </Section>
+            )}
 
             <Section title="References" hint="Optional — we borrow the look and rhythm, never the content">
               <div className="grid sm:grid-cols-2 gap-2.5">
