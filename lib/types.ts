@@ -78,6 +78,69 @@ export const BLOCK_CREDITS = 400;
 // servers. 600 credits ≈ $1.90. Each job reports its real token cost (usage.cost_usd) so this can be tuned.
 export const SURVIVAL_CREDITS = 600;
 
+// ─── Style Studio (styles from github.com/lemomo-ai/lemo-opuscar, MIT): one pipeline, one form, per-style config ───
+// Claude writes the script and the animation code on the style's kit; Kokoro voices, foley made in code and the CPU
+// render run on our servers. Prices follow each style's render time (three.js styles render slowest).
+export type StudioFormat = 'whiteboard' | 'scifi_toon' | 'paper_lantern' | 'teardown' | 'caption_news' | 'telestrator';
+export interface StudioStyleConfig {
+  format: StudioFormat; style: string; title: string; credits: number;
+  intro: string; desc: string; topicLabel: string; topicHint: string; placeholder: string;
+  ideas: string[]; seconds: number[]; defaultSeconds: number;
+  uploads: 'none' | 'optional' | 'required'; uploadHint?: string; facts: [string, string][]; eta: string;
+}
+export const STUDIO_STYLES: Record<StudioFormat, StudioStyleConfig> = {
+  whiteboard: {
+    format: 'whiteboard', style: 'whiteboard', title: 'Whiteboard Explainer', credits: 300,
+    intro: 'What should we draw?', desc: 'A narrator explains one idea while markers draw it live on a whiteboard: real handwriting, arrows, numbers, the camera gliding across the board.',
+    topicLabel: 'Topic', topicHint: 'A question works best. Leave it empty and we pick one.', placeholder: 'How does a microwave heat food?',
+    ideas: ['How does a microwave heat food?', 'Why is the sky blue?', 'How do vaccines train your body?', 'How does compound interest work?', 'Why do we have leap years?'],
+    seconds: [45, 60, 75, 90], defaultSeconds: 60, uploads: 'none',
+    facts: [['Vertical', '9:16 · 1080p'], ['Drawing', 'Marker by marker'], ['Captions', 'Word-timed'], ['Sound', 'Marker foley + music']], eta: 'About 6–10 minutes.',
+  },
+  scifi_toon: {
+    format: 'scifi_toon', style: 'scifi-toon', title: 'Sci-Fi Sitcom Toon', credits: 350,
+    intro: 'What should Vask and Gary get into?', desc: 'An adult-swim-style sci-fi sitcom with our own cast: a deadpan genius, his nervous sidekick and a talking coffee cup, portal-hopping to worlds where your topic is taken to the extreme.',
+    topicLabel: 'Topic or premise', topicHint: 'A question, a fact or a petty errand. Leave it empty and they improvise.', placeholder: 'Why is the sky blue?',
+    ideas: ['Why is the sky blue?', 'Where does the Wi-Fi go at night?', 'Gary forgot to buy milk', 'What if gravity were half as strong?', 'Why do cats knock things over?'],
+    seconds: [35, 45, 60, 75], defaultSeconds: 45, uploads: 'none',
+    facts: [['Vertical', '9:16 · 1080p'], ['Cast', '3 voices, lip-synced'], ['Look', 'Boiling ink lines'], ['Sound', 'Cartoon foley + music']], eta: 'About 5–8 minutes.',
+  },
+  paper_lantern: {
+    format: 'paper_lantern', style: 'paper-lantern', title: 'Paper-cut Lightbox', credits: 350,
+    intro: 'What story should the lamp tell?', desc: 'A storyteller narrates while backlit sheets of cut paper glow in a shadow-box lamp: lit windows, moons, mountains, small silhouettes, slow dollies between the layers.',
+    topicLabel: 'Story', topicHint: 'A tale, a memory, a legend, or your own story. Leave it empty and we write one.', placeholder: 'An old lighthouse keeper waits for her son to come home',
+    ideas: ['An old lighthouse keeper waits for her son', 'The night the whole village lit its lanterns', 'A fox who collected moonlight', 'How the first bridge over the river was built', 'A letter that took forty years to arrive'],
+    seconds: [45, 60, 75, 90], defaultSeconds: 60, uploads: 'none',
+    facts: [['Vertical', '9:16 · 1080p'], ['Look', 'Backlit cut paper'], ['Voice', 'Warm storyteller'], ['Sound', 'Folk music + paper foley']], eta: 'About 6–10 minutes.',
+  },
+  teardown: {
+    format: 'teardown', style: 'teardown', title: 'Exploded Teardown', credits: 500,
+    intro: 'What should we take apart?', desc: 'A product lit like a studio packshot, lifted apart layer by layer while the camera orbits; every part named with a leader line, a real dimension drawn on the object.',
+    topicLabel: 'Product', topicHint: 'Any physical object. Built as a model from published sizes.', placeholder: 'A wireless mouse',
+    ideas: ['A wireless mouse', 'A smoke detector', 'A game controller', 'An electric toothbrush', 'A smartphone'],
+    seconds: [35, 45, 60, 75], defaultSeconds: 45, uploads: 'none',
+    facts: [['Vertical', '9:16 · 1080p'], ['Render', 'Real 3D, studio light'], ['Labels', 'On the parts'], ['Sound', 'Material foley + mallets']], eta: 'About 10–15 minutes (3D renders slowly).',
+  },
+  caption_news: {
+    format: 'caption_news', style: 'caption-news', title: 'Caption News', credits: 400,
+    intro: 'What is the story?', desc: 'Sound-off social news: real footage under huge captions slammed in a chunk at a time, numbers that roll, a source on every figure, one turn. Your own footage, or openly licensed archive footage found for you.',
+    topicLabel: 'News topic', topicHint: 'A trend, a number, a question. Facts are kept to what is well established.', placeholder: 'Why hurricanes are getting stronger',
+    ideas: ['Why hurricanes are getting stronger', 'Where honey bees went', 'The rise of electric cars in numbers', 'Why coffee prices keep climbing', 'How much plastic is in the ocean'],
+    seconds: [30, 45, 60, 75], defaultSeconds: 45, uploads: 'optional',
+    uploadHint: 'Optional: your own clips or photos (MP4, MOV, JPG, PNG). Without uploads we use openly licensed archive footage (Wikimedia Commons, NASA), credited on screen.',
+    facts: [['Vertical', '9:16 · 1080p'], ['Footage', 'Yours or open archives'], ['Captions', 'Huge, sound-off'], ['Credits', 'On every shot']], eta: 'About 8–12 minutes.',
+  },
+  telestrator: {
+    format: 'telestrator', style: 'telestrator', title: 'Sports Telestrator', credits: 400,
+    intro: 'Which play should we break down?', desc: 'The TV analysis segment on your own match clip: play it, rewind, freeze, draw rings, arrows and the open space on the picture, slow motion, play on.',
+    topicLabel: 'What to look at', topicHint: 'Optional: the move, the team you follow, the score. We find the key moment in the clip.', placeholder: 'How we created the overload on the right wing',
+    ideas: ['How the goal was built', 'Why the defence opened up', 'The overload on the wing', 'Pressing after losing the ball'],
+    seconds: [30, 45, 60, 75], defaultSeconds: 45, uploads: 'required',
+    uploadHint: 'Your match clip (MP4 or MOV, a wide camera angle works best, 10–60 s around the play). Only use footage you have the rights to.',
+    facts: [['Vertical', '9:16 · 1080p'], ['Edit', 'Play · rewind · freeze'], ['Drawing', 'Rings, arrows, space'], ['Sound', 'Studio show + foley']], eta: 'About 6–10 minutes.',
+  },
+};
+
 export type CharacterRole = 'silent' | 'speaking';
 export type Framing = 'full-body' | 'half-body' | 'close-up';
 export type AnimationStatus = 'completed' | 'processing' | 'failed' | 'queued';
@@ -119,6 +182,7 @@ export function creditExamples(credits: number): { label: string; amount: string
     ['Block Horror', Math.floor(credits / BLOCK_CREDITS), 'reels'],
     ['Motion Graphics / 3D', Math.floor(credits / motionCost(15)), '× 15 s'],
     ['Survival Story', Math.floor(credits / SURVIVAL_CREDITS), 'reels'],
+    ['Style Studio', Math.floor(credits / 350), 'reels'],
   ];
   return rows.filter(([, n]) => n > 0).map(([label, n, unit]) => ({ label, amount: `${n.toLocaleString()} ${unit}` }));
 }
