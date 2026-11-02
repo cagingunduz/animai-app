@@ -81,14 +81,29 @@ export const SURVIVAL_CREDITS = 600;
 // ─── Style Studio (styles from github.com/lemomo-ai/lemo-opuscar, MIT): one pipeline, one form, per-style config ───
 // Claude writes the script and the animation code on the style's kit; Kokoro voices, foley made in code and the CPU
 // render run on our servers. Prices follow each style's render time (three.js styles render slowest).
-export type StudioFormat = 'whiteboard' | 'scifi_toon' | 'paper_lantern' | 'teardown' | 'caption_news' | 'telestrator';
+export type StudioFormat = 'whiteboard' | 'scifi_toon' | 'paper_lantern' | 'teardown' | 'caption_news' | 'telestrator' | 'premium';
 export interface StudioStyleConfig {
   format: StudioFormat; style: string; title: string; credits: number;
   intro: string; desc: string; topicLabel: string; topicHint: string; placeholder: string;
   ideas: string[]; seconds: number[]; defaultSeconds: number;
   uploads: 'none' | 'optional' | 'required'; uploadHint?: string; facts: [string, string][]; eta: string;
+  // per-style choices sent as `options` (the backend checks them against the style)
+  options?: { accent?: string[]; handle?: boolean; voices?: { id: string; label: string }[]; audience?: boolean };
 }
 export const STUDIO_STYLES: Record<StudioFormat, StudioStyleConfig> = {
+  premium: {
+    format: 'premium', style: 'premium', title: 'Premium Faceless Reel', credits: 300,
+    intro: 'What should your reel say?', desc: 'A premium faceless reel for your brand: every line types on letter by letter, with a live UI diagram that proves it, glossy cards, one accent colour, a camera that never stops, techy sound and your handle at the end.',
+    topicLabel: 'Topic', topicHint: 'Your message, offer or lesson. A hook-problem-cost-reframe-proof-punch script is written from it.', placeholder: 'Why most landing pages don\u2019t convert',
+    ideas: ['Why most landing pages don\u2019t convert', 'Pick a niche or stay cheap', 'Why your emails go unread', 'The one metric founders ignore', 'Stop posting every day'],
+    seconds: [20, 25, 30, 40], defaultSeconds: 25, uploads: 'none',
+    options: {
+      accent: ['#5B21B6', '#2563EB', '#059669', '#DC2626', '#EA580C', '#DB2777', '#0F172A'],
+      handle: true, audience: true,
+      voices: [{ id: 'am_michael', label: 'Michael' }, { id: 'am_adam', label: 'Adam' }, { id: 'bm_george', label: 'George' }, { id: 'af_heart', label: 'Heart' }, { id: 'af_bella', label: 'Bella' }, { id: 'bf_emma', label: 'Emma' }],
+    },
+    facts: [['Vertical', '9:16 · 1080p'], ['Type', 'Letter by letter'], ['Visuals', 'Live UI diagrams'], ['End card', 'Your @handle']], eta: 'About 4–6 minutes.',
+  },
   whiteboard: {
     format: 'whiteboard', style: 'whiteboard', title: 'Whiteboard Explainer', credits: 300,
     intro: 'What should we draw?', desc: 'A narrator explains one idea while markers draw it live on a whiteboard: real handwriting, arrows, numbers, the camera gliding across the board.',

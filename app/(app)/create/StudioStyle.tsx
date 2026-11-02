@@ -38,6 +38,10 @@ export default function StudioStyle({ format, onBack }: { format: StudioFormat; 
   const [topic, setTopic] = useState('');
   const [seconds, setSeconds] = useState<number>(cfg.defaultSeconds);
   const [uploads, setUploads] = useState<Upload[]>([]);
+  const [accent, setAccent] = useState(cfg.options?.accent?.[0] || '');
+  const [handle, setHandle] = useState('');
+  const [voice, setVoice] = useState(cfg.options?.voices?.[0]?.id || '');
+  const [audience, setAudience] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [genStatus, setGenStatus] = useState<'idle' | 'processing' | 'completed' | 'failed'>('idle');
@@ -100,7 +104,7 @@ export default function StudioStyle({ format, onBack }: { format: StudioFormat; 
     try {
       const r = await fetch('/api/studio', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ format, topic: topic.trim(), seconds, uploads: ready.map(u => u.url) }),
+        body: JSON.stringify({ format, topic: topic.trim(), seconds, uploads: ready.map(u => u.url), options: cfg.options ? { accent, handle: handle.trim(), voice, audience: audience.trim() } : undefined }),
       });
       const d = await r.json();
       if (r.status === 402) { setGenStatus('failed'); setGenErr(d.error || 'Not enough credits.'); return; }
@@ -153,6 +157,40 @@ export default function StudioStyle({ format, onBack }: { format: StudioFormat; 
                 {cfg.ideas.map(i => <Chip key={i} on={topic.trim().toLowerCase() === i.toLowerCase()} onClick={() => setTopic(i)}>{i}</Chip>)}
               </div>
             </Section>
+
+            {cfg.options?.audience && (
+              <Section title="Audience" hint="Optional: who the reel speaks to.">
+                <input value={audience} onChange={e => setAudience(e.target.value)} maxLength={160} placeholder="Founders of small agencies"
+                  className="w-full rounded-[10px] border border-[var(--line)] bg-[var(--surface)] px-3 py-2.5 text-[14px] outline-none focus:border-white/40" />
+              </Section>
+            )}
+
+            {cfg.options?.accent && (
+              <Section title="Accent colour" hint="One colour for the key words and the hero shapes.">
+                <div className="flex flex-wrap items-center gap-2">
+                  {cfg.options.accent.map(c => (
+                    <button key={c} type="button" onClick={() => setAccent(c)} aria-label={c}
+                      className={`w-9 h-9 rounded-full border-2 transition-transform ${accent === c ? 'border-white scale-110' : 'border-transparent'}`} style={{ background: c }} />
+                  ))}
+                  <input type="color" value={accent || '#5B21B6'} onChange={e => setAccent(e.target.value)} className="w-9 h-9 rounded-full bg-transparent cursor-pointer" aria-label="Custom colour" />
+                </div>
+              </Section>
+            )}
+
+            {cfg.options?.handle && (
+              <Section title="End card" hint="Optional: your handle or brand, shown at the end.">
+                <input value={handle} onChange={e => setHandle(e.target.value)} maxLength={40} placeholder="@yourbrand"
+                  className="w-full rounded-[10px] border border-[var(--line)] bg-[var(--surface)] px-3 py-2.5 text-[14px] outline-none focus:border-white/40" />
+              </Section>
+            )}
+
+            {cfg.options?.voices && (
+              <Section title="Voice">
+                <div className="flex flex-wrap gap-1.5">
+                  {cfg.options.voices.map(v => <Chip key={v.id} on={voice === v.id} onClick={() => setVoice(v.id)}>{v.label}</Chip>)}
+                </div>
+              </Section>
+            )}
 
             <Section title="Length">
               <Segmented<number> full value={seconds} onChange={setSeconds}
