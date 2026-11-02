@@ -67,6 +67,11 @@ export const BUILD3D_CREDITS = 500;
 // run on our servers. 200 credits ≈ $0.64.
 export const EXPLAINER_CREDITS = 200;
 
+// ─── Block Horror pricing (one 40-50 s Short) ───
+// Estimated cost ≈ $0.30-0.60: Claude writes the script and a ~36-shot scene and reviews stills; the narrator
+// (Kokoro) and the CPU render run on our servers. 400 credits ≈ $1.28.
+export const BLOCK_CREDITS = 400;
+
 // ─── Survival Story pricing (one 60-90 s vertical video) ───
 // Estimated cost ≈ $0.60-1.00 per video: Claude Sonnet writes the story and the film code and reviews 6 stills;
 // the voices (Kokoro), the sound (made in code) and the CPU render (≈ 6-10 min of render-service time) run on our own
@@ -111,6 +116,7 @@ export function creditExamples(credits: number): { label: string; amount: string
   const rows: [string, number, string][] = [
     ['Explainer', Math.floor(credits / EXPLAINER_CREDITS), 'reels'],
     ['3D Build / 3D Health', Math.floor(credits / BUILD3D_CREDITS), 'reels'],
+    ['Block Horror', Math.floor(credits / BLOCK_CREDITS), 'reels'],
     ['Motion Graphics / 3D', Math.floor(credits / motionCost(15)), '× 15 s'],
     ['Survival Story', Math.floor(credits / SURVIVAL_CREDITS), 'reels'],
   ];
