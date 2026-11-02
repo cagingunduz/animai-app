@@ -81,16 +81,28 @@ export const SURVIVAL_CREDITS = 600;
 // ─── Style Studio (styles from github.com/lemomo-ai/lemo-opuscar, MIT): one pipeline, one form, per-style config ───
 // Claude writes the script and the animation code on the style's kit; Kokoro voices, foley made in code and the CPU
 // render run on our servers. Prices follow each style's render time (three.js styles render slowest).
-export type StudioFormat = 'whiteboard' | 'scifi_toon' | 'paper_lantern' | 'teardown' | 'caption_news' | 'telestrator' | 'premium';
+export type StudioFormat = 'whiteboard' | 'scifi_toon' | 'paper_lantern' | 'teardown' | 'caption_news' | 'telestrator' | 'premium' | 'collage_doc';
 export interface StudioStyleConfig {
   format: StudioFormat; style: string; title: string; credits: number;
   intro: string; desc: string; topicLabel: string; topicHint: string; placeholder: string;
   ideas: string[]; seconds: number[]; defaultSeconds: number;
   uploads: 'none' | 'optional' | 'required'; uploadHint?: string; facts: [string, string][]; eta: string;
   // per-style choices sent as `options` (the backend checks them against the style)
-  options?: { accent?: string[]; handle?: boolean; voices?: { id: string; label: string }[]; audience?: boolean };
+  options?: { accent?: string[]; handle?: boolean; voices?: { id: string; label: string }[]; audience?: boolean; audienceHint?: string };
 }
 export const STUDIO_STYLES: Record<StudioFormat, StudioStyleConfig> = {
+  collage_doc: {
+    format: 'collage_doc', style: 'collage-doc', title: 'Collage Documentary', credits: 400,
+    intro: 'Whose story should we tell?', desc: 'A short documentary about a real person or moment, made like a hand-made collage: archival photos, paper cut-outs with real shadows, the real portrait, big serif words on the voice and hand-drawn rings. Every line is fact-checked before it is recorded.',
+    topicLabel: 'Person or moment', topicHint: 'A name works; a name plus the angle works best. We find the one story with a hook, a twist and a payoff.', placeholder: 'Nikola Tesla\u2019s last years in a hotel room',
+    ideas: ['Nikola Tesla\u2019s last years in a hotel room', 'Beethoven\u2019s Ninth: the applause he couldn\u2019t hear', 'Marie Curie\u2019s notebooks are still radioactive', 'The day Houdini couldn\u2019t escape', 'Van Gogh sold almost nothing'],
+    seconds: [20, 25, 30, 40], defaultSeconds: 30, uploads: 'none',
+    options: {
+      audience: true, audienceHint: 'History lovers, students',
+      voices: [{ id: 'bm_george', label: 'George (British)' }, { id: 'bm_fable', label: 'Fable (British)' }, { id: 'bm_lewis', label: 'Lewis (British)' }, { id: 'bf_emma', label: 'Emma (British)' }, { id: 'am_michael', label: 'Michael' }, { id: 'af_heart', label: 'Heart' }],
+    },
+    facts: [['Vertical', '9:16 · 1080p'], ['Look', 'Paper collage'], ['Faces', 'Real portraits only'], ['Script', 'Fact-checked']], eta: 'About 5–8 minutes.',
+  },
   premium: {
     format: 'premium', style: 'premium', title: 'Premium Faceless Reel', credits: 300,
     intro: 'What should your reel say?', desc: 'A premium faceless reel for your brand: every line types on letter by letter, with a live UI diagram that proves it, glossy cards, one accent colour, a camera that never stops, techy sound and your handle at the end.',

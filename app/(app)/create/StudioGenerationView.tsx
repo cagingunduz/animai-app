@@ -25,6 +25,7 @@ const FORMAT_INFO: Record<string, { est: number; preview?: string }> = {
   'Caption News': { est: 600, preview: 'caption_news' },
   'Sports Telestrator': { est: 480, preview: 'telestrator' },
   'Premium Faceless Reel': { est: 300, preview: 'premium' },
+  'Collage Documentary': { est: 420, preview: 'collage_doc' },
   'Motion Graphics': { est: 420, preview: 'motion' },
 };
 
