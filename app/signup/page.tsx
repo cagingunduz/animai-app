@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import AuthShell, { GoogleIcon, OrDivider, Field } from '@/components/AuthShell';
+import AuthShell, { Field, AuthInput, AuthButton, SocialRow, AuthNote } from '@/components/AuthShell';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -40,50 +40,39 @@ export default function SignupPage() {
   };
 
   return (
-    <AuthShell footer={<a href="https://animai.com" className="hover:text-black transition-colors">← Back to animai.com</a>}>
+    <AuthShell title={sent ? 'Check your inbox' : 'Sign up'} footer={<a href="https://animai.com" className="hover:text-black transition-colors">← Back to animai.com</a>}>
       {sent ? (
         <div>
-          <div className="w-10 h-10 rounded-lg bg-[var(--surface-3)] border border-[var(--line-2)] text-[var(--fg-2)] flex items-center justify-center mb-4 mx-auto">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="m4 7 8 6 8-6" /></svg>
-          </div>
-          <h1 className="text-[20px] font-semibold tracking-[-0.02em] text-center mb-1">Check your inbox</h1>
-          <p className="text-[13px] text-[var(--fg-3)] leading-relaxed text-center">We sent a confirmation link to <span className="text-[var(--fg)] font-medium">{email}</span>. Open it to activate your account.</p>
-          <Link href="/login" className="ui-btn ui-btn-secondary ui-btn-lg w-full mt-6">Back to sign in</Link>
+          <p className="text-[15px] text-black/60 leading-relaxed">We sent a confirmation link to <span className="text-black font-semibold">{email}</span>. Open it to activate your account.</p>
+          <div className="mt-8"><Link href="/login"><AuthButton type="button">Back to sign in</AuthButton></Link></div>
         </div>
       ) : (
         <>
-          <h1 className="text-[20px] font-semibold tracking-[-0.02em] text-center mb-1">Create your account</h1>
-          <p className="text-[13px] text-[var(--fg-3)] text-center mb-6">Start with 500 free credits on signup.</p>
-
-          <button onClick={handleGoogle} className="ui-btn ui-btn-secondary ui-btn-lg w-full">
-            <GoogleIcon />Continue with Google
-          </button>
-
-          <OrDivider />
-
-          <form onSubmit={handleSignup} className="flex flex-col gap-3">
-            <Field label="Full name">
-              <input type="text" value={name} onChange={(e) => setName(e.target.value)} required
-                className="ui-input" placeholder="Jane Doe" autoComplete="name" />
+          <form onSubmit={handleSignup} className="flex flex-col">
+            <Field label="Full Name">
+              <AuthInput icon="user" type="text" value={name} onChange={(e) => setName(e.target.value)} required placeholder="Jane Doe" autoComplete="name" />
             </Field>
-            <Field label="Email">
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-                className="ui-input" placeholder="you@example.com" autoComplete="email" />
+            <div className="h-7" />
+            <Field label="Email Address">
+              <AuthInput icon="mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="you@example.com" autoComplete="email" />
             </Field>
-            <Field label="Password" hint={<span className="text-[11px] text-[var(--fg-4)]">Min. 6 characters</span>}>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6}
-                className="ui-input" placeholder="••••••••" autoComplete="new-password" />
+            <div className="h-7" />
+            <Field label="Password" hint={<span className="text-[13px] text-black/40">Min. 6 characters</span>}>
+              <AuthInput icon="lock" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} placeholder="••••••••" autoComplete="new-password" />
             </Field>
-            {error && <p className="text-[12.5px] text-[#b42318] bg-[#fef3f2] border border-[#fecdca] px-3 py-2.5 rounded-lg">{error}</p>}
-            <button type="submit" disabled={loading} className="ui-btn ui-btn-primary ui-btn-lg w-full mt-1">
-              {loading ? <><span className="w-3.5 h-3.5 rounded-full border-[1.5px] border-black/20 border-t-black animate-spin" />Creating account…</> : 'Create account'}
-            </button>
+            {error && <div className="mt-6"><AuthNote>{error}</AuthNote></div>}
+            <div className="mt-8">
+              <AuthButton type="submit" disabled={loading}>
+                {loading ? <><span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />Creating account…</> : 'Create account'}
+              </AuthButton>
+            </div>
           </form>
-
-          <p className="text-[13px] text-[var(--fg-3)] mt-6 text-center">
+          <p className="text-[15px] text-black/40 mt-8">Start with 500 free credits.</p>
+          <p className="text-[15px] text-black/40 mt-2">
             Already have an account?{' '}
-            <Link href="/login" className="text-[var(--fg)] hover:underline underline-offset-4">Sign in</Link>
+            <Link href="/login" className="text-black hover:underline underline-offset-4">Sign in</Link>
           </p>
+          <SocialRow onGoogle={handleGoogle} />
         </>
       )}
     </AuthShell>
