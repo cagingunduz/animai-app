@@ -32,6 +32,16 @@ export default function SignupPage() {
     setLoading(false);
   };
 
+  // Google's own button on our page: its ID token signs in to Supabase directly
+  const handleCredential = async (token: string, nonce: string) => {
+    setError('');
+    const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token, nonce });
+    if (error) { setError(error.message); return; }
+    try { localStorage.setItem('animave-remember', '1'); sessionStorage.setItem('animave-alive', '1'); } catch { /* storage blocked */ }
+    router.push('/dashboard');
+    router.refresh();
+  };
+
   const handleGoogle = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -72,7 +82,7 @@ export default function SignupPage() {
             Already have an account?{' '}
             <Link href="/login" className="text-black hover:underline underline-offset-4">Sign in</Link>
           </p>
-          <SocialRow onGoogle={handleGoogle} />
+          <SocialRow onGoogle={handleGoogle} onCredential={handleCredential} />
         </>
       )}
     </AuthShell>
