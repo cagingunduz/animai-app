@@ -307,9 +307,11 @@ function ShotCard({ p, sh }: { p: LongProject; sh: LongShot }) {
   const cast = (sh.cast || []).map(c => String(c).replace(':', '_'));
   return (
     <div className="p-4 border-b border-[var(--line)] text-[12px]">
-      <div className="ui-eyebrow mb-2">Shot</div>
+      <div className="ui-eyebrow mb-2 flex items-center gap-2">Shot{sh.layer && <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${sh.layer === 'B' ? 'bg-amber-400/15 text-amber-200' : 'bg-violet-400/15 text-violet-200'}`}>{p.assets[sh.place]?.layer === 'A' && sh.layer === 'B' ? 'B → A (no footage found)' : sh.layer === 'B' ? 'B · Archive footage' : 'A · AI scene'}</span>}</div>
       <Thumb url={p.assets[sh.place]?.url} className="w-full aspect-video rounded-md mb-2.5" label={sh.place === 'headline' ? 'HEADLINE CARD' : sh.place} />
-      {sh.action && <div className="leading-snug">{sh.action}</div>}
+      {sh.layer && <div className="leading-snug text-[var(--fg-2)]">{sh.layer === 'B' ? `Search: ${sh.search}` : sh.prompt}</div>}
+      {sh.lower?.title && <div className="mt-1.5"><span className="text-[var(--fg-4)]">Lower third: </span>{sh.lower.title}{sh.lower.sub ? ` · ${sh.lower.sub}` : ''}</div>}
+      {sh.action && <div className="leading-snug mt-1.5">{sh.layer ? <span className="text-[var(--fg-4)]">Overlay: </span> : null}{sh.action}</div>}
       {sh.words && <div className="mt-2"><span className="text-[var(--fg-4)]">Big words: </span>{sh.words}</div>}
       {sh.ring && <div className="mt-1.5"><span className="text-[var(--fg-4)]">Ring: </span>{sh.ring}</div>}
       {(sh.show || []).length > 1 && <div className="flex gap-1.5 mt-3">{sh.show!.map(c => <Thumb key={c} url={p.assets[c]?.url} className="w-16 h-12 rounded bg-white/[0.04]" contain title={p.assets[c]?.shows || c} />)}</div>}
@@ -330,6 +332,14 @@ function Storyboard({ p, shot, line }: { p: LongProject; shot?: LongShot; line?:
   );
   const plate = p.assets[shot.place]?.url, cast = (shot.cast || []).map(c => String(c).replace(':', '_')).filter(c => p.assets[c]);
   const kind = p.assets[shot.place]?.kind;
+  if (shot.layer) return (
+    <div className="absolute inset-0 bg-[#0d0e11]">
+      {plate && /\.mp4($|\?)/.test(plate) ? <video src={plate} muted autoPlay loop playsInline className="absolute inset-0 w-full h-full object-cover" />
+        : plate ? <img src={plate} alt="" className="absolute inset-0 w-full h-full object-cover" /> : <div className="absolute inset-0 grid place-items-center text-[12px] text-[var(--fg-4)]">{shot.layer === 'B' ? `Archive footage for “${shot.search}” is found after you approve` : 'This AI scene is drawn after you approve'}</div>}
+      {shot.lower?.title && <div className="absolute left-[4%] bottom-[16%]"><div className="bg-white text-black font-extrabold uppercase text-[1.4vw] px-2 py-1">{shot.lower.title}</div>{shot.lower.sub && <div className="bg-black/80 text-white/80 text-[0.9vw] px-2 py-1">{shot.lower.sub}</div>}</div>}
+      {line && <div className="absolute left-1/2 -translate-x-1/2 bottom-3 max-w-[80%] text-center text-[12.5px] text-white/90 bg-black/55 backdrop-blur px-3 py-1.5 rounded-md">“{line}”</div>}
+    </div>
+  );
   if (shot.show && kind && kind !== 'plate') return (
     <div className="absolute inset-0 bg-[#e9e4d8]">
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -353,6 +363,28 @@ function Storyboard({ p, shot, line }: { p: LongProject; shot?: LongShot; line?:
 
 function Assets({ p }: { p: LongProject }) {
   const plan = p.plan!;
+  const layered = plan.sections.flatMap(s => s.shots).filter(s => s.layer);
+  if (layered.length) {
+    const groups: [string, LongShot[]][] = [['B · Archive footage', layered.filter(s => s.layer === 'B')], ['A · AI scenes', layered.filter(s => s.layer === 'A')]];
+    return (
+      <div className="p-3 space-y-5">
+        <div className="text-[11.5px] text-[var(--fg-4)] px-1">Real footage and photos from open archives (credited), AI scenes for hooks, concepts, maps and reconstructions.{p.status === 'awaiting_approval' ? ' They are made after you approve.' : ''}</div>
+        {groups.map(([title, items]) => items.length > 0 && (
+          <div key={title}>
+            <div className="ui-eyebrow mb-2 px-1">{title} <span className="text-[var(--fg-4)]">{items.filter(i => p.assets[i.place]).length}/{items.length}</span></div>
+            <div className="grid grid-cols-2 gap-2">
+              {items.map(i => (
+                <div key={i.place}>
+                  <Thumb url={p.assets[i.place]?.url} className="w-full aspect-video rounded-md" pending={p.status === 'producing' && !p.assets[i.place]} failed={!!p.art_errors?.[i.place]} />
+                  <div className="text-[10.5px] text-[var(--fg-4)] mt-1 line-clamp-2" title={p.assets[i.place]?.credit || ''}>{p.assets[i.place]?.shows || i.search || i.prompt}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
   if (plan.pictures) {
     const by = (ks: string[]) => plan.pictures!.filter(x => ks.includes(p.assets[x.id]?.kind || x.kind)).map(x => ({ id: x.id, label: p.assets[x.id]?.shows || x.search }));
     const gs: [string, { id: string; label: string }[], string][] = [['Plates', by(['plate']), 'aspect-video'], ['Documents & portraits', by(['document', 'portrait']), 'aspect-[3/4]'], ['Cut-outs', by(['cutout']), 'aspect-square']];
@@ -404,7 +436,8 @@ function Thumb({ url, className, contain, label, pending, failed, title }: { url
   return (
     <div className={`relative overflow-hidden bg-white/[0.04] ${className}`} title={title}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      {url ? <img src={url} alt="" className={`absolute inset-0 w-full h-full ${contain ? 'object-contain p-1' : 'object-cover'}`} />
+      {url && /\.mp4($|\?)/.test(url) ? <video src={url} muted playsInline preload="metadata" className={`absolute inset-0 w-full h-full ${contain ? 'object-contain p-1' : 'object-cover'}`} onMouseEnter={e => e.currentTarget.play().catch(() => {})} onMouseLeave={e => e.currentTarget.pause()} />
+        : url ? <img src={url} alt="" className={`absolute inset-0 w-full h-full ${contain ? 'object-contain p-1' : 'object-cover'}`} />
         : <div className={`absolute inset-0 grid place-items-center text-[9.5px] text-[var(--fg-4)] text-center px-1 ${pending ? 'animate-pulse' : ''}`}>{failed ? 'not found' : label || ''}</div>}
     </div>
   );
