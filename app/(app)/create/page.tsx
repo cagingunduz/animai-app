@@ -12,6 +12,7 @@ import Explainer from './Explainer';
 import SurvivalStory from './SurvivalStory';
 import StudioStyle from './StudioStyle';
 import BlockHorror from './BlockHorror';
+import Recipe from './Recipe';
 import StudioGenerationView from './StudioGenerationView';
 import { type FormatKey, isLiveFormat } from '@/components/FormatArt';
 import { FormatGallery } from '@/components/create/FormatGallery';
@@ -43,7 +44,7 @@ interface SceneDef {
 type SceneRenderStatus = { scene_number: number; status: 'queued' | 'processing' | 'completed' | 'failed'; current_step?: string; video_url?: string; };
 
 // ─── Story Mode types ───
-type CreateMode = 'selecting' | 'theme_select' | 'story' | 'cartoon' | 'animated' | 'whiteboard' | 'fruit_drama' | 'motion' | '3d_render' | 'build3d' | 'health3d' | 'explainer' | 'survival' | 'block'
+type CreateMode = 'selecting' | 'theme_select' | 'story' | 'cartoon' | 'animated' | 'whiteboard' | 'fruit_drama' | 'motion' | '3d_render' | 'build3d' | 'health3d' | 'explainer' | 'survival' | 'block' | 'recipe'
   | 'scifi_toon' | 'paper_lantern' | 'teardown' | 'caption_news' | 'telestrator' | 'premium' | 'collage_doc';
 type StoryTheme = 'true_crime' | 'history' | 'drama' | 'fairy_tale' | 'custom';
 type StoryGenre = 'drama' | 'fairy-tale' | 'horror' | 'action' | 'motivation' | 'comedy' | 'mystery';
@@ -661,7 +662,7 @@ function CreatePageInner() {
     if (!isLiveFormat(k)) { setMode('selecting'); return; }   // hidden formats stay out of reach
     if (k === 'story') setMode('theme_select');
     else if (k === 'cartoon') { setCartoonSetupDone(false); setMode('cartoon'); }
-    else if (k === 'animated' || k === 'whiteboard' || k === 'fruit_drama' || k === 'motion' || k === '3d_render' || k === 'build3d' || k === 'health3d' || k === 'explainer' || k === 'survival' || k === 'block'
+    else if (k === 'animated' || k === 'whiteboard' || k === 'fruit_drama' || k === 'motion' || k === '3d_render' || k === 'build3d' || k === 'health3d' || k === 'explainer' || k === 'survival' || k === 'block' || k === 'recipe'
       || k === 'scifi_toon' || k === 'paper_lantern' || k === 'teardown' || k === 'caption_news' || k === 'telestrator' || k === 'premium' || k === 'collage_doc') setMode(k);
   };
 
@@ -922,6 +923,7 @@ function CreatePageInner() {
 
     {/* ═══ BLOCK HORROR (blocky night-town horror) ═══ */}
     {mode === 'block' && <BlockHorror onBack={goHome} />}
+    {mode === 'recipe' && <Recipe onBack={goHome} />}
 
     {/* ═══ THEME SELECTION ═══ */}
     {mode === 'theme_select' && (

@@ -72,6 +72,11 @@ export const EXPLAINER_CREDITS = 200;
 // (Kokoro) and the CPU render run on our servers. 400 credits ≈ $1.28.
 export const BLOCK_CREDITS = 400;
 
+// ─── Recipe pricing (one 25-45 s reel) ───
+// Estimated cost ≈ $0.02-0.05: one Claude call plans the recipe; the narrator (Kokoro), the 2D render and the sound
+// mixing run on our servers. 200 credits ≈ $0.64.
+export const RECIPE_CREDITS = 200;
+
 // ─── Survival Story pricing (one 60-90 s vertical video) ───
 // Estimated cost ≈ $0.60-1.00 per video: Claude Sonnet writes the story and the film code and reviews 6 stills;
 // the voices (Kokoro), the sound (made in code) and the CPU render (≈ 6-10 min of render-service time) run on our own
@@ -207,6 +212,7 @@ export function creditExamples(credits: number): { label: string; amount: string
     ['Explainer', Math.floor(credits / EXPLAINER_CREDITS), 'reels'],
     ['3D Build / 3D Health', Math.floor(credits / BUILD3D_CREDITS), 'reels'],
     ['Block Horror', Math.floor(credits / BLOCK_CREDITS), 'reels'],
+    ['Recipe', Math.floor(credits / RECIPE_CREDITS), 'reels'],
     ['Motion Graphics / 3D', Math.floor(credits / motionCost(15)), '× 15 s'],
     ['Survival Story', Math.floor(credits / SURVIVAL_CREDITS), 'reels'],
     ['Style Studio', Math.floor(credits / 350), 'reels'],
