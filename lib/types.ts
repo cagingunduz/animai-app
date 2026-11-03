@@ -94,12 +94,12 @@ export const STUDIO_STYLES: Record<StudioFormat, StudioStyleConfig> = {
   collage_doc: {
     format: 'collage_doc', style: 'collage-doc', title: 'Collage Documentary', credits: 400,
     intro: 'Whose story should we tell?', desc: 'A short documentary about a real person or moment, made like a hand-made collage: archival photos, paper cut-outs with real shadows, the real portrait, big serif words on the voice and hand-drawn rings. Every line is fact-checked before it is recorded; the pictures are real archive photos, credited.',
-    topicLabel: 'Person or moment', topicHint: 'A name works; a name plus the angle works best. We find the one story with a hook, a twist and a payoff.', placeholder: 'Nikola Tesla\u2019s last years in a hotel room',
-    ideas: ['Nikola Tesla\u2019s last years in a hotel room', 'Beethoven\u2019s Ninth: the applause he couldn\u2019t hear', 'Marie Curie\u2019s notebooks are still radioactive', 'The day Houdini couldn\u2019t escape', 'Van Gogh sold almost nothing'],
-    seconds: [20, 25, 30, 40], defaultSeconds: 30, uploads: 'none',
+    topicLabel: 'Person or moment', topicHint: 'A name gets their life story. Add an angle (an event, a question) to go deep on one moment.', placeholder: 'The life of Nikola Tesla',
+    ideas: ['The life of Nikola Tesla', 'Marie Curie', 'How the Titanic was found', 'Ada Lovelace, the first programmer', 'The rise and fall of Napoleon'],
+    seconds: [30, 40, 45, 60], defaultSeconds: 45, uploads: 'none',
     options: {
       audience: true, audienceHint: 'History lovers, students',
-      voices: [{ id: 'am_michael', label: 'Michael' }, { id: 'am_fenrir', label: 'Fenrir (deep)' }, { id: 'af_heart', label: 'Heart' }, { id: 'af_bella', label: 'Bella' }, { id: 'bf_emma', label: 'Emma (British)' }, { id: 'bm_george', label: 'George (British)' }],
+      voices: [{ id: 'pt_michael', label: 'Michael' }, { id: 'pt_george', label: 'George' }, { id: 'pt_charles', label: 'Charles' }, { id: 'pt_paul', label: 'Paul' }, { id: 'pt_alba', label: 'Alba' }, { id: 'am_michael', label: 'Michael (classic)' }, { id: 'af_heart', label: 'Heart (classic)' }],
     },
     facts: [['Vertical', '9:16 · 1080p'], ['Look', 'Paper collage'], ['Faces', 'Real portraits only'], ['Script', 'Fact-checked']], eta: 'About 5–8 minutes.',
   },
