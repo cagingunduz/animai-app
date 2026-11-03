@@ -14,6 +14,7 @@ const Icon = {
   create: <svg {...s}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m10 9.5 4.5 2.5-4.5 2.5z" /></svg>,
   editor: <svg {...s}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 14h18M9 14v6M15 14v6" /></svg>,
   billing: <svg {...s}><rect x="2.5" y="5" width="19" height="14" rx="2" /><path d="M2.5 10h19" /></svg>,
+  long: <svg {...s}><rect x="2.5" y="5.5" width="19" height="13" rx="3.5" /><path d="m10.5 9.5 4 2.5-4 2.5z" /></svg>,
   plus: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>,
   logout: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" /><path d="M10 17l-5-5 5-5M5 12h11" /></svg>,
 };
@@ -21,6 +22,7 @@ const Icon = {
 const navItems = [
   { label: 'Home', href: '/dashboard', icon: Icon.home },
   { label: 'Create', href: '/create', icon: Icon.create },
+  { label: 'Long videos', href: '/youtube', icon: Icon.long },
   { label: 'Billing', href: '/billing', icon: Icon.billing },
 ];
 
