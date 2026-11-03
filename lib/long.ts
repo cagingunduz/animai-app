@@ -14,8 +14,12 @@ export const LONG_TEMPLATES: LongTemplate[] = [
     voices: [{ id: 'pt_michael', label: 'Michael' }, { id: 'pt_george', label: 'George' }, { id: 'pt_charles', label: 'Charles' }, { id: 'pt_paul', label: 'Paul' }, { id: 'pt_alba', label: 'Alba' }],
   },
   {
-    key: 'documentary', title: 'Collage Documentary', tagline: 'Long-form true stories', desc: 'The Collage Documentary look, chapter by chapter.',
-    perMinute: 0, minutes: [], defaultMinutes: 0, voices: [], poster: '/create/formats/collage_doc.jpg', ready: false, topicHint: '', ideas: [],
+    key: 'collage-doc-long', title: 'Collage Documentary', tagline: 'True stories from real archive photos',
+    desc: 'A real person or event told in chapters over real archive photos: a slow Ken Burns push, cut-outs, documents taped on paper, the real portrait, big words and hand-drawn rings. Every photo credited.',
+    perMinute: 200, minutes: [3, 5, 8, 12], defaultMinutes: 5, poster: '/long/collage-doc.jpg', ready: true,
+    topicHint: 'A person, an event or a moment in history. A name gets the whole story; add an angle to go deep on one part.',
+    ideas: ['The life of Nikola Tesla', 'The sinking of the Titanic', 'Marie Curie', 'The race to the Moon', 'The fall of the Berlin Wall'],
+    voices: [{ id: 'pt_michael', label: 'Michael' }, { id: 'pt_george', label: 'George' }, { id: 'pt_charles', label: 'Charles' }, { id: 'pt_paul', label: 'Paul' }, { id: 'pt_alba', label: 'Alba' }],
   },
   {
     key: 'whiteboard-long', title: 'Whiteboard Lesson', tagline: 'A full lesson, drawn live', desc: 'The Whiteboard Explainer, as a 5-15 minute lesson.',
@@ -25,18 +29,20 @@ export const LONG_TEMPLATES: LongTemplate[] = [
 export const longTemplate = (k: string) => LONG_TEMPLATES.find(t => t.key === k && t.ready);
 
 export interface LongLine { text: string; say?: string; mood?: string; pause?: number }
-export interface LongShot { line: number; at?: string; place: string; cast?: string[]; props?: string[]; action: string; text?: string; marks?: string }
+export interface LongShot { line: number; at?: string; place: string; cast?: string[]; props?: string[]; action: string; text?: string; marks?: string; show?: string[]; words?: string; ring?: string }
 export interface LongSection { id: string; title: string; lines: LongLine[]; shots: LongShot[] }
 export interface LongPart {
   id: string; title: string; status: 'waiting' | 'working' | 'done'; voice_url?: string; video_url?: string; duration?: number;
   lines?: { text: string; start: number; end: number }[];
 }
-export interface LongAsset { url: string; kind: 'place' | 'character' | 'prop'; boards?: { x: number; y: number; w: number; h: number }[]; use?: string }
+export interface LongAsset { url: string; kind: 'place' | 'character' | 'prop' | 'plate' | 'cutout' | 'document' | 'portrait'; boards?: { x: number; y: number; w: number; h: number }[]; use?: string; shows?: string; credit?: string }
 export interface LongProject {
   id: string; template: string; template_name: string; topic: string; minutes: number; voice: string;
   status: 'planning' | 'awaiting_approval' | 'producing' | 'completed' | 'failed'; stage: string; message: string; progress: number;
   title: string | null; error: string | null; running: boolean; status_note?: string;
-  plan: null | { title: string; description: string; places: { id: string; desc: string }[]; cast: { id: string; desc: string; poses: string[] }[]; props: { id: string; desc: string }[]; sections: LongSection[] };
+  plan: null | { title: string; description: string; places: { id: string; desc: string }[]; cast: { id: string; desc: string; poses: string[] }[]; props: { id: string; desc: string }[]; sections: LongSection[];
+    pictures?: { id: string; kind: string; search: string; use?: string }[] };
+  art_missing?: string[];
   assets: Record<string, LongAsset>; art_errors?: Record<string, string>; style_master?: string;
   parts: LongPart[]; final_video_url?: string; thumbnail_url?: string; duration?: number; created: number; updated: number;
 }

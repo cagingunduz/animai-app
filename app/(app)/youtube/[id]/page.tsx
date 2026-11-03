@@ -191,7 +191,7 @@ export default function Workspace({ params }: { params: { id: string } }) {
                     <Thumb url={p.assets[sh.place]?.url} className="w-[72px] shrink-0 aspect-video rounded" label={sh.place === 'headline' ? 'TITLE' : undefined} />
                     <div className="min-w-0">
                       <div className="text-[10.5px] text-[var(--fg-4)]">{fmtTime(shotStart(sel.part, sh))} · {sh.place}</div>
-                      <div className="text-[12px] leading-snug line-clamp-2">{sh.action}</div>
+                      <div className="text-[12px] leading-snug line-clamp-2">{sh.action || (sh.show ? `${sh.show.join(', ')}${sh.words ? ` · “${sh.words}”` : ''}` : '')}</div>
                     </div>
                   </button>
                 ))}
@@ -309,7 +309,11 @@ function ShotCard({ p, sh }: { p: LongProject; sh: LongShot }) {
     <div className="p-4 border-b border-[var(--line)] text-[12px]">
       <div className="ui-eyebrow mb-2">Shot</div>
       <Thumb url={p.assets[sh.place]?.url} className="w-full aspect-video rounded-md mb-2.5" label={sh.place === 'headline' ? 'HEADLINE CARD' : sh.place} />
-      <div className="leading-snug">{sh.action}</div>
+      {sh.action && <div className="leading-snug">{sh.action}</div>}
+      {sh.words && <div className="mt-2"><span className="text-[var(--fg-4)]">Big words: </span>{sh.words}</div>}
+      {sh.ring && <div className="mt-1.5"><span className="text-[var(--fg-4)]">Ring: </span>{sh.ring}</div>}
+      {(sh.show || []).length > 1 && <div className="flex gap-1.5 mt-3">{sh.show!.map(c => <Thumb key={c} url={p.assets[c]?.url} className="w-16 h-12 rounded bg-white/[0.04]" contain title={p.assets[c]?.shows || c} />)}</div>}
+      {sh.show && p.assets[sh.place]?.shows && <div className="mt-2 text-[11px] text-[var(--fg-4)]">Found: {p.assets[sh.place]!.shows}{p.assets[sh.place]!.credit ? ` · ${p.assets[sh.place]!.credit}` : ''}</div>}
       {sh.text && <div className="mt-2"><span className="text-[var(--fg-4)]">On a sign: </span>{sh.text}</div>}
       {sh.marks && <div className="mt-1.5"><span className="text-[var(--fg-4)]">Marks: </span>{sh.marks}</div>}
       {cast.length > 0 && (
@@ -325,6 +329,15 @@ function Storyboard({ p, shot, line }: { p: LongProject; shot?: LongShot; line?:
     <div className="absolute inset-0 grid place-items-center bg-[#5b3fa6]"><div className="text-white font-extrabold text-[3.2vw] tracking-tight uppercase text-center px-[8%]">{shot.text || line}</div></div>
   );
   const plate = p.assets[shot.place]?.url, cast = (shot.cast || []).map(c => String(c).replace(':', '_')).filter(c => p.assets[c]);
+  const kind = p.assets[shot.place]?.kind;
+  if (shot.show && kind && kind !== 'plate') return (
+    <div className="absolute inset-0 bg-[#e9e4d8]">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={plate} alt="" className={`absolute inset-[8%] w-[84%] h-[84%] object-contain ${kind === 'cutout' ? 'drop-shadow-[10px_14px_10px_rgba(0,0,0,.35)]' : 'shadow-[0_20px_40px_-10px_rgba(0,0,0,.5)]'}`} />
+      {shot.words && <div className="absolute right-[6%] top-[12%] font-serif italic text-[3vw] text-[#1b1916]">{shot.words}</div>}
+      {line && <div className="absolute left-1/2 -translate-x-1/2 bottom-3 max-w-[80%] text-center text-[12.5px] text-white/90 bg-black/55 backdrop-blur px-3 py-1.5 rounded-md">“{line}”</div>}
+    </div>
+  );
   return (
     <div className="absolute inset-0 bg-[#1a1b22]">
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -340,6 +353,28 @@ function Storyboard({ p, shot, line }: { p: LongProject; shot?: LongShot; line?:
 
 function Assets({ p }: { p: LongProject }) {
   const plan = p.plan!;
+  if (plan.pictures) {
+    const by = (ks: string[]) => plan.pictures!.filter(x => ks.includes(p.assets[x.id]?.kind || x.kind)).map(x => ({ id: x.id, label: p.assets[x.id]?.shows || x.search }));
+    const gs: [string, { id: string; label: string }[], string][] = [['Plates', by(['plate']), 'aspect-video'], ['Documents & portraits', by(['document', 'portrait']), 'aspect-[3/4]'], ['Cut-outs', by(['cutout']), 'aspect-square']];
+    return (
+      <div className="p-3 space-y-5">
+        <div className="text-[11.5px] text-[var(--fg-4)] px-1">Real archive photos (Wikimedia Commons, NASA), openly licensed and credited in the video.{p.status === 'awaiting_approval' ? ' They are found after you approve.' : ''}</div>
+        {gs.map(([title, items, shape]) => items.length > 0 && (
+          <div key={title}>
+            <div className="ui-eyebrow mb-2 px-1">{title} <span className="text-[var(--fg-4)]">{items.filter(i => p.assets[i.id]).length}/{items.length}</span></div>
+            <div className="grid grid-cols-2 gap-2">
+              {items.map(i => (
+                <div key={i.id}>
+                  <Thumb url={p.assets[i.id]?.url} className={`w-full ${shape} rounded-md`} contain={title !== 'Plates'} pending={p.status === 'producing' && !p.assets[i.id] && !p.art_missing?.includes(i.id)} failed={!!p.art_missing?.includes(i.id)} />
+                  <div className="text-[10.5px] text-[var(--fg-4)] mt-1 line-clamp-2" title={p.assets[i.id]?.credit || i.label}>{i.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
   const groups: [string, { id: string; label: string }[], string][] = [
     ['Places', plan.places.map(x => ({ id: x.id, label: x.id })), 'aspect-video'],
     ['Cast', plan.cast.flatMap(c => c.poses.map((pose, n) => ({ id: `${c.id}_${n + 1}`, label: `${c.id} · ${pose}` }))), 'aspect-[3/4]'],
@@ -370,7 +405,7 @@ function Thumb({ url, className, contain, label, pending, failed, title }: { url
     <div className={`relative overflow-hidden bg-white/[0.04] ${className}`} title={title}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       {url ? <img src={url} alt="" className={`absolute inset-0 w-full h-full ${contain ? 'object-contain p-1' : 'object-cover'}`} />
-        : <div className={`absolute inset-0 grid place-items-center text-[9.5px] text-[var(--fg-4)] text-center px-1 ${pending ? 'animate-pulse' : ''}`}>{failed ? 'retry on resume' : label || ''}</div>}
+        : <div className={`absolute inset-0 grid place-items-center text-[9.5px] text-[var(--fg-4)] text-center px-1 ${pending ? 'animate-pulse' : ''}`}>{failed ? 'not found' : label || ''}</div>}
     </div>
   );
 }
