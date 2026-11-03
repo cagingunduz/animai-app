@@ -17,6 +17,7 @@ const FORMAT_INFO: Record<string, { est: number; preview?: string }> = {
   '3D Build': { est: 600, preview: 'build3d' },
   '3D Health': { est: 600, preview: 'health3d' },
   'Block Horror': { est: 480, preview: 'block' },
+  'Recipe': { est: 240, preview: 'recipe' },
   'Survival Story': { est: 720, preview: 'survival' },
   'Whiteboard Explainer': { est: 480, preview: 'whiteboard' },
   'Sci-Fi Sitcom Toon': { est: 390, preview: 'scifi_toon' },
