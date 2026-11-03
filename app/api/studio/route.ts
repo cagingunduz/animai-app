@@ -42,13 +42,16 @@ export async function POST(request: Request) {
     let upstreamStatus = 500;
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/generate-studio`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(45000),
         body: JSON.stringify({ style: cfg.style, topic: topic || null, seconds, uploads: uploads.length ? uploads : null, options: options || null }),
       });
       upstreamStatus = res.status;
-      data = await res.json();
-    } catch {
-      data = {};
+      const text = await res.text();
+      try { data = JSON.parse(text); } catch { data = { error: `The video server answered ${res.status}${res.status >= 500 ? ' (it may be restarting; try again in a minute)' : ''}.` }; }
+    } catch (e: any) {
+      data = { error: e?.name === 'TimeoutError' ? 'The video server did not answer in time (it may be restarting). Your credits were refunded; try again in a minute.'
+                                                 : 'The video server could not be reached. Your credits were refunded; try again in a minute.' };
+      upstreamStatus = 503;
     }
 
     if (!data?.job_id) {
