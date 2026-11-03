@@ -108,13 +108,19 @@ export default function StudioStyle({ format, onBack }: { format: StudioFormat; 
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ format, topic: topic.trim(), seconds, uploads: ready.map(u => u.url), options: cfg.options ? { accent, handle: handle.trim(), voice, audience: audience.trim() } : undefined }),
       });
-      const d = await r.json();
+      const raw = await r.text();
+      let d: any = {};
+      try { d = JSON.parse(raw); } catch {
+        setGenStatus('failed');
+        setGenErr(r.status === 504 ? 'The server took too long to answer. Please try again in a minute.' : `The server answered ${r.status}: ${raw.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160) || 'no details'}`);
+        return;
+      }
       if (r.status === 402) { setGenStatus('failed'); setGenErr(d.error || 'Not enough credits.'); return; }
       if (d.job_id) {
         pollRef.current = setInterval(() => pollStatus(d.job_id), 5000);
         pollStatus(d.job_id);
       } else { setGenStatus('failed'); setGenErr(d.error || 'Failed to start'); }
-    } catch { setGenStatus('failed'); setGenErr('Failed to start generation'); }
+    } catch (e: any) { setGenStatus('failed'); setGenErr(`Could not reach the server${e?.message ? ` (${e.message})` : ''}. Check your connection and try again.`); }
   };
 
   const shownTitle = title || (topic.trim() ? topic.trim().split('\n')[0].slice(0, 80) : cfg.title);
