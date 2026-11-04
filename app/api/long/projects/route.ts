@@ -17,7 +17,8 @@ export async function POST(request: Request) {
   const voice = tpl.voices.some(v => v.id === body.voice) ? String(body.voice) : tpl.voices[0]?.id;
   const { status, data } = await longApi('/long/projects', {
     method: 'POST',
-    body: JSON.stringify({ template: tpl.key, topic: String(body.topic || '').trim().slice(0, 300) || null, minutes, voice, notes: String(body.notes || '').trim().slice(0, 600) || null }),
+    body: JSON.stringify({ template: tpl.key, topic: String(body.topic || '').trim().slice(0, 300) || null, minutes, voice, notes: String(body.notes || '').trim().slice(0, 600) || null,
+      uploads: tpl.uploads && Array.isArray(body.uploads) ? body.uploads.filter((u: unknown) => typeof u === 'string').slice(0, 20) : null }),
   });
   if (!data?.id) return NextResponse.json({ error: data?.error || 'Could not start the project.' }, { status: status >= 400 ? status : 500 });
   const { error } = await supabase.from('video_projects').insert({

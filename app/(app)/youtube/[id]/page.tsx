@@ -163,7 +163,7 @@ export default function Workspace({ params }: { params: { id: string } }) {
                 {sections.map((s, k) => (
                   <div key={s.id} className={`rounded-lg border ${sel.part === k ? 'border-white/25 bg-white/[0.03]' : 'border-[var(--line)]'}`}>
                     <button onClick={() => setSel({ part: k, shot: 0 })} className="w-full flex items-center justify-between px-3 h-9 text-left">
-                      <span className="text-[12px] font-medium truncate"><span className="text-[var(--fg-4)] mr-1.5">{k + 1}</span>{s.title}</span>
+                      <span className="text-[12px] font-medium truncate"><span className="text-[var(--fg-4)] mr-1.5">{k + 1}</span>{s.title}{s.mode && <span className={`ml-2 text-[9.5px] uppercase tracking-wide px-1.5 py-0.5 rounded ${s.mode === 'real' ? 'bg-amber-400/15 text-amber-200' : s.mode === 'animation' ? 'bg-violet-400/15 text-violet-200' : 'bg-white/[0.08] text-[var(--fg-3)]'}`}>{s.mode}</span>}</span>
                       <span className="text-[10.5px] text-[var(--fg-4)]">{fmtTime(spans[k]?.dur || 0)}</span>
                     </button>
                     {sel.part === k && (
@@ -309,7 +309,7 @@ function ShotCard({ p, sh }: { p: LongProject; sh: LongShot }) {
     <div className="p-4 border-b border-[var(--line)] text-[12px]">
       <div className="ui-eyebrow mb-2 flex items-center gap-2">Shot{sh.layer && <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${sh.layer === 'B' ? 'bg-amber-400/15 text-amber-200' : 'bg-violet-400/15 text-violet-200'}`}>{p.assets[sh.place]?.layer === 'A' && sh.layer === 'B' ? 'B → A (no footage found)' : sh.layer === 'B' ? 'B · Archive footage' : 'A · AI scene'}</span>}</div>
       <Thumb url={p.assets[sh.place]?.url} className="w-full aspect-video rounded-md mb-2.5" label={sh.place === 'headline' ? 'HEADLINE CARD' : sh.place} />
-      {sh.layer && <div className="leading-snug text-[var(--fg-2)]">{sh.layer === 'B' ? `Search: ${sh.search}` : sh.prompt}</div>}
+      {sh.layer && <div className="leading-snug text-[var(--fg-2)]">{sh.upload != null ? `Your upload ${sh.upload}${sh.upload_at ? ` from ${sh.upload_at.toFixed(1)} s` : ''}` : sh.layer === 'B' ? `Search: ${sh.search}` : sh.prompt}</div>}
       {sh.lower?.title && <div className="mt-1.5"><span className="text-[var(--fg-4)]">Lower third: </span>{sh.lower.title}{sh.lower.sub ? ` · ${sh.lower.sub}` : ''}</div>}
       {sh.action && <div className="leading-snug mt-1.5">{sh.layer ? <span className="text-[var(--fg-4)]">Overlay: </span> : null}{sh.action}</div>}
       {sh.words && <div className="mt-2"><span className="text-[var(--fg-4)]">Big words: </span>{sh.words}</div>}
