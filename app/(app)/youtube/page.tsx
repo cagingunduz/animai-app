@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -118,6 +118,19 @@ function Section({ title, rows, empty, loading }: { title: string; rows: Row[]; 
   );
 }
 
+function uploadFile(file: File, token: string, onProgress: (p: number) => void): Promise<{ url: string; kind: string }> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${process.env.NEXT_PUBLIC_API_URL}/studio/upload`);
+    xhr.setRequestHeader('x-upload-token', token);
+    xhr.upload.onprogress = e => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
+    xhr.onload = () => { try { const d = JSON.parse(xhr.responseText || '{}'); if (xhr.status < 300 && d.url) resolve(d); else reject(new Error(d.detail || `Upload failed (${xhr.status})`)); } catch { reject(new Error(`Upload failed (${xhr.status})`)); } };
+    xhr.onerror = () => reject(new Error('Upload failed (network)'));
+    const fd = new FormData(); fd.append('file', file); xhr.send(fd);
+  });
+}
+type Up = { name: string; progress: number; url?: string; kind?: string; error?: string };
+
 function NewProject({ tpl, onClose }: { tpl: LongTemplate; onClose: () => void }) {
   const router = useRouter();
   const [topic, setTopic] = useState('');
@@ -128,6 +141,23 @@ function NewProject({ tpl, onClose }: { tpl: LongTemplate; onClose: () => void }
   const [pitching, setPitching] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [ups, setUps] = useState<Up[]>([]);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const uploading = ups.some(u => !u.url && !u.error);
+  const addFiles = async (files: FileList | null) => {
+    if (!files?.length) return;
+    let token = '';
+    try { const r = await fetch('/api/studio/upload-token', { method: 'POST' }); token = (await r.json()).token || ''; } catch { /* below */ }
+    for (const f of Array.from(files).slice(0, 20 - ups.length)) {
+      const name = f.name;
+      if (!token) { setUps(p => [...p, { name, progress: 0, error: 'Uploads are unavailable right now' }]); continue; }
+      if (f.size > 400 * 1024 * 1024) { setUps(p => [...p, { name, progress: 0, error: 'Larger than 400 MB' }]); continue; }
+      setUps(p => [...p, { name, progress: 0 }]);
+      uploadFile(f, token, pr => setUps(p => p.map(u => u.name === name && !u.url ? { ...u, progress: pr } : u)))
+        .then(d => setUps(p => p.map(u => u.name === name && !u.url ? { ...u, url: d.url, kind: d.kind, progress: 1 } : u)))
+        .catch(e => setUps(p => p.map(u => u.name === name && !u.url ? { ...u, error: e.message } : u)));
+    }
+  };
 
   const pitch = async () => {
     setPitching(true); setErr('');
@@ -140,7 +170,7 @@ function NewProject({ tpl, onClose }: { tpl: LongTemplate; onClose: () => void }
   const start = async () => {
     setBusy(true); setErr('');
     try {
-      const r = await fetch('/api/long/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ template: tpl.key, topic, minutes, voice, notes }) });
+      const r = await fetch('/api/long/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ template: tpl.key, topic, minutes, voice, notes, uploads: ups.filter(u => u.url).map(u => u.url) }) });
       const d = await r.json(); if (!r.ok || !d.id) throw new Error(d.error || 'Could not start the project');
       router.push(`/youtube/${d.id}`);
     } catch (e: any) { setErr(e.message); setBusy(false); }
@@ -189,13 +219,35 @@ function NewProject({ tpl, onClose }: { tpl: LongTemplate; onClose: () => void }
             <label className="text-[12.5px] font-medium">Narrator</label>
             <div className="flex flex-wrap gap-1.5 mt-2">{tpl.voices.map(v => <button key={v.id} type="button" onClick={() => setVoice(v.id)} className={`ui-chip ${voice === v.id ? '!border-white/50 !text-white' : 'ui-chip-muted'}`}>{v.label}</button>)}</div>
           </div>
+          {tpl.uploads && (
+            <div>
+              <label className="text-[12.5px] font-medium">Your footage <span className="text-[var(--fg-4)] font-normal">(optional, recommended)</span></label>
+              <div className="text-[11.5px] text-[var(--fg-4)] mt-1">Clips and photos of the real events you talk about (speeches, visits, tests, documents). They are placed on the lines they show; open archives and stock footage fill the rest. Only upload footage you have the right to use.</div>
+              <input ref={fileRef} type="file" accept="video/mp4,video/quicktime,video/webm,image/jpeg,image/png,image/webp" multiple className="hidden" onChange={e => { addFiles(e.target.files); e.target.value = ''; }} />
+              <button type="button" onClick={() => fileRef.current?.click()} disabled={ups.length >= 20}
+                className="mt-2 w-full rounded-lg border border-dashed border-[var(--line-3)] hover:border-white/40 py-4 text-[12.5px] text-[var(--fg-3)] hover:text-white transition">+ Add clips or photos <span className="block text-[11px] text-[var(--fg-4)] mt-0.5">MP4 · MOV · WebM · JPG · PNG, up to 400 MB each, up to 20</span></button>
+              {ups.length > 0 && (
+                <div className="mt-2 space-y-1.5">
+                  {ups.map((u, i) => (
+                    <div key={i} className="flex items-center gap-2 text-[12px]">
+                      <span className="w-5 text-[var(--fg-4)] tabular-nums">{i}</span>
+                      <span className="flex-1 truncate">{u.name}</span>
+                      {u.error ? <span className="text-rose-300">{u.error}</span> : u.url ? <span className="text-emerald-300">ready</span>
+                        : <span className="w-20 h-1 rounded bg-white/10 overflow-hidden"><span className="block h-full bg-white" style={{ width: `${Math.round(u.progress * 100)}%` }} /></span>}
+                      <button type="button" onClick={() => setUps(p => p.filter((_, k) => k !== i))} className="text-[var(--fg-4)] hover:text-white" aria-label="Remove">✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           <div>
             <label className="text-[12.5px] font-medium">Notes <span className="text-[var(--fg-4)] font-normal">(optional)</span></label>
             <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} maxLength={600} placeholder="Audience, tone, things to include or avoid" className="ui-input mt-2 !h-auto py-2.5 resize-none" />
           </div>
           {err && <div className="text-[12.5px] text-rose-300">{err}</div>}
           <div className="pt-2 border-t border-[var(--line)]">
-            <button type="button" onClick={start} disabled={busy} className="ui-btn ui-btn-primary ui-btn-lg w-full">{busy ? 'Starting…' : 'Write the script & shot plan'}</button>
+            <button type="button" onClick={start} disabled={busy || uploading} className="ui-btn ui-btn-primary ui-btn-lg w-full">{busy ? 'Starting…' : uploading ? 'Uploading…' : 'Write the script & shot plan'}</button>
             <div className="text-[11.5px] text-[var(--fg-4)] mt-2 text-center">Free. You review the plan before any credits are used ({(minutes * tpl.perMinute).toLocaleString()} credits on approval).</div>
           </div>
         </div>
