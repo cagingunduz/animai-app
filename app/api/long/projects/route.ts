@@ -18,6 +18,7 @@ export async function POST(request: Request) {
   const { status, data } = await longApi('/long/projects', {
     method: 'POST',
     body: JSON.stringify({ template: tpl.key, topic: String(body.topic || '').trim().slice(0, 300) || null, minutes, voice, notes: String(body.notes || '').trim().slice(0, 600) || null,
+      look: tpl.looks?.some(l => l.id === body.look) ? String(body.look) : tpl.looks?.[0]?.id || null,
       uploads: tpl.uploads && Array.isArray(body.uploads) ? body.uploads.filter((u: unknown) => typeof u === 'string').slice(0, 20) : null }),
   });
   if (!data?.id) return NextResponse.json({ error: data?.error || 'Could not start the project.' }, { status: status >= 400 ? status : 500 });
