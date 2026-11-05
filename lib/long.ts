@@ -3,6 +3,7 @@
 export interface LongTemplate {
   key: string; title: string; tagline: string; desc: string; perMinute: number; minutes: number[]; defaultMinutes: number;
   voices: { id: string; label: string }[]; poster: string; ready: boolean; topicHint: string; ideas: string[]; uploads?: boolean;
+  looks?: { id: string; label: string; desc: string }[];
 }
 export const LONG_TEMPLATES: LongTemplate[] = [
   {
@@ -30,6 +31,24 @@ export const LONG_TEMPLATES: LongTemplate[] = [
     voices: [{ id: 'pt_george', label: 'George' }, { id: 'pt_michael', label: 'Michael' }, { id: 'pt_charles', label: 'Charles' }, { id: 'pt_paul', label: 'Paul' }, { id: 'pt_alba', label: 'Alba' }],
   },
   {
+    key: 'cinecode-film', title: 'Cinecode Film', tagline: 'Explainers drawn entirely in code',
+    desc: 'No AI images and no stock: every shot is built in code in one of eight film looks (paper explainer, isometric 3D, low-poly world, hologram, blueprint, data story, keynote, Swiss type). Looks and craft rules from the open-source cinecode kit.',
+    perMinute: 180, minutes: [3, 5, 8, 12], defaultMinutes: 5, poster: '/long/cinecode-film.jpg', ready: true,
+    topicHint: 'How something works, why something happens, a number that tells a story, or a system explained.',
+    ideas: ['How does a city get its water?', 'Why is everything so expensive?', 'How a jet engine works', 'How GPS knows where you are', 'Why bridges fall down'],
+    voices: [{ id: 'pt_michael', label: 'Michael' }, { id: 'pt_george', label: 'George' }, { id: 'pt_charles', label: 'Charles' }, { id: 'pt_paul', label: 'Paul' }, { id: 'pt_alba', label: 'Alba' }],
+    looks: [
+      { id: 'vox-explainer', label: 'Vox Explainer', desc: 'Paper cards, marker circles, condensed statements: a “why” answered on a desk.' },
+      { id: 'iso-infographic', label: 'Isometric Infographic', desc: 'A 3D isometric diorama of flat blocks with labels and real numbers.' },
+      { id: 'lowpoly-island', label: 'Low-poly World', desc: 'A tiny faceted 3D world where everything arrives with a bounce.' },
+      { id: 'hologram-hud', label: 'Hologram HUD', desc: 'Objects scanned into glowing wireframes, target boxes and rolling numbers.' },
+      { id: 'blueprint', label: 'Blueprint', desc: 'White line drawings on cyanotype blue, drawn in drafting order.' },
+      { id: 'dataviz', label: 'Data Story', desc: 'Real data drawn mark by mark on cream paper, with handwritten notes.' },
+      { id: 'dark-keynote', label: 'Dark Keynote', desc: 'Near-black stage, UI panels, one accent and one giant number.' },
+      { id: 'swiss-motion', label: 'Swiss Motion', desc: 'A strict grid, one typeface, one signal colour.' },
+    ],
+  },
+  {
     key: 'whiteboard-long', title: 'Whiteboard Lesson', tagline: 'A full lesson, drawn live', desc: 'The Whiteboard Explainer, as a 5-15 minute lesson.',
     perMinute: 0, minutes: [], defaultMinutes: 0, voices: [], poster: '/create/formats/whiteboard.jpg', ready: false, topicHint: '', ideas: [],
   },
@@ -38,6 +57,7 @@ export const longTemplate = (k: string) => LONG_TEMPLATES.find(t => t.key === k 
 
 export interface LongLine { text: string; say?: string; mood?: string; pause?: number }
 export interface LongShot { line: number; at?: string; place: string; cast?: string[]; props?: string[]; action: string; text?: string; marks?: string; show?: string[]; words?: string; ring?: string;
+  build?: string; device?: string; camera?: string; data?: string;
   id?: string; layer?: 'A' | 'B'; prompt?: string; search?: string; overlay?: string; lower?: { title?: string; sub?: string } | null; upload?: number; upload_at?: number }
 export interface LongSection { id: string; title: string; lines: LongLine[]; shots: LongShot[]; mode?: 'real' | 'mixed' | 'animation' }
 export interface LongPart {
@@ -46,7 +66,7 @@ export interface LongPart {
 }
 export interface LongAsset { url: string; layer?: 'A' | 'B'; kind: 'place' | 'character' | 'prop' | 'plate' | 'cutout' | 'document' | 'portrait' | 'image' | 'video'; boards?: { x: number; y: number; w: number; h: number }[]; use?: string; shows?: string; credit?: string }
 export interface LongProject {
-  id: string; template: string; template_name: string; topic: string; minutes: number; voice: string;
+  id: string; template: string; template_name: string; topic: string; minutes: number; voice: string; look?: string; look_name?: string;
   status: 'planning' | 'awaiting_approval' | 'producing' | 'completed' | 'failed'; stage: string; message: string; progress: number;
   title: string | null; error: string | null; running: boolean; status_note?: string;
   plan: null | { title: string; description: string; places: { id: string; desc: string }[]; cast: { id: string; desc: string; poses: string[] }[]; props: { id: string; desc: string }[]; sections: LongSection[];

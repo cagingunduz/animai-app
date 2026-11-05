@@ -136,6 +136,7 @@ function NewProject({ tpl, onClose }: { tpl: LongTemplate; onClose: () => void }
   const [topic, setTopic] = useState('');
   const [minutes, setMinutes] = useState(tpl.defaultMinutes);
   const [voice, setVoice] = useState(tpl.voices[0]?.id || '');
+  const [look, setLook] = useState(tpl.looks?.[0]?.id || '');
   const [notes, setNotes] = useState('');
   const [pitches, setPitches] = useState<{ topic: string; angle: string }[] | null>(null);
   const [pitching, setPitching] = useState(false);
@@ -170,7 +171,7 @@ function NewProject({ tpl, onClose }: { tpl: LongTemplate; onClose: () => void }
   const start = async () => {
     setBusy(true); setErr('');
     try {
-      const r = await fetch('/api/long/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ template: tpl.key, topic, minutes, voice, notes, uploads: ups.filter(u => u.url).map(u => u.url) }) });
+      const r = await fetch('/api/long/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ template: tpl.key, topic, minutes, voice, notes, look, uploads: ups.filter(u => u.url).map(u => u.url) }) });
       const d = await r.json(); if (!r.ok || !d.id) throw new Error(d.error || 'Could not start the project');
       router.push(`/youtube/${d.id}`);
     } catch (e: any) { setErr(e.message); setBusy(false); }
@@ -205,6 +206,21 @@ function NewProject({ tpl, onClose }: { tpl: LongTemplate; onClose: () => void }
               </div>
             )}
           </div>
+          {tpl.looks && (
+            <div>
+              <label className="text-[12.5px] font-medium">Look</label>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                {tpl.looks.map(l => (
+                  <button key={l.id} type="button" onClick={() => setLook(l.id)} title={l.desc}
+                    className={`rounded-lg border overflow-hidden text-left transition ${look === l.id ? 'border-white/60 ring-1 ring-white/40' : 'border-[var(--line-2)] hover:border-[var(--line-3)]'}`}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`/long/looks/${l.id}.jpg`} alt="" className="w-full aspect-video object-cover" />
+                    <div className="px-2.5 py-2"><div className="text-[12.5px] font-medium">{l.label}</div><div className="text-[11px] text-[var(--fg-4)] leading-snug line-clamp-2">{l.desc}</div></div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div>
             <label className="text-[12.5px] font-medium">Length</label>
             <div className="grid grid-cols-4 gap-2 mt-2">

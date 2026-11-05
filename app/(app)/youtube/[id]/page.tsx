@@ -188,10 +188,10 @@ export default function Workspace({ params }: { params: { id: string } }) {
                 <div className="ui-eyebrow px-1 mb-1">Part {sel.part + 1} · {sections[sel.part]?.title}</div>
                 {(sections[sel.part]?.shots || []).map((sh, j) => (
                   <button key={j} onClick={() => { setSel({ part: sel.part, shot: j }); }} className={`w-full text-left rounded-lg border p-2.5 flex gap-2.5 ${sel.shot === j ? 'border-white/30 bg-white/[0.04]' : 'border-[var(--line)] hover:border-[var(--line-2)]'}`}>
-                    <Thumb url={p.assets[sh.place]?.url} className="w-[72px] shrink-0 aspect-video rounded" label={sh.place === 'headline' ? 'TITLE' : undefined} />
+                    <Thumb url={sh.build ? lookPoster(p) : p.assets[sh.place]?.url} className="w-[72px] shrink-0 aspect-video rounded" label={sh.place === 'headline' ? 'TITLE' : undefined} />
                     <div className="min-w-0">
-                      <div className="text-[10.5px] text-[var(--fg-4)]">{fmtTime(shotStart(sel.part, sh))} · {sh.place}</div>
-                      <div className="text-[12px] leading-snug line-clamp-2">{sh.action || (sh.show ? `${sh.show.join(', ')}${sh.words ? ` · “${sh.words}”` : ''}` : '')}</div>
+                      <div className="text-[10.5px] text-[var(--fg-4)]">{fmtTime(shotStart(sel.part, sh))} · {sh.build ? (sh.device || 'scene') : sh.place}</div>
+                      <div className="text-[12px] leading-snug line-clamp-2">{sh.build || sh.action || (sh.show ? `${sh.show.join(', ')}${sh.words ? ` · “${sh.words}”` : ''}` : '')}</div>
                     </div>
                   </button>
                 ))}
@@ -237,7 +237,7 @@ export default function Workspace({ params }: { params: { id: string } }) {
           {p && (
             <div className="p-4 border-t border-[var(--line)] text-[12px] space-y-1.5">
               <div className="ui-eyebrow mb-2">Project</div>
-              <Row k="Template" v={p.template_name} /><Row k="Length" v={`${p.minutes} min`} /><Row k="Narrator" v={tpl?.voices.find(v => v.id === p.voice)?.label || p.voice} />
+              <Row k="Template" v={p.template_name} />{p.look_name && <Row k="Look" v={p.look_name} />}<Row k="Length" v={`${p.minutes} min`} /><Row k="Narrator" v={tpl?.voices.find(v => v.id === p.voice)?.label || p.voice} />
               <Row k="Credits" v={cost ? `${cost.toLocaleString()}${p.status === 'awaiting_approval' || p.status === 'planning' ? ' on approval' : ''}` : '–'} />
               {p.plan?.description && <div className="pt-2 text-[var(--fg-3)] leading-snug">{p.plan.description}</div>}
             </div>
@@ -303,12 +303,18 @@ function PartCard({ p, k, sec, dur }: { p: LongProject; k: number; sec: LongSect
   );
 }
 
+const lookPoster = (p: LongProject) => (p.look ? `/long/looks/${p.look}.jpg` : undefined);
+
 function ShotCard({ p, sh }: { p: LongProject; sh: LongShot }) {
   const cast = (sh.cast || []).map(c => String(c).replace(':', '_'));
   return (
     <div className="p-4 border-b border-[var(--line)] text-[12px]">
       <div className="ui-eyebrow mb-2 flex items-center gap-2">Shot{sh.layer && <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${sh.layer === 'B' ? 'bg-amber-400/15 text-amber-200' : 'bg-violet-400/15 text-violet-200'}`}>{p.assets[sh.place]?.layer === 'A' && sh.layer === 'B' ? 'B → A (no footage found)' : sh.layer === 'B' ? 'B · Archive footage' : 'A · AI scene'}</span>}</div>
-      <Thumb url={p.assets[sh.place]?.url} className="w-full aspect-video rounded-md mb-2.5" label={sh.place === 'headline' ? 'HEADLINE CARD' : sh.place} />
+      {sh.build ? <Thumb url={lookPoster(p)} className="w-full aspect-video rounded-md mb-2.5" label={(sh.device || 'scene').toUpperCase()} />
+        : <Thumb url={p.assets[sh.place]?.url} className="w-full aspect-video rounded-md mb-2.5" label={sh.place === 'headline' ? 'HEADLINE CARD' : sh.place} />}
+      {sh.build && <div className="leading-snug text-[var(--fg-2)]">{sh.build}</div>}
+      {sh.camera && <div className="mt-1.5"><span className="text-[var(--fg-4)]">Camera: </span>{sh.camera}</div>}
+      {sh.data && <div className="mt-1.5"><span className="text-[var(--fg-4)]">Data: </span>{sh.data}</div>}
       {sh.layer && <div className="leading-snug text-[var(--fg-2)]">{sh.upload != null ? `Your upload ${sh.upload}${sh.upload_at ? ` from ${sh.upload_at.toFixed(1)} s` : ''}` : sh.layer === 'B' ? `Search: ${sh.search}` : sh.prompt}</div>}
       {sh.lower?.title && <div className="mt-1.5"><span className="text-[var(--fg-4)]">Lower third: </span>{sh.lower.title}{sh.lower.sub ? ` · ${sh.lower.sub}` : ''}</div>}
       {sh.action && <div className="leading-snug mt-1.5">{sh.layer ? <span className="text-[var(--fg-4)]">Overlay: </span> : null}{sh.action}</div>}
@@ -316,7 +322,7 @@ function ShotCard({ p, sh }: { p: LongProject; sh: LongShot }) {
       {sh.ring && <div className="mt-1.5"><span className="text-[var(--fg-4)]">Ring: </span>{sh.ring}</div>}
       {(sh.show || []).length > 1 && <div className="flex gap-1.5 mt-3">{sh.show!.map(c => <Thumb key={c} url={p.assets[c]?.url} className="w-16 h-12 rounded bg-white/[0.04]" contain title={p.assets[c]?.shows || c} />)}</div>}
       {sh.show && p.assets[sh.place]?.shows && <div className="mt-2 text-[11px] text-[var(--fg-4)]">Found: {p.assets[sh.place]!.shows}{p.assets[sh.place]!.credit ? ` · ${p.assets[sh.place]!.credit}` : ''}</div>}
-      {sh.text && <div className="mt-2"><span className="text-[var(--fg-4)]">On a sign: </span>{sh.text}</div>}
+      {sh.text && <div className="mt-2"><span className="text-[var(--fg-4)]">{sh.build ? 'On screen: ' : 'On a sign: '}</span>{sh.text}</div>}
       {sh.marks && <div className="mt-1.5"><span className="text-[var(--fg-4)]">Marks: </span>{sh.marks}</div>}
       {cast.length > 0 && (
         <div className="flex gap-1.5 mt-3">{cast.map(c => <Thumb key={c} url={p.assets[c]?.url} className="w-12 h-16 rounded bg-white/[0.04]" contain title={c} />)}</div>
@@ -327,6 +333,18 @@ function ShotCard({ p, sh }: { p: LongProject; sh: LongShot }) {
 
 function Storyboard({ p, shot, line }: { p: LongProject; shot?: LongShot; line?: string }) {
   if (!shot) return <div className="absolute inset-0 bg-[#111]" />;
+  if (shot.build) return (
+    <div className="absolute inset-0 bg-[#111]">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={lookPoster(p)} alt="" className="absolute inset-0 w-full h-full object-cover opacity-35" />
+      <div className="absolute inset-0 grid place-items-center px-[10%]"><div className="text-center">
+        <div className="text-[10.5px] uppercase tracking-[.14em] text-white/60 mb-2">{shot.device || 'scene'}{shot.camera ? ` · ${shot.camera}` : ''}</div>
+        <div className="text-white text-[15px] leading-snug">{shot.build}</div>
+        {shot.text && <div className="mt-3 text-white font-bold text-[2vw] leading-tight">{shot.text}</div>}
+      </div></div>
+      {line && <div className="absolute left-1/2 -translate-x-1/2 bottom-3 max-w-[80%] text-center text-[12.5px] text-white/90 bg-black/55 backdrop-blur px-3 py-1.5 rounded-md">“{line}”</div>}
+    </div>
+  );
   if (shot.place === 'headline') return (
     <div className="absolute inset-0 grid place-items-center bg-[#5b3fa6]"><div className="text-white font-extrabold text-[3.2vw] tracking-tight uppercase text-center px-[8%]">{shot.text || line}</div></div>
   );
@@ -504,9 +522,9 @@ function Timeline({ sections, spans, total, p, time, sel, shotStart, onSeek, onP
             <div className="h-[38px] relative">
               {sections.map((s, k) => s.shots.map((sh, j) => {
                 const a = shotStart(k, sh), b = j + 1 < s.shots.length ? shotStart(k, s.shots[j + 1]) : spans[k].start + spans[k].dur;
-                const url = p?.assets[sh.place]?.url;
+                const url = sh.build ? (p ? lookPoster(p) : undefined) : p?.assets[sh.place]?.url;
                 return (
-                  <button key={`${k}-${j}`} onClick={() => onPick(k, j)} title={sh.action}
+                  <button key={`${k}-${j}`} onClick={() => onPick(k, j)} title={sh.build || sh.action}
                     className={`absolute top-1 bottom-1 rounded overflow-hidden border ${sel.part === k && sel.shot === j ? 'border-white' : 'border-black/60'} ${sh.place === 'headline' ? 'bg-[#5b3fa6]' : 'bg-[#23252e]'}`}
                     style={{ left: a * zoom, width: Math.max(4, (b - a) * zoom - 1), backgroundImage: url ? `url(${url})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center' }} />
                 );
