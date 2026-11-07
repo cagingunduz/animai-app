@@ -3,7 +3,7 @@
 export interface LongTemplate {
   key: string; title: string; tagline: string; desc: string; perMinute: number; minutes: number[]; defaultMinutes: number;
   voices: { id: string; label: string }[]; poster: string; ready: boolean; topicHint: string; ideas: string[]; uploads?: boolean;
-  looks?: { id: string; label: string; desc: string }[];
+  looks?: { id: string; label: string; desc: string; group?: string }[];
 }
 export const LONG_TEMPLATES: LongTemplate[] = [
   {
@@ -32,20 +32,32 @@ export const LONG_TEMPLATES: LongTemplate[] = [
   },
   {
     key: 'cinecode-film', title: 'Cinecode Film', tagline: 'Explainers drawn entirely in code',
-    desc: 'No AI images and no stock: every shot is built in code in one of eight film looks (paper explainer, isometric 3D, low-poly world, hologram, blueprint, data story, keynote, Swiss type). Looks and craft rules from the open-source cinecode kit.',
+    desc: 'No AI images and no stock: every shot is built in code in one of twenty film looks (explainers, 3D worlds, evidence films, print). Looks and craft rules from the open-source cinecode kit.',
     perMinute: 180, minutes: [3, 5, 8, 12], defaultMinutes: 5, poster: '/long/cinecode-film.jpg', ready: true,
     topicHint: 'How something works, why something happens, a number that tells a story, or a system explained.',
     ideas: ['How does a city get its water?', 'Why is everything so expensive?', 'How a jet engine works', 'How GPS knows where you are', 'Why bridges fall down'],
     voices: [{ id: 'pt_michael', label: 'Michael' }, { id: 'pt_george', label: 'George' }, { id: 'pt_charles', label: 'Charles' }, { id: 'pt_paul', label: 'Paul' }, { id: 'pt_alba', label: 'Alba' }],
     looks: [
-      { id: 'vox-explainer', label: 'Vox Explainer', desc: 'Paper cards, marker circles, condensed statements: a “why” answered on a desk.' },
-      { id: 'iso-infographic', label: 'Isometric Infographic', desc: 'A 3D isometric diorama of flat blocks with labels and real numbers.' },
-      { id: 'lowpoly-island', label: 'Low-poly World', desc: 'A tiny faceted 3D world where everything arrives with a bounce.' },
-      { id: 'hologram-hud', label: 'Hologram HUD', desc: 'Objects scanned into glowing wireframes, target boxes and rolling numbers.' },
-      { id: 'blueprint', label: 'Blueprint', desc: 'White line drawings on cyanotype blue, drawn in drafting order.' },
-      { id: 'dataviz', label: 'Data Story', desc: 'Real data drawn mark by mark on cream paper, with handwritten notes.' },
-      { id: 'dark-keynote', label: 'Dark Keynote', desc: 'Near-black stage, UI panels, one accent and one giant number.' },
-      { id: 'swiss-motion', label: 'Swiss Motion', desc: 'A strict grid, one typeface, one signal colour.' },
+      { group: 'Explainers', id: 'vox-explainer', label: 'Vox Explainer', desc: 'Paper cards, marker circles, condensed statements: a “why” answered on a desk.' },
+      { group: 'Explainers', id: 'sticker-explainer', label: 'Sticker Explainer', desc: 'Flat icons and charts as stickers on one calm canvas, the camera gliding between facts.' },
+      { group: 'Explainers', id: 'whiteboard', label: 'Whiteboard', desc: 'A lesson written and drawn live in marker on a glossy board.' },
+      { group: 'Explainers', id: 'dataviz', label: 'Data Story', desc: 'Real data drawn mark by mark on cream paper, with handwritten notes.' },
+      { group: 'Explainers', id: 'dark-keynote', label: 'Dark Keynote', desc: 'Near-black stage, UI panels, one accent and one giant number.' },
+      { group: 'Explainers', id: 'swiss-motion', label: 'Swiss Motion', desc: 'A strict grid, one typeface, one signal colour.' },
+      { group: '3D worlds', id: 'iso-infographic', label: 'Isometric Infographic', desc: 'A 3D isometric diorama of flat blocks with labels and real numbers.' },
+      { group: '3D worlds', id: 'lowpoly-island', label: 'Low-poly World', desc: 'A tiny faceted 3D world where everything arrives with a bounce.' },
+      { group: '3D worlds', id: 'tilt-shift', label: 'Tilt-shift Miniature', desc: 'A real-looking place shrunk to a sunny model, sharp in one band, time sped up.' },
+      { group: '3D worlds', id: 'white-model', label: 'White City Model', desc: 'A white architectural model in a dark room, data projected onto it layer by layer.' },
+      { group: '3D worlds', id: 'data-physical', label: 'Physical Data', desc: 'Numbers built as objects in metal, glass and wood on a studio sweep.' },
+      { group: '3D worlds', id: 'teardown', label: 'Exploded Teardown', desc: 'A machine taken apart in the air, every part named and measured.' },
+      { group: '3D worlds', id: 'hologram-hud', label: 'Hologram HUD', desc: 'Objects scanned into glowing wireframes, target boxes and rolling numbers.' },
+      { group: 'Evidence films', id: 'archive-lighttable', label: 'Archive Light Table', desc: 'Negatives, prints and records on a backlit table, read through a loupe.' },
+      { group: 'Evidence films', id: 'briefing-board', label: 'Briefing Board', desc: 'An investigation on a whiteboard wall: marker in three colours, tags and stamps.' },
+      { group: 'Evidence films', id: 'satellite-briefing', label: 'Satellite Briefing', desc: 'Ground seen from orbit, a claim tested against one measured reading.' },
+      { group: 'Evidence films', id: 'lidar-survey', label: 'Lidar Survey', desc: 'A landscape swept into a point cloud until what it hides is traced and measured.' },
+      { group: 'Evidence films', id: 'blueprint', label: 'Blueprint', desc: 'White line drawings on cyanotype blue, drawn in drafting order.' },
+      { group: 'Print', id: 'halftone-dossier', label: 'Halftone Dossier', desc: 'A case file in comic print: halftone dots, fat headlines, stamps.' },
+      { group: 'Print', id: 'risograph', label: 'Risograph', desc: 'Two or three spot inks overprinting on warm paper, slightly off register.' },
     ],
   },
   {
