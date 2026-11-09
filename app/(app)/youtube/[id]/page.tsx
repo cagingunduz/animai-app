@@ -237,7 +237,7 @@ export default function Workspace({ params }: { params: { id: string } }) {
           {p && (
             <div className="p-4 border-t border-[var(--line)] text-[12px] space-y-1.5">
               <div className="ui-eyebrow mb-2">Project</div>
-              <Row k="Template" v={p.template_name} />{p.look_name && <Row k="Look" v={p.look_name} />}<Row k="Length" v={`${p.minutes} min`} /><Row k="Narrator" v={tpl?.voices.find(v => v.id === p.voice)?.label || p.voice} />
+              <Row k="Template" v={p.template_name} />{p.look_name && <Row k="Look" v={p.look_name} />}{p.reference && <Row k="Remake of" v={`${p.reference.source.replace(/^https?:\/\/(www\.)?/, '').slice(0, 40)}${p.reference.same_topic ? ' · same subject' : ''}`} />}<Row k="Length" v={`${p.minutes} min`} /><Row k="Narrator" v={tpl?.voices.find(v => v.id === p.voice)?.label || p.voice} />
               <Row k="Credits" v={cost ? `${cost.toLocaleString()}${p.status === 'awaiting_approval' || p.status === 'planning' ? ' on approval' : ''}` : '–'} />
               {p.plan?.description && <div className="pt-2 text-[var(--fg-3)] leading-snug">{p.plan.description}</div>}
             </div>

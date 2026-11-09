@@ -65,6 +65,9 @@ export const LONG_TEMPLATES: LongTemplate[] = [
 export const longTemplate = (k: string) => LONG_TEMPLATES.find(t => t.key === k && t.ready);
 export const LISTED_TEMPLATES = LONG_TEMPLATES.filter(t => t.ready && t.listed !== false);   // only Cinecode Film for now
 export const newProjectTemplate = (k: string) => LISTED_TEMPLATES.find(t => t.key === k);
+// Remakes of an analysed video (Cinecode Film): a short reel can stay short
+export const REMAKE_TEMPLATE = 'cinecode-film';
+export const REMAKE_MINUTES = [1, 2, 3, 5, 8, 12, 15];
 
 export interface LongLine { text: string; say?: string; mood?: string; pause?: number }
 export interface LongShot { line: number; at?: string; place: string; cast?: string[]; props?: string[]; action: string; text?: string; marks?: string; show?: string[]; words?: string; ring?: string;
@@ -78,6 +81,7 @@ export interface LongPart {
 export interface LongAsset { url: string; layer?: 'A' | 'B'; kind: 'place' | 'character' | 'prop' | 'plate' | 'cutout' | 'document' | 'portrait' | 'image' | 'video'; boards?: { x: number; y: number; w: number; h: number }[]; use?: string; shows?: string; credit?: string }
 export interface LongProject {
   id: string; template: string; template_name: string; topic: string; minutes: number; voice: string; look?: string; look_name?: string;
+  reference?: { source: string; same_topic: boolean; look_name?: string; sheet?: string; duration?: number };
   status: 'planning' | 'awaiting_approval' | 'producing' | 'completed' | 'failed'; stage: string; message: string; progress: number;
   title: string | null; error: string | null; running: boolean; status_note?: string;
   plan: null | { title: string; description: string; places: { id: string; desc: string }[]; cast: { id: string; desc: string; poses: string[] }[]; props: { id: string; desc: string }[]; sections: LongSection[];
