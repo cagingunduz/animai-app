@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { longTemplate, REMAKE_MINUTES, REMAKE_TEMPLATE } from '@/lib/long';
 
 // Video analysis: drop in a reel you like (file or link) → how it's made: shots and cut rhythm, camera, look and palette,
 // tempo and hits, contact sheets, and a written style breakdown. Measurement engine from ReelMimic (MIT), on the backend.
@@ -27,9 +29,10 @@ interface Job {
   status: string; stage: string; step: number; total_steps: number; message: string; source: string; error?: string;
   report: Report | null; breakdown: Breakdown | null; breakdown_error?: string;
   files: { sheet_1fps?: string; sheet_scenes?: string; fingerprint?: string; report?: string };
+  transcript?: { language?: string; segments: { start: number; end: number; text: string }[] } | null;
 }
 
-const STAGES = [['measuring', 'Measuring'], ['publishing', 'Saving'], ['describing', 'Writing breakdown']] as const;
+const STAGES = [['measuring', 'Measuring'], ['publishing', 'Saving'], ['transcribing', 'Listening'], ['describing', 'Writing breakdown']] as const;
 const fmt = (s?: number | null) => (s == null ? '—' : s < 60 ? `${s.toFixed(1)}s` : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`);
 
 function send(fd: FormData, token: string, onProgress: (p: number) => void): Promise<{ job_id: string }> {
@@ -176,7 +179,7 @@ export default function AnalyzePage() {
           </div>
         )}
 
-        {job?.status === 'completed' && job.report && <Result job={job} />}
+        {job?.status === 'completed' && job.report && jobId && <Result job={job} jobId={jobId} />}
       </div>
     </div>
   );
@@ -201,12 +204,77 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Result({ job }: { job: Job }) {
+function Remake({ job, jobId }: { job: Job; jobId: string }) {
+  const router = useRouter();
+  const tpl = longTemplate(REMAKE_TEMPLATE);
+  const dur = job.report?.video?.duration || 60;
+  const canSame = !!job.transcript?.segments?.length;
+  const nearest = REMAKE_MINUTES.reduce((a, m) => (Math.abs(m * 60 - dur) < Math.abs(a * 60 - dur) ? m : a), REMAKE_MINUTES[0]);
+  const [mode, setMode] = useState<'same' | 'new'>(canSame ? 'same' : 'new');
+  const [topic, setTopic] = useState('');
+  const [minutes, setMinutes] = useState(nearest);
+  const [voice, setVoice] = useState(tpl?.voices[0]?.id || '');
+  const [notes, setNotes] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  if (!tpl) return null;
+  const go = async () => {
+    setErr('');
+    if (mode === 'new' && !topic.trim()) { setErr('Write what your video is about.'); return; }
+    setBusy(true);
+    try {
+      const r = await fetch('/api/long/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+        template: REMAKE_TEMPLATE, analysis_id: jobId, same_topic: mode === 'same', topic: mode === 'new' ? topic.trim() : '',
+        minutes, voice, notes: notes.trim(), title: job.breakdown?.format || job.source }) });
+      const d = await r.json();
+      if (!r.ok || !d.id) throw new Error(d.error || d.detail || 'Could not start the video.');
+      router.push(`/youtube/${d.id}`);
+    } catch (e) { setErr((e as Error).message); setBusy(false); }
+  };
+  return (
+    <div className="ui-card p-5 border-[var(--line-3)]">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 mb-1">
+        <div className="text-[16px] font-semibold">Make one like it</div>
+        <div className="text-[11.5px] text-[var(--fg-4)]">{tpl.perMinute * minutes} credits · charged when you approve the plan</div>
+      </div>
+      <p className="text-[12.5px] text-[var(--fg-3)] mb-4">Claude studies this video&apos;s look, pace and structure, generates new pictures in the same style and builds the explainer graphics and on-screen text itself. You read and edit the script before anything is made.</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+        {([['same', 'Same subject', canSame ? 'Retold in new words, same order and facts' : 'Nothing is said in this video'], ['new', 'My own topic', 'Same style and structure, your subject']] as const).map(([k, t, d]) => (
+          <button key={k} type="button" disabled={k === 'same' && !canSame} onClick={() => setMode(k)}
+            className={`text-left rounded-lg border p-3 transition ${mode === k ? 'border-white/60 bg-white/[0.05]' : 'border-[var(--line-2)] hover:border-[var(--line-3)]'} disabled:opacity-40`}>
+            <div className="text-[13px] font-medium">{t}</div><div className="text-[11.5px] text-[var(--fg-4)] mt-0.5">{d}</div>
+          </button>
+        ))}
+      </div>
+      {mode === 'new' && <input className="ui-input mb-3" maxLength={300} placeholder="What is your video about?" value={topic} onChange={e => setTopic(e.target.value)} />}
+      <div className="flex flex-wrap gap-3 mb-3">
+        <label className="text-[12px] text-[var(--fg-3)]">Length
+          <select className="ui-input !h-8 !w-auto ml-2 !inline-block" value={minutes} onChange={e => setMinutes(Number(e.target.value))}>
+            {REMAKE_MINUTES.map(m => <option key={m} value={m}>{m} min{m === nearest ? ' (like the original)' : ''}</option>)}
+          </select>
+        </label>
+        <label className="text-[12px] text-[var(--fg-3)]">Narrator
+          <select className="ui-input !h-8 !w-auto ml-2 !inline-block" value={voice} onChange={e => setVoice(e.target.value)}>
+            {tpl.voices.map(v => <option key={v.id} value={v.id}>{v.label}</option>)}
+          </select>
+        </label>
+      </div>
+      <input className="ui-input mb-4" maxLength={600} placeholder="Notes for Claude (optional): language, tone, what to change" value={notes} onChange={e => setNotes(e.target.value)} />
+      <div className="flex items-center gap-3">
+        <button className="ui-btn ui-btn-primary ui-btn-lg" disabled={busy} onClick={go}>{busy ? 'Starting…' : 'Write the script'}</button>
+        {err && <span className="text-[12.5px] text-rose-300">{err}</span>}
+      </div>
+    </div>
+  );
+}
+
+function Result({ job, jobId }: { job: Job; jobId: string }) {
   const r = job.report!; const b = job.breakdown; const dur = r.video?.duration || 1;
   const au = r.audio;
   const palette = b?.palette?.length ? b.palette : Array.from(new Set(r.shots.flatMap(s => s.dominant))).slice(0, 6);
   return (
     <div className="space-y-6">
+      <Remake job={job} jobId={jobId} />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Stat label="Length" value={fmt(r.video?.duration)} sub={r.video ? `${r.video.width}×${r.video.height} · ${r.video.fps} fps` : undefined} />
         <Stat label="Shots" value={String(r.pacing.count || 1)} sub={r.pacing.mean_shot_s ? `avg ${r.pacing.mean_shot_s}s · ${r.pacing.shortest_s}–${r.pacing.longest_s}s` : 'one continuous shot'} />

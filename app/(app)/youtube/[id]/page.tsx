@@ -237,7 +237,7 @@ export default function Workspace({ params }: { params: { id: string } }) {
           {p && (
             <div className="p-4 border-t border-[var(--line)] text-[12px] space-y-1.5">
               <div className="ui-eyebrow mb-2">Project</div>
-              <Row k="Template" v={p.template_name} />{p.look_name && <Row k="Look" v={p.look_name} />}<Row k="Length" v={`${p.minutes} min`} /><Row k="Narrator" v={tpl?.voices.find(v => v.id === p.voice)?.label || p.voice} />
+              <Row k="Template" v={p.template_name} />{p.look_name && <Row k="Look" v={p.look_name} />}{p.reference && <Row k="Remake of" v={`${p.reference.source.replace(/^https?:\/\/(www\.)?/, '').slice(0, 40)}${p.reference.same_topic ? ' · same subject' : ''}`} />}<Row k="Length" v={`${p.minutes} min`} /><Row k="Narrator" v={tpl?.voices.find(v => v.id === p.voice)?.label || p.voice} />
               <Row k="Credits" v={cost ? `${cost.toLocaleString()}${p.status === 'awaiting_approval' || p.status === 'planning' ? ' on approval' : ''}` : '–'} />
               {p.plan?.description && <div className="pt-2 text-[var(--fg-3)] leading-snug">{p.plan.description}</div>}
             </div>
@@ -309,7 +309,7 @@ function ShotCard({ p, sh }: { p: LongProject; sh: LongShot }) {
   const cast = (sh.cast || []).map(c => String(c).replace(':', '_'));
   return (
     <div className="p-4 border-b border-[var(--line)] text-[12px]">
-      <div className="ui-eyebrow mb-2 flex items-center gap-2">Shot{sh.layer && <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${sh.layer === 'B' ? 'bg-amber-400/15 text-amber-200' : 'bg-violet-400/15 text-violet-200'}`}>{p.assets[sh.place]?.layer === 'A' && sh.layer === 'B' ? 'B → A (no footage found)' : sh.layer === 'B' ? 'B · Archive footage' : 'A · AI scene'}</span>}</div>
+      <div className="ui-eyebrow mb-2 flex items-center gap-2">Shot{sh.layer && <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${sh.layer === 'B' ? 'bg-amber-400/15 text-amber-200' : sh.layer === 'G' ? 'bg-sky-400/15 text-sky-200' : 'bg-violet-400/15 text-violet-200'}`}>{p.assets[sh.place]?.layer === 'A' && sh.layer === 'B' ? 'B → A (no footage found)' : sh.layer === 'B' ? 'B · Archive footage' : sh.layer === 'G' ? 'G · Explainer graphic' : 'A · AI scene'}</span>}</div>
       {sh.build ? <Thumb url={lookPoster(p)} className="w-full aspect-video rounded-md mb-2.5" label={(sh.device || 'scene').toUpperCase()} />
         : <Thumb url={p.assets[sh.place]?.url} className="w-full aspect-video rounded-md mb-2.5" label={sh.place === 'headline' ? 'HEADLINE CARD' : sh.place} />}
       {sh.build && <div className="leading-snug text-[var(--fg-2)]">{sh.build}</div>}
@@ -353,7 +353,7 @@ function Storyboard({ p, shot, line }: { p: LongProject; shot?: LongShot; line?:
   if (shot.layer) return (
     <div className="absolute inset-0 bg-[#0d0e11]">
       {plate && /\.mp4($|\?)/.test(plate) ? <video src={plate} muted autoPlay loop playsInline className="absolute inset-0 w-full h-full object-cover" />
-        : plate ? <img src={plate} alt="" className="absolute inset-0 w-full h-full object-cover" /> : <div className="absolute inset-0 grid place-items-center text-[12px] text-[var(--fg-4)]">{shot.layer === 'B' ? `Archive footage for “${shot.search}” is found after you approve` : 'This AI scene is drawn after you approve'}</div>}
+        : plate ? <img src={plate} alt="" className="absolute inset-0 w-full h-full object-cover" /> : <div className="absolute inset-0 grid place-items-center text-[12px] text-[var(--fg-4)]">{shot.layer === 'B' ? `Archive footage for “${shot.search}” is found after you approve` : shot.layer === 'G' ? 'Claude builds this explainer graphic in code' : 'This AI scene is drawn after you approve'}</div>}
       {shot.lower?.title && <div className="absolute left-[4%] bottom-[16%]"><div className="bg-white text-black font-extrabold uppercase text-[1.4vw] px-2 py-1">{shot.lower.title}</div>{shot.lower.sub && <div className="bg-black/80 text-white/80 text-[0.9vw] px-2 py-1">{shot.lower.sub}</div>}</div>}
       {line && <div className="absolute left-1/2 -translate-x-1/2 bottom-3 max-w-[80%] text-center text-[12.5px] text-white/90 bg-black/55 backdrop-blur px-3 py-1.5 rounded-md">“{line}”</div>}
     </div>
@@ -383,7 +383,7 @@ function Assets({ p }: { p: LongProject }) {
   const plan = p.plan!;
   const layered = plan.sections.flatMap(s => s.shots).filter(s => s.layer);
   if (layered.length) {
-    const groups: [string, LongShot[]][] = [['B · Archive footage', layered.filter(s => s.layer === 'B')], ['A · AI scenes', layered.filter(s => s.layer === 'A')]];
+    const groups: [string, LongShot[]][] = [['B · Archive footage', layered.filter(s => s.layer === 'B')], ['A · AI scenes', layered.filter(s => s.layer === 'A')], ['G · Explainer graphics (built in code)', layered.filter(s => s.layer === 'G')]];
     return (
       <div className="p-3 space-y-5">
         <div className="text-[11.5px] text-[var(--fg-4)] px-1">Real footage and photos from open archives (credited), AI scenes for hooks, concepts, maps and reconstructions.{p.status === 'awaiting_approval' ? ' They are made after you approve.' : ''}</div>
