@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { LONG_TEMPLATES, type LongTemplate } from '@/lib/long';
+import { LISTED_TEMPLATES, type LongTemplate } from '@/lib/long';
 
 // Long videos (YouTube, 16:9): a few templates, and every project you started, ready to continue.
 
@@ -54,7 +54,7 @@ export default function LongVideosPage() {
 
         <div className="ui-eyebrow mb-3">Templates</div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
-          {LONG_TEMPLATES.map(t => (
+          {LISTED_TEMPLATES.map(t => (
             <button key={t.key} type="button" disabled={!t.ready} onClick={() => setCreating(t)}
               className={`group text-left ui-card overflow-hidden transition ${t.ready ? 'hover:border-[var(--line-3)]' : 'opacity-55 cursor-default'}`}>
               <div className="relative aspect-video bg-[#111] overflow-hidden">
@@ -71,6 +71,24 @@ export default function LongVideosPage() {
               </div>
             </button>
           ))}
+          <Link href="/youtube/analyze" className="group text-left ui-card overflow-hidden transition hover:border-[var(--line-3)]">
+            <div className="relative aspect-video bg-[#0e0e10] overflow-hidden grid place-items-center">
+              <svg viewBox="0 0 320 180" className="w-full h-full group-hover:scale-[1.03] transition-transform duration-500" aria-hidden>
+                {[['#d94040', 0, 46], ['#e8a33d', 46, 30], ['#2f6fd6', 76, 62], ['#35a37a', 138, 38], ['#8d5bd6', 176, 54], ['#e8a33d', 230, 26], ['#2f6fd6', 256, 64]].map(([c, x, w], i) => (
+                  <rect key={i} x={Number(x) + 0} y={64} width={Number(w) - 2} height={34} rx={3} fill={String(c)} opacity={0.85} />
+                ))}
+                {[34, 70, 106, 142, 178, 214, 250, 286].map((x, i) => <rect key={i} x={x} y={120 - (i % 3 === 0 ? 18 : 9)} width={3} height={i % 3 === 0 ? 18 : 9} fill="#fff" opacity={0.5} />)}
+                <path d="M138 52 l6 -9 l6 9 z M230 52 l6 -9 l6 9 z" fill="#fff" opacity={0.75} />
+              </svg>
+              <span className="absolute top-2.5 left-2.5 ui-chip">Tool</span>
+            </div>
+            <div className="p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-[14px] font-medium">Video analysis</div>
+              </div>
+              <div className="text-[12.5px] text-[var(--fg-3)] mt-1 line-clamp-2">Drop in a video you like: its cuts, camera, colours and beat measured, and how to make one in the same style.</div>
+            </div>
+          </Link>
         </div>
 
         {tableMissing && (
