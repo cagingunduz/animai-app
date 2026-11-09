@@ -65,9 +65,15 @@ export const LONG_TEMPLATES: LongTemplate[] = [
 export const longTemplate = (k: string) => LONG_TEMPLATES.find(t => t.key === k && t.ready);
 export const LISTED_TEMPLATES = LONG_TEMPLATES.filter(t => t.ready && t.listed !== false);   // only Cinecode Film for now
 export const newProjectTemplate = (k: string) => LISTED_TEMPLATES.find(t => t.key === k);
-// Remakes of an analysed video: generated pictures + Claude's code graphics (the Documentary Analysis engine, which is
-// off the gallery but kept for this); a short reel can stay short
-export const REMAKE_TEMPLATE = 'doc-analysis';
+// Remakes of an analysed video, by what the reference is made of (measured shot by shot): generated pictures + Claude's
+// code graphics (the Documentary Analysis engine, off the gallery but kept for this), or animation built entirely in code
+// (Cinecode Film). A short reel can stay short.
+export const REMAKE_ENGINES = {
+  images: { template: 'doc-analysis', label: 'Pictures + graphics', desc: 'New pictures in its style (Nano Banana); Claude builds the graphics and text' },
+  animation: { template: 'cinecode-film', label: 'Animation only', desc: 'Every shot built and animated in code by Claude; no pictures' },
+} as const;
+export type RemakeEngine = keyof typeof REMAKE_ENGINES;
+export const REMAKE_TEMPLATES: string[] = Object.values(REMAKE_ENGINES).map(e => e.template);
 export const REMAKE_MINUTES = [1, 2, 3, 5, 8, 12, 15];
 
 export interface LongLine { text: string; say?: string; mood?: string; pause?: number }

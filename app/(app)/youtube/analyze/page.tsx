@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { longTemplate, REMAKE_MINUTES, REMAKE_TEMPLATE } from '@/lib/long';
+import { longTemplate, REMAKE_ENGINES, REMAKE_MINUTES, type RemakeEngine } from '@/lib/long';
 
 // Video analysis: drop in a reel you like (file or link) → how it's made: shots and cut rhythm, camera, look and palette,
 // tempo and hits, contact sheets, and a written style breakdown. Measurement engine from ReelMimic (MIT), on the backend.
@@ -30,9 +30,24 @@ interface Job {
   report: Report | null; breakdown: Breakdown | null; breakdown_error?: string;
   files: { sheet_1fps?: string; sheet_scenes?: string; fingerprint?: string; report?: string };
   transcript?: { language?: string; segments: { start: number; end: number; text: string }[] } | null;
+  sources?: Sources | null;
 }
+type Source = 'generated' | 'code' | 'footage';
+interface SourceShot { shot: number; start: number; end: number; source: Source; overlay?: boolean; confidence: number; why: string; frame?: string;
+  metrics?: { independent_motion: number; camera_move: number; flat: number; grain: number } }
+interface Sources { shots: SourceShot[]; shares: Record<Source, number>; engine: 'animation' | 'images' | 'mixed' | null; confidence: number }
+const SRC: Record<Source, { label: string; color: string; chip: string }> = {
+  generated: { label: 'Generated picture', color: '#8b5cf6', chip: 'bg-violet-400/15 text-violet-200' },
+  code: { label: 'Code animation', color: '#38bdf8', chip: 'bg-sky-400/15 text-sky-200' },
+  footage: { label: 'Real footage', color: '#f59e0b', chip: 'bg-amber-400/15 text-amber-200' },
+};
+// the label of a shot, or of the nearest labelled one (long videos are sampled)
+const srcOf = (src: Sources | null | undefined, shot: number) => {
+  if (!src?.shots?.length) return undefined;
+  return src.shots.reduce((a, x) => (Math.abs(x.shot - shot) < Math.abs(a.shot - shot) ? x : a), src.shots[0]);
+};
 
-const STAGES = [['measuring', 'Measuring'], ['publishing', 'Saving'], ['transcribing', 'Listening'], ['describing', 'Writing breakdown']] as const;
+const STAGES = [['measuring', 'Measuring'], ['publishing', 'Saving'], ['transcribing', 'Listening'], ['classifying', 'Shot by shot'], ['describing', 'Writing breakdown']] as const;
 const fmt = (s?: number | null) => (s == null ? '—' : s < 60 ? `${s.toFixed(1)}s` : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`);
 
 function send(fd: FormData, token: string, onProgress: (p: number) => void): Promise<{ job_id: string }> {
@@ -206,7 +221,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Remake({ job, jobId }: { job: Job; jobId: string }) {
   const router = useRouter();
-  const tpl = longTemplate(REMAKE_TEMPLATE);
+  const suggested: RemakeEngine = job.sources?.engine === 'animation' ? 'animation' : 'images';
+  const [engine, setEngine] = useState<RemakeEngine>(suggested);
+  const tpl = longTemplate(REMAKE_ENGINES[engine].template);
   const dur = job.report?.video?.duration || 60;
   const canSame = !!job.transcript?.segments?.length;
   const nearest = REMAKE_MINUTES.reduce((a, m) => (Math.abs(m * 60 - dur) < Math.abs(a * 60 - dur) ? m : a), REMAKE_MINUTES[0]);
@@ -214,6 +231,7 @@ function Remake({ job, jobId }: { job: Job; jobId: string }) {
   const [topic, setTopic] = useState('');
   const [minutes, setMinutes] = useState(nearest);
   const [voice, setVoice] = useState(tpl?.voices[0]?.id || '');
+  useEffect(() => { if (tpl && !tpl.voices.some(v => v.id === voice)) setVoice(tpl.voices[0]?.id || ''); }, [engine]);   // eslint-disable-line react-hooks/exhaustive-deps
   const [notes, setNotes] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -224,7 +242,7 @@ function Remake({ job, jobId }: { job: Job; jobId: string }) {
     setBusy(true);
     try {
       const r = await fetch('/api/long/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
-        template: REMAKE_TEMPLATE, analysis_id: jobId, same_topic: mode === 'same', topic: mode === 'new' ? topic.trim() : '',
+        template: REMAKE_ENGINES[engine].template, analysis_id: jobId, same_topic: mode === 'same', topic: mode === 'new' ? topic.trim() : '',
         minutes, voice, notes: notes.trim(), title: job.breakdown?.format || job.source }) });
       const d = await r.json();
       if (!r.ok || !d.id) throw new Error(d.error || d.detail || 'Could not start the video.');
@@ -237,7 +255,21 @@ function Remake({ job, jobId }: { job: Job; jobId: string }) {
         <div className="text-[16px] font-semibold">Make one like it</div>
         <div className="text-[11.5px] text-[var(--fg-4)]">{tpl.perMinute * minutes} credits · charged when you approve the plan</div>
       </div>
-      <p className="text-[12.5px] text-[var(--fg-3)] mb-4">Claude studies this video&apos;s look, pace and structure, generates new pictures in the same style and builds the explainer graphics and on-screen text itself. You read and edit the script before anything is made.</p>
+      <p className="text-[12.5px] text-[var(--fg-3)] mb-4">Claude studies this video&apos;s look, pace and structure and makes a new one in the same style. You read and edit the script before anything is made.</p>
+      <div className="ui-eyebrow mb-1.5">How it&apos;s made</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-1.5">
+        {(Object.keys(REMAKE_ENGINES) as RemakeEngine[]).map(k => (
+          <button key={k} type="button" onClick={() => setEngine(k)}
+            className={`text-left rounded-lg border p-3 transition ${engine === k ? 'border-white/60 bg-white/[0.05]' : 'border-[var(--line-2)] hover:border-[var(--line-3)]'}`}>
+            <div className="text-[13px] font-medium">{REMAKE_ENGINES[k].label}{k === suggested && job.sources?.engine ? <span className="ml-1.5 text-[10.5px] text-emerald-300">matches this video</span> : null}</div>
+            <div className="text-[11.5px] text-[var(--fg-4)] mt-0.5">{REMAKE_ENGINES[k].desc}</div>
+          </button>
+        ))}
+      </div>
+      <div className="text-[11.5px] text-[var(--fg-4)] mb-4">{job.sources?.engine
+        ? `Measured shot by shot: ${Math.round((job.sources.shares.generated || 0) * 100)}% generated pictures, ${Math.round((job.sources.shares.code || 0) * 100)}% code animation, ${Math.round((job.sources.shares.footage || 0) * 100)}% real footage.`
+        : 'This analysis has no shot-by-shot labels; pick the one that fits.'}</div>
+      <div className="ui-eyebrow mb-1.5">Subject</div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
         {([['same', 'Same subject', canSame ? 'Retold in new words, same order and facts' : 'Nothing is said in this video'], ['new', 'My own topic', 'Same style and structure, your subject']] as const).map(([k, t, d]) => (
           <button key={k} type="button" disabled={k === 'same' && !canSame} onClick={() => setMode(k)}
@@ -287,13 +319,21 @@ function Result({ job, jobId }: { job: Job; jobId: string }) {
       {/* Timeline: shots coloured by their main colour; hits and flashes marked */}
       <div className="ui-card p-4">
         <div className="flex items-center justify-between mb-2"><div className="ui-eyebrow">Timeline</div>
-          <div className="flex gap-3 text-[11px] text-[var(--fg-4)]"><span>▲ music hit</span><span>✦ flash frame</span></div></div>
+          <div className="flex flex-wrap gap-3 text-[11px] text-[var(--fg-4)]">{job.sources?.shots?.length ? (Object.keys(SRC) as Source[]).map(k => <span key={k}><span className="inline-block w-2 h-2 rounded-sm mr-1" style={{ background: SRC[k].color }} />{SRC[k].label}</span>) : null}<span>▲ music hit</span><span>✦ flash frame</span></div></div>
         <div className="relative h-10 rounded-md overflow-hidden flex bg-white/5">
           {(r.shots.length ? r.shots : [{ shot: 1, start: 0, end: dur, dominant: ['#333'] } as Shot]).map(s => (
             <div key={s.shot} title={`Shot ${s.shot} · ${fmt(s.start)}–${fmt(s.end)}${s.camera ? ' · ' + s.camera.join(', ') : ''}`}
               style={{ width: `${((s.end - s.start) / dur) * 100}%`, background: s.dominant[0] }} className="h-full border-r border-black/50 last:border-0" />
           ))}
         </div>
+        {job.sources?.shots?.length ? (
+          <div className="relative h-2.5 mt-1 rounded-sm overflow-hidden flex" title="What each shot is made of">
+            {(r.shots.length ? r.shots : [{ shot: 1, start: 0, end: dur } as Shot]).map(s => {
+              const x = srcOf(job.sources, s.shot);
+              return <div key={s.shot} style={{ width: `${((s.end - s.start) / dur) * 100}%`, background: x ? SRC[x.source].color : 'transparent' }} title={x ? `Shot ${s.shot}: ${SRC[x.source].label}` : ''} className="h-full" />;
+            })}
+          </div>
+        ) : null}
         <div className="relative h-4 mt-1 text-[10px] text-[var(--fg-3)]">
           {(au.peak_candidates || []).map(p => <span key={`p${p.t}`} className="absolute -translate-x-1/2" style={{ left: `${(p.t / dur) * 100}%` }} title={`${p.kind} at ${fmt(p.t)}`}>▲</span>)}
           {r.flashes.map(t => <span key={`f${t}`} className="absolute -translate-x-1/2 text-amber-200" style={{ left: `${(t / dur) * 100}%` }} title={`flash at ${fmt(t)}`}>✦</span>)}
@@ -349,12 +389,27 @@ function Result({ job, jobId }: { job: Job; jobId: string }) {
           <summary className="ui-eyebrow cursor-pointer">Shot list ({r.shots.length})</summary>
           <div className="overflow-x-auto mt-3">
             <table className="w-full text-[12.5px]">
-              <thead className="text-[var(--fg-4)] text-left"><tr><th className="py-1.5 pr-3 font-medium">#</th><th className="pr-3 font-medium">Time</th><th className="pr-3 font-medium">Length</th><th className="pr-3 font-medium">Camera</th><th className="pr-3 font-medium">Pace</th><th className="font-medium">Colours</th></tr></thead>
+              <thead className="text-[var(--fg-4)] text-left"><tr><th className="py-1.5 pr-3 font-medium">#</th><th className="pr-3 font-medium">Time</th><th className="pr-3 font-medium">Length</th><th className="pr-3 font-medium">Camera</th><th className="pr-3 font-medium">Pace</th><th className="pr-3 font-medium">Colours</th><th className="font-medium">Made of</th></tr></thead>
               <tbody>{r.shots.map(s => (
                 <tr key={s.shot} className="border-t border-[var(--line)]">
                   <td className="py-1.5 pr-3 text-[var(--fg-4)]">{s.shot}</td><td className="pr-3 ui-mono">{fmt(s.start)}</td><td className="pr-3 ui-mono">{(s.end - s.start).toFixed(1)}s</td>
                   <td className="pr-3">{s.camera.join(', ').replace(/_/g, ' ')}</td><td className="pr-3 text-[var(--fg-3)]">{s.pace}</td>
-                  <td><div className="flex gap-1">{s.dominant.map(c => <span key={c} className="w-3.5 h-3.5 rounded-sm inline-block" style={{ background: c }} />)}</div></td>
+                  <td className="pr-3"><div className="flex gap-1">{s.dominant.map(c => <span key={c} className="w-3.5 h-3.5 rounded-sm inline-block" style={{ background: c }} />)}</div></td>
+                  <td className="py-1.5">{(() => {
+                    const x = job.sources?.shots?.find(y => y.shot === s.shot);
+                    if (!x) return <span className="text-[var(--fg-4)]">–</span>;
+                    return (
+                      <div className="flex items-center gap-2 min-w-[260px]">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        {x.frame && <a href={x.frame} target="_blank" rel="noreferrer"><img src={x.frame} alt="" className="w-16 h-9 object-cover rounded" /></a>}
+                        <div>
+                          <span className={`px-1.5 py-0.5 rounded text-[10.5px] font-medium ${SRC[x.source].chip}`}>{SRC[x.source].label}{x.overlay ? ' + text' : ''}</span>
+                          <span className="ml-1.5 text-[10.5px] text-[var(--fg-4)]">{Math.round(x.confidence * 100)}%</span>
+                          <div className="text-[11px] text-[var(--fg-4)] mt-0.5 max-w-[280px] truncate" title={x.why}>{x.why}</div>
+                        </div>
+                      </div>
+                    );
+                  })()}</td>
                 </tr>))}</tbody>
             </table>
           </div>
