@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { longApi } from '@/lib/longServer';
-import { longTemplate, newProjectTemplate, REMAKE_MINUTES, REMAKE_TEMPLATE } from '@/lib/long';
+import { longTemplate, newProjectTemplate, REMAKE_MINUTES, REMAKE_TEMPLATES } from '@/lib/long';
 
 export const maxDuration = 60;
 
@@ -14,7 +14,8 @@ export async function POST(request: Request) {
   // A remake of an analysed video: rebuilt in the reference's style (same subject, or the user's topic) with the remake
   // engine, which is not on the gallery; everything else must be a listed template
   const analysisId = typeof body.analysis_id === 'string' && /^[0-9a-f-]{36}$/.test(body.analysis_id) ? body.analysis_id : null;
-  const tpl = analysisId ? longTemplate(REMAKE_TEMPLATE) : newProjectTemplate(String(body.template || ''));
+  const tpl = analysisId ? longTemplate(REMAKE_TEMPLATES.includes(String(body.template)) ? String(body.template) : REMAKE_TEMPLATES[0])
+    : newProjectTemplate(String(body.template || ''));
   if (!tpl) return NextResponse.json({ error: 'Unknown template.' }, { status: 400 });
   const sameTopic = !!analysisId && body.same_topic === true;
   const minutes = (analysisId ? REMAKE_MINUTES : tpl.minutes).includes(Number(body.minutes)) ? Number(body.minutes) : tpl.defaultMinutes;
