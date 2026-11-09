@@ -237,7 +237,7 @@ function Remake({ job, jobId }: { job: Job; jobId: string }) {
         <div className="text-[16px] font-semibold">Make one like it</div>
         <div className="text-[11.5px] text-[var(--fg-4)]">{tpl.perMinute * minutes} credits · charged when you approve the plan</div>
       </div>
-      <p className="text-[12.5px] text-[var(--fg-3)] mb-4">Claude studies this video&apos;s look, pace and structure and rebuilds it in code: same feel, new pictures. You read and edit the script before anything is made.</p>
+      <p className="text-[12.5px] text-[var(--fg-3)] mb-4">Claude studies this video&apos;s look, pace and structure, generates new pictures in the same style and builds the explainer graphics and on-screen text itself. You read and edit the script before anything is made.</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
         {([['same', 'Same subject', canSame ? 'Retold in new words, same order and facts' : 'Nothing is said in this video'], ['new', 'My own topic', 'Same style and structure, your subject']] as const).map(([k, t, d]) => (
           <button key={k} type="button" disabled={k === 'same' && !canSame} onClick={() => setMode(k)}

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { longApi } from '@/lib/longServer';
-import { newProjectTemplate, REMAKE_MINUTES, REMAKE_TEMPLATE } from '@/lib/long';
+import { longTemplate, newProjectTemplate, REMAKE_MINUTES, REMAKE_TEMPLATE } from '@/lib/long';
 
 export const maxDuration = 60;
 
@@ -11,11 +11,11 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Please sign in to continue.' }, { status: 401 });
   const body = await request.json().catch(() => ({}));
-  const tpl = newProjectTemplate(String(body.template || ''));
-  if (!tpl) return NextResponse.json({ error: 'Unknown template.' }, { status: 400 });
-  // A remake of an analysed video: Cinecode Film rebuilt in the reference's style (same subject, or the user's topic)
+  // A remake of an analysed video: rebuilt in the reference's style (same subject, or the user's topic) with the remake
+  // engine, which is not on the gallery; everything else must be a listed template
   const analysisId = typeof body.analysis_id === 'string' && /^[0-9a-f-]{36}$/.test(body.analysis_id) ? body.analysis_id : null;
-  if (analysisId && tpl.key !== REMAKE_TEMPLATE) return NextResponse.json({ error: 'Remakes are made with Cinecode Film.' }, { status: 400 });
+  const tpl = analysisId ? longTemplate(REMAKE_TEMPLATE) : newProjectTemplate(String(body.template || ''));
+  if (!tpl) return NextResponse.json({ error: 'Unknown template.' }, { status: 400 });
   const sameTopic = !!analysisId && body.same_topic === true;
   const minutes = (analysisId ? REMAKE_MINUTES : tpl.minutes).includes(Number(body.minutes)) ? Number(body.minutes) : tpl.defaultMinutes;
   const voice = tpl.voices.some(v => v.id === body.voice) ? String(body.voice) : tpl.voices[0]?.id;
