@@ -3,11 +3,12 @@
 export interface LongTemplate {
   key: string; title: string; tagline: string; desc: string; perMinute: number; minutes: number[]; defaultMinutes: number;
   voices: { id: string; label: string }[]; poster: string; ready: boolean; topicHint: string; ideas: string[]; uploads?: boolean;
+  listed?: boolean;   // false: off the gallery and closed to new projects; projects already started keep working
   looks?: { id: string; label: string; desc: string; group?: string }[];
 }
 export const LONG_TEMPLATES: LongTemplate[] = [
   {
-    key: 'flat-explainer', title: 'Flat Explainer', tagline: 'Infographic-style animated explainers',
+    key: 'flat-explainer', listed: false, title: 'Flat Explainer', tagline: 'Infographic-style animated explainers',
     desc: 'Full illustrated places, characters acting every line out, text typed on signs and boards, red X’s, date cards and counters. What-ifs, “why does X happen”, true stories, how things work.',
     perMinute: 250, minutes: [3, 5, 8, 10], defaultMinutes: 5, poster: '/long/flat-explainer.jpg', ready: true,
     topicHint: 'A what-if, a “why does X happen”, a true story or how something works.',
@@ -15,7 +16,7 @@ export const LONG_TEMPLATES: LongTemplate[] = [
     voices: [{ id: 'pt_michael', label: 'Michael' }, { id: 'pt_george', label: 'George' }, { id: 'pt_charles', label: 'Charles' }, { id: 'pt_paul', label: 'Paul' }, { id: 'pt_alba', label: 'Alba' }],
   },
   {
-    key: 'collage-doc-long', title: 'Collage Documentary', tagline: 'True stories from real archive photos',
+    key: 'collage-doc-long', listed: false, title: 'Collage Documentary', tagline: 'True stories from real archive photos',
     desc: 'A real person or event told in chapters over real archive photos: a slow Ken Burns push, cut-outs, documents taped on paper, the real portrait, big words and hand-drawn rings. Every photo credited.',
     perMinute: 200, minutes: [3, 5, 8, 12], defaultMinutes: 5, poster: '/long/collage-doc.jpg', ready: true,
     topicHint: 'A person, an event or a moment in history. A name gets the whole story; add an angle to go deep on one part.',
@@ -23,7 +24,7 @@ export const LONG_TEMPLATES: LongTemplate[] = [
     voices: [{ id: 'pt_michael', label: 'Michael' }, { id: 'pt_george', label: 'George' }, { id: 'pt_charles', label: 'Charles' }, { id: 'pt_paul', label: 'Paul' }, { id: 'pt_alba', label: 'Alba' }],
   },
   {
-    key: 'doc-analysis', title: 'Documentary Analysis', tagline: 'Real footage + AI scenes, analysed',
+    key: 'doc-analysis', listed: false, title: 'Documentary Analysis', tagline: 'Real footage + AI scenes, analysed',
     desc: 'An event, a person or a system unpacked in chapters: real archive footage where it happened, AI scenes for hooks, concepts, maps and reconstructions, with title cards, lower thirds, counters, rings and timelines.',
     perMinute: 220, minutes: [5, 8, 12, 15], defaultMinutes: 8, poster: '/long/doc-analysis.jpg', ready: true, uploads: true,
     topicHint: 'An event, a decision, a company, a person or a system. A question works best (“How did one ship stop world trade?”).',
@@ -60,12 +61,10 @@ export const LONG_TEMPLATES: LongTemplate[] = [
       { group: 'Print', id: 'risograph', label: 'Risograph', desc: 'Two or three spot inks overprinting on warm paper, slightly off register.' },
     ],
   },
-  {
-    key: 'whiteboard-long', title: 'Whiteboard Lesson', tagline: 'A full lesson, drawn live', desc: 'The Whiteboard Explainer, as a 5-15 minute lesson.',
-    perMinute: 0, minutes: [], defaultMinutes: 0, voices: [], poster: '/create/formats/whiteboard.jpg', ready: false, topicHint: '', ideas: [],
-  },
 ];
 export const longTemplate = (k: string) => LONG_TEMPLATES.find(t => t.key === k && t.ready);
+export const LISTED_TEMPLATES = LONG_TEMPLATES.filter(t => t.ready && t.listed !== false);   // only Cinecode Film for now
+export const newProjectTemplate = (k: string) => LISTED_TEMPLATES.find(t => t.key === k);
 
 export interface LongLine { text: string; say?: string; mood?: string; pause?: number }
 export interface LongShot { line: number; at?: string; place: string; cast?: string[]; props?: string[]; action: string; text?: string; marks?: string; show?: string[]; words?: string; ring?: string;
