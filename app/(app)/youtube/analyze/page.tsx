@@ -125,7 +125,7 @@ export default function AnalyzePage() {
                 onChange={e => { const f = e.target.files?.[0]; if (f) { setFile(f); setUrl(''); } }} />
               {file
                 ? <div className="text-[13.5px]"><span className="font-medium">{file.name}</span> <span className="text-[var(--fg-4)]">· {(file.size / 1048576).toFixed(1)} MB</span></div>
-                : <><div className="text-[14px] font-medium">Drop a video here or click to choose</div><div className="text-[12px] text-[var(--fg-4)] mt-1">MP4, MOV, WebM · up to 300 MB · up to 10 minutes</div></>}
+                : <><div className="text-[14px] font-medium">Drop a video here or click to choose</div><div className="text-[12px] text-[var(--fg-4)] mt-1">MP4, MOV, WebM · up to 300 MB · up to 20 minutes</div></>}
             </div>
             <div className="flex items-center gap-3 my-4 text-[11px] text-[var(--fg-4)]"><div className="flex-1 h-px bg-[var(--line)]" />or paste a link<div className="flex-1 h-px bg-[var(--line)]" /></div>
             <input className="ui-input" placeholder="https://… (TikTok, Instagram, YouTube Shorts, direct MP4)" value={url}
@@ -164,7 +164,7 @@ export default function AnalyzePage() {
                 );
               })}
             </div>
-            <p className="text-[12px] text-[var(--fg-4)] mt-5">A 30–60 s reel usually takes 1–3 minutes. You can leave this page and come back.</p>
+            <p className="text-[12px] text-[var(--fg-4)] mt-5">A short reel takes 1–3 minutes, a 20-minute video up to 15. You can leave this page and come back.</p>
           </div>
         )}
 
